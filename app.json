@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "InfinityMobile",
+    "slug": "InfinityMobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.dsas97.InfinityMobile",
+      "usesCleartextTraffic": true,
+      "androidStatusBar": {
+        "barStyle": "dark-content",
+        "backgroundColor": "#ffffff",
+        "translucent": false
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "router": "expo-router",
+    "extra": {
+      "eas": {
+        "projectId": "85374cac-0042-4ca1-8f9d-af1af27c14a0"
+      }
+    }
+  }
+}
