@@ -113,7 +113,7 @@ export const ListaNotaPedidoScreen = () => {
 
     return (
         <ScreenWrapper>
-            <Layout style={styles.container}>
+            <Layout style={styles.containerListaPedido}>
                 {/* Header */}
                 <View style={notaPedidoStyles.header}>
                     <TouchableOpacity
@@ -169,7 +169,7 @@ export const ListaNotaPedidoScreen = () => {
 
                 {/* Tabla encabezado */}
                 <View style={styles.row}>
-                    <Text style={[styles.cell, styles.header]}>Fecha</Text>
+                    <Text style={[styles.cell, styles.header]}>Despachar</Text>
                     <Text style={[styles.cell, styles.header]}>Pedido</Text>
                     <Text style={[styles.cell, styles.header]}>Facturada</Text>
                     <Text style={[styles.cell, styles.header]}>Despachada</Text>
@@ -199,7 +199,11 @@ export const ListaNotaPedidoScreen = () => {
 const styles = StyleSheet.create({
     container: {
         padding: 20,
-        backgroundColor: '#fff',
+        backgroundColor: '#cad7eb', // fff 
+    },
+    containerListaPedido: {
+        padding: 20,
+        backgroundColor: '#dadde3', // fff 
     },
     title: {
         marginBottom: 30,

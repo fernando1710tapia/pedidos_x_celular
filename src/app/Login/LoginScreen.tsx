@@ -27,6 +27,12 @@ export default function LoginScreen() {
     const navigation = useNavigation<NavigationProps>();
     const { setUser } = useUser();
 
+    // FT. PARA INICIALIZAR EL USUARIO A NULL
+    React.useEffect(() => {
+    setUser(null); // Limpia el usuario en memoria
+      }, []);
+
+
     const onLogin = async (data: FormData) => {
         try {
             // Encripta la contraseña con SHA-256
@@ -62,8 +68,8 @@ export default function LoginScreen() {
                     style={loginStyles.image}
                     resizeMode="cover" // O "contain" según el diseño que desees
                 />
-                <Text style={loginStyles.title}>Inicio de Sesión</Text>
-                <Text style={loginStyles.subtitle}>Hola nos alegra saber de ti!</Text>
+                <Text style={loginStyles.title}>Bien venido</Text>
+                <Text style={loginStyles.subtitle}>Nos alegra saber de ti!</Text>
                 <Layout style={loginStyles.formContainer}>
                     <Controller
                         control={control}

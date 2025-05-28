@@ -3,7 +3,7 @@ export const notaPedidoStyles = StyleSheet.create({
     container: {
         flex: 1,  // Ocupar toda la pantalla
         padding: 10,
-        backgroundColor: '#f7f9fc',
+        backgroundColor: '#cad7eb', //f7f9fc 
     },
     scrollContainer: {
         flexGrow: 1,  // Permitir que el contenido se expanda
@@ -34,7 +34,7 @@ export const notaPedidoStyles = StyleSheet.create({
     stepContainer: {
         flex: 1,  // Ocupar el espacio disponible
         padding: 15,
-        backgroundColor: '#fff',
+        backgroundColor: '#dadde3', // fff 
         borderRadius: 8,
         marginHorizontal: 10,
         marginBottom: 20,
@@ -52,6 +52,7 @@ export const notaPedidoStyles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         marginTop: 10,
+        //marginHorizontal: 15,
     },
     calendar: {
         borderRadius: 10,
@@ -62,6 +63,7 @@ export const notaPedidoStyles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginVertical: 10,
+        backgroundColor: '#dadde3', // fff 
     },
     buttonWrapper: {
         flex: 1,
@@ -73,6 +75,7 @@ export const notaPedidoStyles = StyleSheet.create({
     input: {
         marginVertical: 10,
         width: '100%',
+        backgroundColor: '#c4c7cc', // fff  
     },
     textArea: {
         height: 100,
@@ -93,8 +96,25 @@ export const notaPedidoStyles = StyleSheet.create({
     },
     footerButtons: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        justifyContent: "center",
         marginTop: 20,
         paddingHorizontal: 20,
     },
+    footerButtonsft: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  width: '100%',
+  paddingHorizontal: 10,
+  height: 60,
+  //marginHorizontal: 5,
+  //backgroundColor: '#f0f0f0', // Opcional: color de fondo del header
+},
+headerButtonft: {
+  flex: 1,
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 10,
+  marginHorizontal: 5,
+},
 });

@@ -20,6 +20,6 @@ export default function Layout() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f7f9fc', // o el fondo global que quieras
+        backgroundColor: '#CFE0FA', // o el fondo global que quieras #f7f9fc
     },
 });

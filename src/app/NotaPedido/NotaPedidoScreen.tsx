@@ -239,7 +239,7 @@ export default function NotaPedido() {
                         const response = await crearNotaPedido.postNotaPedido(envioNP);
                         if (response !== undefined) {
                             setNpNumber(response.developerMessage);
-                            Alert.alert("Éxito", "Nota de Pedido enviada correctamente");
+                            Alert.alert("Éxito", "Su Pedido se ha registrado");
                         }
                     } else {
                         Alert.alert("Error", "Ingrese una cantidad");
@@ -266,19 +266,35 @@ export default function NotaPedido() {
                         <TouchableOpacity style={notaPedidoStyles.headerButtonLeft} onPress={() => navigation.navigate('ListaNotaPedido')}>
                             <Icon name="eye-outline" size={30} color={theme['color-primary-default']} />
                         </TouchableOpacity>
+                        <Text category="h6">Generaremos sus pedidos</Text>
                         <TouchableOpacity style={notaPedidoStyles.headerButtonRight} onPress={onLogout}>
                             <Icon name="log-out-outline" size={30} color="red" />
                         </TouchableOpacity>
                     </View>
+                    {/*
                     <View style={notaPedidoStyles.header}>
-                        <Text style={notaPedidoStyles.title}>NP: {npNumber}</Text>
+                        <Text style={notaPedidoStyles.title}>Pedido: {npNumber}</Text>
                     </View>
+                    */}
+                    <View style={notaPedidoStyles.header}>
+                        {/*<Text category="h6">{`${comerName}`}</Text>*/}
 
-                    <Text category="h6">{`${comerName} - ${terminalName}`}</Text>
+                        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>
+                            {comerName.toUpperCase()}
+                        </Text>
+                    </View>
+                    {/*<Text category="h6">{`${terminalName}`}</Text>*/}
+                    <Text style={{ fontSize: 15, fontWeight: 'bold' }}>
+                            {terminalName.toLocaleUpperCase()}
+                        </Text>
                     <View style={notaPedidoStyles.divider} />
                     <Text>
-                        <Text category="s1" style={notaPedidoStyles.bold}>{cliName}</Text>
+                        {/*<Text category="h6" >{cliName}</Text>*/}
+                        <Text style={{ fontSize: 15, fontWeight: 'bold' }}>
+                            {cliName.toLocaleUpperCase()}
+                        </Text>
                     </Text>
+                    <View style={notaPedidoStyles.divider} />
 
                     <View style={notaPedidoStyles.calendarContainer}>
                         <Button onPress={setCurrentDate} > Despachar Hoy </Button>
@@ -327,14 +343,14 @@ export default function NotaPedido() {
                         onChangeText={(text) => setCantidad(Number(text.replace(/[^0-9]/g, "")))}
                     />
                     <View style={notaPedidoStyles.footer}>
-                        <Text style={notaPedidoStyles.title}>NP: {npNumber}</Text>
+                        <Text style={notaPedidoStyles.title}>Pedido: {npNumber}</Text>
                     </View>
 
-                    <View style={notaPedidoStyles.footerButtons}>
-                        <Button style={notaPedidoStyles.headerButtonLeft} onPress={handleSubmit}>
+                    <View style={notaPedidoStyles.footerButtonsft}>
+                        <Button style={notaPedidoStyles.headerButtonft} onPress={handleSubmit}>
                             Generar
                         </Button>
-                        <Button style={notaPedidoStyles.headerButtonRight} status="danger" onPress={() => console.log("Cancelar Nota de Pedido")}>
+                        <Button style={notaPedidoStyles.headerButtonft} status="danger" onPress={() => console.log("Cancelar Nota de Pedido")}>
                             Cancelar
                         </Button>
                     </View>
