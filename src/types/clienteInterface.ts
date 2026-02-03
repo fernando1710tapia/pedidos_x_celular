@@ -2,13 +2,14 @@ import { FormapagoInterface } from "./formaPagoInterface";
 import { TerminalInterface } from "./terminalInterface";
 
 export interface ClienteInterface {
-    codigo: string;
+    clientePK: ClientePKInterface;
+    //codigo: string;
     nombre: string;
     estado: boolean;
     codigoarch: string;
     codigostc: string;
     clavestc: string;
-    codigocomercializadora: string;
+    //codigocomercializadora: string;
     ruc: string;
     codigotipocliente: string;
     codigodireccioninen: string;
@@ -47,4 +48,8 @@ export interface ClienteInterface {
 
 export interface CodigoClienteNP {
     codigo: string
+}
+export interface ClientePKInterface {
+    codigocomercializadora: string;
+    codigo: string;
 }

@@ -2,7 +2,7 @@ import { Button, Input, Layout, Text } from '@ui-kitten/components';
 import CryptoJS from 'crypto-js';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Image, TouchableOpacity } from 'react-native';
+import { Alert, Image, TouchableOpacity, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -29,8 +29,9 @@ export default function LoginScreen() {
 
     // FT. PARA INICIALIZAR EL USUARIO A NULL
     React.useEffect(() => {
-    setUser(null); // Limpia el usuario en memoria
-      }, []);
+        setUser(null); // Limpia el usuario en memoria
+        //Alert.alert('Error', 'react.useeffect->setuser(null)');
+    }, []);
 
 
     const onLogin = async (data: FormData) => {
@@ -64,12 +65,14 @@ export default function LoginScreen() {
         <ScreenWrapper>
             <Layout style={loginStyles.container}>
                 <Image
+                    //source={require('../../../assets/logopys.png')} // Cambia la ruta según tu imagen
                     source={require('../../../assets/logo.png')} // Cambia la ruta según tu imagen
+                    //source={require('../../../assets/logofen.png')} // Cambia la ruta según tu imagen
                     style={loginStyles.image}
                     resizeMode="cover" // O "contain" según el diseño que desees
                 />
                 <Text style={loginStyles.title}>Bien venido</Text>
-                <Text style={loginStyles.subtitle}>Nos alegra saber de ti!</Text>
+                <Text style={loginStyles.SubtituloPequeno}>Nos volvemos a encotrar</Text>
                 <Layout style={loginStyles.formContainer}>
                     <Controller
                         control={control}
@@ -80,6 +83,7 @@ export default function LoginScreen() {
                                 style={loginStyles.input}
                                 label="Usuario"
                                 placeholder="Ingrese su usuario"
+                                keyboardType="numeric"
                                 value={value}
                                 onChangeText={onChange}
                                 onBlur={onBlur}
@@ -113,6 +117,15 @@ export default function LoginScreen() {
                         <Text style={loginStyles.forgotPassword}>Olvidé mi contraseña</Text>
                     </TouchableOpacity>
                 </Layout>
+                <View style={loginStyles.footerlogin}>
+                    <Text style={loginStyles.footerText}>esta App es parte de infinityOne</Text>
+                    {/*<Text style={loginStyles.footerTextinfinity}>InfinityOne</Text>*/}
+                    <Image
+                        source={require('../../../assets/logoinfinity.png')}
+                        style={loginStyles.footerLogo}
+                        resizeMode="contain"
+                    />
+                </View>
             </Layout>
         </ScreenWrapper>
     );

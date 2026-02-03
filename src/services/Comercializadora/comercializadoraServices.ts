@@ -5,15 +5,25 @@ import { GlobalServiceInterface } from "../../types";
 const obtenerComercializadoraCliente: GlobalServiceInterface = {
     getResource: async <T>(resource: string, id: string = '', queryParams: Record<string, any> = {}): Promise<T> => {
         try {
-            const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.cliente/${resource}`;
+            //ftft antes del 20260126- const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.cliente/${resource}`;
+            const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.comercializadora/${resource}`;
+  
+            // const queryString = new URLSearchParams(queryParams).toString();
+            // const fullUrl = queryString ? `${url}?${queryString}` : url;
+
+            // console.error('FT-obtenerComercializadoraCliente::URL FINAL LLAMADA:', fullUrl);
+            // console.error('FT-obtenerComercializadoraCliente::PARAMETROS:', queryParams);
+
+  
             const response: AxiosResponse<T> = await axios.get(url, {
                 params: queryParams,
                 timeout: API_CONFIG.TIMEOUT,
                 headers: API_CONFIG.HEADERS,
             });
+            // console.error('FT-obtenerComercializadoraCliente::RESPUESTA:', response.data);
             return response.data;
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('FT::-obtenerComercializadoraCliente-Error fetching data:', error);
             throw error;
         }
     },

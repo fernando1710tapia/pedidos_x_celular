@@ -9,6 +9,7 @@ export interface ProductoResponseInterface {
 }
 
 export interface ClienteproductoPkInterface {
+    codigocomercializadora: string
     codigocliente: string
     codigo: string
 }

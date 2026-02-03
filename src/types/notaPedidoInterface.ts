@@ -1,6 +1,7 @@
 import { CodigoAbastecedoraNP } from "./abastecedoraInterface";
 import { CodigobancoNP } from "./bancoInterface";
 import { CodigoClienteNP } from "./clienteInterface";
+import { ClientePKInterface } from "./clienteInterface";
 import { CodigoComercializadoraNp } from "./comercializadoraInterface";
 import { CodigoterminalNP } from "./terminalInterface";
 
@@ -23,7 +24,9 @@ export interface NotaPedidoInterface {
     tramarecibidaaoe: string;
     usuarioactual: string;
     prefijo: string;
-    codigocliente?: CodigoClienteNP;
+    //codigocliente?: CodigoClienteNP;
+    codigocliente?: ClientePKInterface;
+    codigoclienteId: string;
     codigoterminal?: CodigoterminalNP;
     codigobanco?: CodigobancoNP;
     comercializadora?: CodigoComercializadoraNp;
@@ -35,3 +38,4 @@ export interface NotaPedidoPKInterface {
     codigocomercializadora: string;
     numero: string;
 }
+
