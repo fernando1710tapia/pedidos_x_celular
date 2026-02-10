@@ -5,103 +5,118 @@ import { StyleSheet } from 'react-native';
 export const loginStyles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#f5f7fad8', // Very light background
+        paddingHorizontal: 30,
         justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-        backgroundColor: '#cad7eb',//f7f9fc 
-        width: '100%',
-        position: 'relative',
     },
-    reactLogo: {
-        width: 120,
-        height: 120,
-        marginBottom: 24,
+    headerContainer: {
+        alignItems: 'center',
+        marginBottom: 30,
+        marginTop: 40,
+    },
+    image: {
+        width: 280,
+        height: 80,
         resizeMode: 'contain',
+        marginBottom: 10,
+    },
+    slogan: {
+        fontSize: 9,
+        color: '#A0A0A0',
+        fontWeight: '400',
+        letterSpacing: 0.5,
+        textAlign: 'center',
+        marginTop: 8,
+        textTransform: 'none',
     },
     title: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: 'bold',
-        marginBottom: 2,
-        color: '#000',
-    },
-    subtitle: {
-        fontSize: 18,
-        marginBottom: 20,
+        color: '#1A1A1A',
         textAlign: 'center',
-        color: '#777',
+        marginBottom: 8,
+    },
+    SubtituloPequeno: {
+        fontSize: 15,
+        color: '#9CA3AF',
+        textAlign: 'center',
+        marginBottom: 35,
     },
     formContainer: {
         width: '100%',
-        maxWidth: 400,
-        paddingHorizontal: 20,
-        backgroundColor: '#cad7eb', //f7f9fc
+        backgroundColor: '#f5f7fad8',      // ← Fondo blanco
+        borderRadius: 16,                // ← Bordes redondeados
+        padding: 20,                     // ← Espacio interno
+        // shadowColor: '#000',             // ← Sombra negra
+        // shadowOffset: { width: 0, height: 2 },
+        // shadowOpacity: 0.1,              // ← Sombra suave
+        // shadowRadius: 8,
+        // elevation: 3,                    // ← Elevación para Android
+    },
+    label: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#4B5563',
+        marginBottom: 6,
+        marginLeft: 0,
     },
     input: {
-        marginBottom: 15,
-        backgroundColor: '#dadde3', //f7f9fc
+        backgroundColor: '#FFFFFF',
+        borderColor: 'transparent',
+        borderRadius: 25,
+        marginBottom: 18,
+        // Shadows for iOS
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.03,
+        shadowRadius: 4,
+        elevation: 1,
+    },
+    inputText: {
+        color: '#1A2138',
     },
     button: {
-        marginTop: 15,
+        marginTop: 20,
+        backgroundColor: '#3366FF',
+        borderColor: '#3366FF',
+        borderRadius: 12,
+        paddingVertical: 14,
+        shadowColor: '#3366FF',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 5,
     },
     error: {
-        color: 'red',
-        marginTop: -10,
-        marginBottom: 10,
+        color: '#FF3D71',
         fontSize: 12,
+        marginBottom: 10,
+        marginLeft: 4,
     },
     forgotPassword: {
         textAlign: 'center',
-        color: '#8e44ad',
-        marginTop: 15,
-        fontSize: 14,
+        color: '#3366FF',
+        marginTop: 25,
+        fontSize: 15,
+        fontWeight: '500',
     },
-    SubtituloPequeno: {
-        textAlign: 'center',
-        color: '#000',
-        marginTop: 1,
-        marginBottom: 10,
-        fontSize: 14,
-    },
-    footer: {
-  position: 'absolute',
-  bottom: 30,
-  left: 25,
-  flexDirection: 'row',
-  alignItems: 'center',
-},
-footerlogin: {
-  position: 'absolute',
-  bottom: 20,
-  left: 25,
-  flexDirection: 'row',
-  alignItems: 'center',
-},
-footerText: {
-  fontSize: 8,
-  marginRight: 5,
-  marginLeft: 1,
-  color: '#222c40',
-  fontWeight: 'bold',
-},
-footerTextinfinity: {
-  fontSize: 8,
-  marginRight: 5,
-  marginLeft: 1,
-  color: '#5c9e97',
-  fontWeight: 'bold',
-},
-footerLogo: {
-  width: 25,
-  height: 20,
-  resizeMode: 'contain',
-},
-    image: {
-        width: 300,
-        height: 100,
-        alignSelf:'center',
-        marginBottom: 20,
-        top: 0,
+    footerlogin: {
+        position: 'absolute',
+        bottom: 30,
         left: 0,
         right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    footerText: {
+        fontSize: 12,
+        color: '#8F9BB3',
+        marginRight: 8,
+    },
+    footerLogo: {
+        width: 100,
+        height: 40,
+        // tintColor: '#33C5F6', // Eliminado para ver los colores originales
     },
 });

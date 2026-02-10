@@ -198,8 +198,8 @@ export const ListaNotaPedidoScreen = () => {
                         ))
                     )}
                 </Layout>
-                <View style={loginStyles.footer}>
-                    <Text style={loginStyles.footerText}>esta App es parte de infinityOne</Text>
+                <View style={loginStyles.footerlogin}>
+                    <Text style={loginStyles.footerText}>Esta App es parte de infinityOne</Text>
                     {/*<Text style={loginStyles.footerTextinfinity}>InfinityOne</Text>*/}
                     <Image
                         source={require('../../../assets/logoinfinity.png')}

@@ -22,7 +22,7 @@ type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 export default function NotaPedido() {
     const [cantidad, setCantidad] = useState<number>(0);
     const { user, logout } = useUser();
-    const CheckIcon = (props) => (
+    const CheckIcon = (props: any) => (
         <Icon
             name="happy-outline"
             size={20}
@@ -89,7 +89,7 @@ export default function NotaPedido() {
 
     const handleGetComer = async () => {
         try {
-           // Alert.alert('aviso', 'metodo de buscqueda de comercializadora:. '+user?.codigocomercializadora);
+            // Alert.alert('aviso', 'metodo de buscqueda de comercializadora:. '+user?.codigocomercializadora);
             //console.error('FT::handleGetComer-metodo de buscqueda de comercializadora:.:'+user?.codigocomercializadora );
             const response = await obtenerComercializadoraCliente.getResource<ApiResponse<ComercializadoraInterface>>(
                 'porId',
@@ -103,20 +103,22 @@ export default function NotaPedido() {
                 Alert.alert('Error', 'No hay Comercializadora para mostrar');
             }
         } catch (error) {
-            console.error('FT::handleGetComer-metodo de buscqueda de comercializadora-Hubo un problema al obtener la comercializadora:. '+user?.codigocomercializadora+' error-capturado::. '+error);
-           Alert.alert('Error', 'Hubo un problema al obtener la comercializadora:. '+error);
+            console.error('FT::handleGetComer-metodo de buscqueda de comercializadora-Hubo un problema al obtener la comercializadora:. ' + user?.codigocomercializadora + ' error-capturado::. ' + error);
+            Alert.alert('Error', 'Hubo un problema al obtener la comercializadora:. ' + error);
         }
     };
 
     const handleGetTerminal = async () => {
         try {
-         //    Alert.alert('VER', ' buscando  la Terminal:. ');
+            //    Alert.alert('VER', ' buscando  la Terminal:. ');
             //console.error('FT::handleGetTerminal-metodo de buscqueda de terminal:.:'+user?.codigocomercializadora+' -usuario- .'+user?.codigo );
-             const response = await obtenerTerminalCliente.getResource<ApiResponse<TerminalClienteInterface>>(
+            const response = await obtenerTerminalCliente.getResource<ApiResponse<TerminalClienteInterface>>(
                 'porComercializadoraCliente',
                 '',
-                { codigocomercializadora: user?.codigocomercializadora,
-                    codigo: user?.codigo }
+                {
+                    codigocomercializadora: user?.codigocomercializadora,
+                    codigo: user?.codigo
+                }
             );
             if (response.retorno !== null && response.retorno !== undefined) {
 
@@ -125,7 +127,7 @@ export default function NotaPedido() {
                 Alert.alert('Error', 'No hay Terminal para mostrar');
             }
         } catch (error) {
-            Alert.alert('Error', 'Hubo un problema al obtener la Terminal:. '+ error);
+            Alert.alert('Error', 'Hubo un problema al obtener la Terminal:. ' + error);
         }
     };
 
@@ -137,8 +139,10 @@ export default function NotaPedido() {
             const response = await ProductoServices.getResource<ApiResponse<ProductoResponseInterface>>(
                 'porCliente',
                 '',
-                { codigocomercializadora: user?.codigocomercializadora,
-                    codigocliente: user?.codigo }
+                {
+                    codigocomercializadora: user?.codigocomercializadora,
+                    codigocliente: user?.codigo
+                }
             );
             if (response.retorno !== null && response.retorno !== undefined) {
                 setProducts(response.retorno);
@@ -154,45 +158,45 @@ export default function NotaPedido() {
         setCodProducto(product.codigo);
     }
 
-//    useEffect(() => {
-//            if (user !== null && user !== undefined) {
-//            handleGetComer();
-//            handleGetTerminal();
-//            handleGetProductos();
-//        }
-//    }, [user]);
+    //    useEffect(() => {
+    //            if (user !== null && user !== undefined) {
+    //            handleGetComer();
+    //            handleGetTerminal();
+    //            handleGetProductos();
+    //        }
+    //    }, [user]);
 
-// FT:: 20260202metodo modificado
+    // FT:: 20260202metodo modificado
 
-useEffect(() => {
-    if (!user) return;
+    useEffect(() => {
+        if (!user) return;
 
-    const loadInitialData = async () => {
-        try {
-           // console.error('FT-useEffect-PRINCIPAL::INICIO carga de datos');
+        const loadInitialData = async () => {
+            try {
+                // console.error('FT-useEffect-PRINCIPAL::INICIO carga de datos');
 
-            await handleGetComer();
-            await handleGetTerminal();
-            await handleGetProductos();
+                await handleGetComer();
+                await handleGetTerminal();
+                await handleGetProductos();
 
-            //console.error('FT-useEffect-PRINCIPAL::FIN carga de datos');
+                //console.error('FT-useEffect-PRINCIPAL::FIN carga de datos');
 
-        } catch (err) {
-            console.error(
-                'FT-useEffect-PRINCIPAL::ERROR cargando datos iniciales:',
-                err
-            );
-            Alert.alert(
-                'Error',
-                'No se pudo cargar la información inicial'
-            );
-        }
-    };
+            } catch (err) {
+                console.error(
+                    'FT-useEffect-PRINCIPAL::ERROR cargando datos iniciales:',
+                    err
+                );
+                Alert.alert(
+                    'Error',
+                    'No se pudo cargar la información inicial'
+                );
+            }
+        };
 
-    loadInitialData();
-}, [user]);
+        loadInitialData();
+    }, [user]);
 
-//
+    //
     useEffect(() => {
         if (comercializadora !== undefined && comercializadora !== null) {
             setComerName(comercializadora.nombre);
@@ -223,54 +227,54 @@ useEffect(() => {
     //     }
     // }, [terminalCli])
 
-// FT::-METODO MODIFICADO 20260202
+    // FT::-METODO MODIFICADO 20260202
 
-useEffect(() => {
-    if (!terminalCli) return;
+    useEffect(() => {
+        if (!terminalCli) return;
 
-    try {
-        const notaPedidoList: NotaPedidoInterface[] = [];
-        const clienteList: ClienteInterface[] = [];
+        try {
+            const notaPedidoList: NotaPedidoInterface[] = [];
+            const clienteList: ClienteInterface[] = [];
 
-        const codigoBanco = terminalCli.codigobancodebito?.codigo ?? '';
-        const terminalDefecto = terminalCli.codigoterminaldefecto;
+            const codigoBanco = terminalCli.codigobancodebito?.codigo ?? '';
+            const terminalDefecto = terminalCli.codigoterminaldefecto;
 
-        if (!terminalDefecto?.codigo) {
-            throw new Error('Terminal por defecto no definida');
+            if (!terminalDefecto?.codigo) {
+                throw new Error('Terminal por defecto no definida');
+            }
+
+            const cliName =
+                `${user?.codigo ?? ''} - ${terminalCli.nombrecomercial ?? ''}`;
+
+            setTerminal({
+                codigo: terminalDefecto.codigo,
+                nombre: terminalCli.nombre ?? '',
+                activo: terminalCli.estado ?? false,
+                usuarioactual: user?.nombrever ?? '',
+                notapedidoList: notaPedidoList,
+                clienteList: clienteList,
+            });
+
+            setCodBank(codigoBanco);
+            setCliName(cliName);
+            setTerminalName(terminalDefecto.nombre ?? '');
+
+            //console.error('FT-useEffect-TERMINAL::OK',terminalDefecto.codigo);
+
+        } catch (err) {
+            console.error(
+                'FT-useEffect-TERMINAL::ERROR procesando terminal',
+                err
+            );
         }
-
-        const cliName =
-            `${user?.codigo ?? ''} - ${terminalCli.nombrecomercial ?? ''}`;
-
-        setTerminal({
-            codigo: terminalDefecto.codigo,
-            nombre: terminalCli.nombre ?? '',
-            activo: terminalCli.estado ?? false,
-            usuarioactual: user?.nombrever ?? '',
-            notapedidoList: notaPedidoList,
-            clienteList: clienteList,
-        });
-
-        setCodBank(codigoBanco);
-        setCliName(cliName);
-        setTerminalName(terminalDefecto.nombre ?? '');
-
-        //console.error('FT-useEffect-TERMINAL::OK',terminalDefecto.codigo);
-
-    } catch (err) {
-        console.error(
-            'FT-useEffect-TERMINAL::ERROR procesando terminal',
-            err
-        );
-    }
-}, [terminalCli, user]);
+    }, [terminalCli, user]);
 
 
 
     useEffect(() => {
-        
+
         if (products !== undefined && products !== null) {
-        //    console.error('FT::USEEFFECT-products[0]:. '+products[0].clienteproductoPK.codigo+' -cliente:. '+products[0].cliente.clientePK.codigo);
+            //    console.error('FT::USEEFFECT-products[0]:. '+products[0].clienteproductoPK.codigo+' -cliente:. '+products[0].cliente.clientePK.codigo);
             const codigoCliente = products[0].cliente.clientePK.codigo || '';
             setCodCli(codigoCliente);
         }
@@ -316,7 +320,7 @@ useEffect(() => {
                 usuarioactual: user?.nombrever || "",
                 prefijo: prefijo,
                 //codigocliente: { codigo: codCli },
-                codigoclienteId:  codCli,
+                codigoclienteId: codCli,
                 codigoterminal: { codigo: terminal?.codigo || "" },
                 codigobanco: { codigo: codBank },
                 comercializadora: { codigo: codComer },
@@ -359,8 +363,8 @@ useEffect(() => {
             if (selectedDate !== null) {
                 if (codProducto !== '' && codProducto !== null) {
                     if (cantidad !== 0 && cantidad !== null) {
-                        const response = await crearNotaPedido.postNotaPedido(envioNP);
-                        if (response !== undefined && response !== null ) {
+                        const response = await crearNotaPedido.postNotaPedido<ApiResponse<any>>(envioNP);
+                        if (response !== undefined && response !== null) {
                             setNpNumber(response.developerMessage);
                             Alert.alert("Éxito", "Su Pedido se ha registrado");
                         }
@@ -375,7 +379,7 @@ useEffect(() => {
             }
         } catch (error) {
             console.error("Error al enviar la solicitud:", error);
-            Alert.alert("Error", "No se pudo conectar con el servidor:. "+ error);
+            Alert.alert("Error", "No se pudo conectar con el servidor:. " + error);
         }
     };
 
@@ -441,7 +445,7 @@ useEffect(() => {
                         </Button>
                     </View> 
                     */}
-                    
+
 
                     <View style={notaPedidoStyles.calendarContainer}>
                         <Button
@@ -472,7 +476,7 @@ useEffect(() => {
                         </Button>
                     </View>
 
-                    
+
 
                     <View style={notaPedidoStyles.dateBox}>
                         <Text style={{ fontWeight: 'bold' }}>
@@ -533,8 +537,8 @@ useEffect(() => {
                         </Button>
                     </View>
                 </Layout>
-                <View style={loginStyles.footer}>
-                    <Text style={loginStyles.footerText}>esta App es parte de infinityOne</Text>
+                <View style={loginStyles.footerlogin}>
+                    <Text style={loginStyles.footerText}>Esta App es parte de infinityOne</Text>
                     {/*<Text style={loginStyles.footerTextinfinity}>InfinityOne</Text>*/}
                     <Image
                         source={require('../../../assets/logoinfinity.png')}
