@@ -11,6 +11,7 @@ import { UserProvider } from './src/context/UserContext';
 import { RootStackParamList } from './src/types/navigation'; // Importa los tipos
 import RecuperarClaveScreen from './src/app/Login/RecuperarClaveScreen';
 import { ListaNotaPedidoScreen } from './src/app/NotaPedido/ListaNotaPedidoScreen';
+import MenuOperativoScreen from './src/app/MenuOperativo/MenuOperativoScreen';
 
 
 const Stack = createStackNavigator<RootStackParamList>(); // ✅ Tipado del Stack
@@ -22,8 +23,8 @@ export default function App() {
       <ApplicationProvider {...eva} theme={eva.light}>
         <UserProvider>
           <ThemeProvider>
-            <NavigationContainer> 
-              <Stack.Navigator 
+            <NavigationContainer>
+              <Stack.Navigator
                 initialRouteName="Login"
                 screenOptions={{ headerShown: false }}
               >
@@ -31,6 +32,7 @@ export default function App() {
                 <Stack.Screen name="RecuperarClave" component={RecuperarClaveScreen} />
                 <Stack.Screen name="NotaPedido" component={NotaPedidoScreen} />
                 <Stack.Screen name="ListaNotaPedido" component={ListaNotaPedidoScreen} />
+                <Stack.Screen name="MenuOperativo" component={MenuOperativoScreen} />
               </Stack.Navigator>
             </NavigationContainer>
           </ThemeProvider>

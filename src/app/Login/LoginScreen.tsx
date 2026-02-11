@@ -72,7 +72,14 @@ export default function LoginScreen() {
                 if (encryptedPassword === CryptoJS.SHA256(API_CONFIG.FIRST_ACCES).toString(CryptoJS.enc.Hex)) {
                     navigation.navigate('RecuperarClave');
                 } else {
-                    navigation.navigate('NotaPedido');
+                    // Validar si el usuario tiene exactamente 8 dígitos numéricos
+                    const isEightDigitUser = /^\d{8}$/.test(data.username);
+
+                    if (isEightDigitUser) {
+                        navigation.navigate('MenuOperativo');
+                    } else {
+                        navigation.navigate('NotaPedido');
+                    }
                 }
             } else {
                 Alert.alert('Error', 'Usuario o contraseña incorrectos');

@@ -79,7 +79,7 @@ export const loginStyles = StyleSheet.create({
         marginTop: 20,
         backgroundColor: '#3366FF',
         borderColor: '#3366FF',
-        borderRadius: 12,
+        borderRadius: 25,
         paddingVertical: 14,
         shadowColor: '#3366FF',
         shadowOffset: { width: 0, height: 4 },

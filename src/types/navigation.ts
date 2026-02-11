@@ -4,4 +4,5 @@ export type RootStackParamList = {
     NotaPedido: undefined;
     RecuperarClave: undefined;
     ListaNotaPedido: undefined;
+    MenuOperativo: undefined;
 };
