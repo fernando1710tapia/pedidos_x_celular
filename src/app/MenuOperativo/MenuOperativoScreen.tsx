@@ -22,14 +22,21 @@ export default function MenuOperativoScreen() {
         });
     }
 
-    const MenuButton = ({ title, iconName, onPress }: { title: string, iconName: string, onPress: () => void }) => (
-        <TouchableOpacity style={styles.menuButton} onPress={onPress}>
-            <View style={styles.iconContainer}>
-                <Icon name={iconName} size={30} color="#1565C0" />
+    const MenuButton = ({ title, iconName, onPress, disabled = false }: { title: string, iconName: string, onPress: () => void, disabled?: boolean }) => (
+        <TouchableOpacity
+            style={[styles.menuButton, disabled && styles.menuButtonDisabled]}
+            onPress={disabled ? undefined : onPress}
+            disabled={disabled}
+        >
+            <View style={[styles.iconContainer, disabled && styles.iconContainerDisabled]}>
+                <Icon name={iconName} size={30} color={disabled ? "#A0A0A0" : "#1565C0"} />
             </View>
-            <Text style={styles.menuButtonText}>{title}</Text>
+            <Text style={[styles.menuButtonText, disabled && styles.menuButtonTextDisabled]}>{title}</Text>
         </TouchableOpacity>
     );
+
+    // Verificar si el usuario tiene 8 dígitos
+    const isEightDigitUser = user?.codigo ? /^\d{8}$/.test(user.codigo) : false;
 
     return (
         <ScreenWrapper>
@@ -78,6 +85,7 @@ export default function MenuOperativoScreen() {
                             title="Observa el volumen total"
                             iconName="bar-chart-outline"
                             onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
+                            disabled={isEightDigitUser}
                         />
                         <MenuButton
                             title="Valida tus sellos"
@@ -91,7 +99,7 @@ export default function MenuOperativoScreen() {
                 <View style={styles.footer}>
                     <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
                         <Icon name="log-out-outline" size={24} color="#374151" style={styles.logoutIcon} />
-                        <Text style={styles.logoutText}>Salir</Text>
+                        <Text style={styles.logoutText}>Cerrar sesión</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -202,5 +210,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#374151',
+    },
+    menuButtonDisabled: {
+        backgroundColor: '#F3F4F6', // Un gris más claro para indicar deshabilitado
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        shadowOpacity: 0, // Sin sombra
+        elevation: 0,
+    },
+    iconContainerDisabled: {
+        backgroundColor: '#E5E7EB', // Gris claro para el fondo del icono
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    menuButtonTextDisabled: {
+        color: '#9CA3AF', // Gris para el texto
     },
 });

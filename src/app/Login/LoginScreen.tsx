@@ -69,13 +69,22 @@ export default function LoginScreen() {
             if (response.retorno !== null && response.retorno !== undefined) {
                 const user = response.retorno.length > 0 ? response.retorno[0] : null;
                 setUser(user);
+
                 if (encryptedPassword === CryptoJS.SHA256(API_CONFIG.FIRST_ACCES).toString(CryptoJS.enc.Hex)) {
                     navigation.navigate('RecuperarClave');
                 } else {
-                    // Validar si el usuario tiene exactamente 8 dígitos numéricos
-                    const isEightDigitUser = /^\d{8}$/.test(data.username);
+                    const hasComercializadora = user?.codigocomercializadora != null && String(user.codigocomercializadora).trim() !== '';
+                    if (!hasComercializadora) {
+                        Alert.alert(
+                            'Aviso',
+                            'Su usuario no tiene comercializadora asignada. No podrá generar ni revisar pedidos hasta que un administrador le asigne una. Contacte al administrador.'
+                        );
+                    }
 
-                    if (isEightDigitUser) {
+                    const isEightDigitUser = /^\d{8}$/.test(data.username);
+                    const isAlphabeticUser = /[a-zA-Z]/.test(data.username);
+
+                    if (isEightDigitUser || isAlphabeticUser) {
                         navigation.navigate('MenuOperativo');
                     } else {
                         navigation.navigate('NotaPedido');
@@ -116,7 +125,7 @@ export default function LoginScreen() {
                                     style={loginStyles.input}
                                     placeholder="Ingrese su usuario"
                                     placeholderTextColor="#C5CEE0"
-                                    keyboardType="numeric"
+                                    keyboardType="default"
                                     accessoryLeft={renderPersonIcon}
                                     value={value}
                                     onChangeText={onChange}

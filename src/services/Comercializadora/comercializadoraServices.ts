@@ -22,8 +22,10 @@ const obtenerComercializadoraCliente: GlobalServiceInterface = {
             });
             // console.error('FT-obtenerComercializadoraCliente::RESPUESTA:', response.data);
             return response.data;
-        } catch (error) {
-            console.error('FT::-obtenerComercializadoraCliente-Error fetching data:', error);
+        } catch (error: any) {
+            const status = error?.response?.status;
+            const data = error?.response?.data;
+            console.error('FT::-obtenerComercializadoraCliente-Error:', status, data || error?.message);
             throw error;
         }
     },
