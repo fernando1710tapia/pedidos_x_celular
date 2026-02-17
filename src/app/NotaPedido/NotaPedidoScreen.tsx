@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Input, Layout, Text, useTheme } from '@ui-kitten/components';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, TouchableOpacity, View, Image, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -56,10 +56,12 @@ export default function NotaPedido() {
     const [allClientes, setAllClientes] = useState<TerminalClienteInterface[]>([]);
     const [selectedCliente, setSelectedCliente] = useState<TerminalClienteInterface | null>(null);
     const [showClienteDropdown, setShowClienteDropdown] = useState<boolean>(false);
+    const [clienteSearchText, setClienteSearchText] = useState<string>('');
     // Terminal combo (admin): lista de terminales del cliente seleccionado
     const [terminalesList, setTerminalesList] = useState<{ codigo: string; nombre: string }[]>([]);
     const [selectedTerminal, setSelectedTerminal] = useState<{ codigo: string; nombre: string } | null>(null);
     const [showTerminalDropdown, setShowTerminalDropdown] = useState<boolean>(false);
+    const [terminalSearchText, setTerminalSearchText] = useState<string>('');
     const [loadingTerminales, setLoadingTerminales] = useState<boolean>(false);
 
     // Sin comercializadora asignada: no se hacen llamadas al API
@@ -144,6 +146,13 @@ export default function NotaPedido() {
         }
     };
 
+    // Normaliza un ítem de cliente: el API puede devolver codigo en raíz o en clientePK
+    const normalizeCliente = (c: TerminalClienteInterface & { clientePK?: { codigo?: string }; nombre?: string }): TerminalClienteInterface => ({
+        ...c,
+        codigo: c.codigo ?? c.clientePK?.codigo ?? '',
+        nombrecomercial: c.nombrecomercial ?? c.nombre ?? '',
+    });
+
     // Nuevo método para obtener todos los clientes (para administradores)
     const handleGetAllClientes = async () => {
         try {
@@ -155,7 +164,8 @@ export default function NotaPedido() {
                 }
             );
             if (response.retorno !== null && response.retorno !== undefined) {
-                setAllClientes(response.retorno);
+                const normalized = response.retorno.map((c: any) => normalizeCliente(c));
+                setAllClientes(normalized);
             } else {
                 Alert.alert('Error', 'No hay clientes disponibles');
             }
@@ -168,6 +178,7 @@ export default function NotaPedido() {
     const handleSelectCliente = async (cliente: TerminalClienteInterface) => {
         setSelectedCliente(cliente);
         setShowClienteDropdown(false);
+        setClienteSearchText('');
         setShowTerminalDropdown(false);
 
         // Actualizar estados con los datos del cliente seleccionado
@@ -209,6 +220,7 @@ export default function NotaPedido() {
     const handleSelectTerminal = (term: { codigo: string; nombre: string }) => {
         setSelectedTerminal(term);
         setShowTerminalDropdown(false);
+        setTerminalSearchText('');
         setTerminalName(term.nombre);
         setTerminal((prev) => prev ? { ...prev, codigo: term.codigo, nombre: term.nombre } : {
             codigo: term.codigo,
@@ -281,6 +293,27 @@ export default function NotaPedido() {
     const handleSelectProduct = (product: ProductoInterface) => {
         setCodProducto(product.codigo);
     }
+
+    // Lista de clientes filtrada por búsqueda (código o nombre)
+    const filteredClientes = useMemo(() => {
+        const q = (clienteSearchText ?? '').trim().toLowerCase();
+        if (!q) return allClientes;
+        return allClientes.filter((c) => {
+            const cod = (c.codigo ?? '').toLowerCase();
+            const nom = (c.nombrecomercial ?? '').toLowerCase();
+            return cod.includes(q) || nom.includes(q);
+        });
+    }, [allClientes, clienteSearchText]);
+
+    const filteredTerminales = useMemo(() => {
+        const q = (terminalSearchText ?? '').trim().toLowerCase();
+        if (!q) return terminalesList;
+        return terminalesList.filter((t) => {
+            const cod = (t.codigo ?? '').toLowerCase();
+            const nom = (t.nombre ?? '').toLowerCase();
+            return cod.includes(q) || nom.includes(q);
+        });
+    }, [terminalesList, terminalSearchText]);
 
     //    useEffect(() => {
     //            if (user !== null && user !== undefined) {
@@ -584,6 +617,7 @@ export default function NotaPedido() {
                                     style={styles.clienteSelectorButton}
                                     onPress={() => {
                                         setShowTerminalDropdown(false);
+                                        if (!showClienteDropdown) setClienteSearchText('');
                                         setShowClienteDropdown(!showClienteDropdown);
                                     }}
                                 >
@@ -595,7 +629,7 @@ export default function NotaPedido() {
                                             <Text style={styles.infoLabel}>CLIENTE</Text>
                                             <Text style={styles.infoValue}>
                                                 {selectedCliente 
-                                                    ? `${selectedCliente.codigo} - ${selectedCliente.nombrecomercial}`
+                                                    ? `${selectedCliente.codigo ?? ''} - ${selectedCliente.nombrecomercial ?? ''}`
                                                     : 'Seleccione un cliente...'}
                                             </Text>
                                         </View>
@@ -609,21 +643,40 @@ export default function NotaPedido() {
 
                                 {showClienteDropdown && (
                                     <View style={styles.clienteDropdown}>
-                                        <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true}>
-                                            {allClientes.map((cliente, index) => (
-                                                <TouchableOpacity
-                                                    key={index}
-                                                    style={[
-                                                        styles.clienteDropdownItem,
-                                                        selectedCliente?.codigo === cliente.codigo && styles.clienteDropdownItemSelected
-                                                    ]}
-                                                    onPress={() => handleSelectCliente(cliente)}
-                                                >
-                                                    <Text style={styles.clienteDropdownItemText}>
-                                                        {cliente.codigo} - {cliente.nombrecomercial}
+                                        <View style={styles.clienteSearchWrapper}>
+                                            <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
+                                            <Input
+                                                style={styles.clienteSearchInput}
+                                                placeholder="Buscar por código o nombre..."
+                                                value={clienteSearchText}
+                                                onChangeText={setClienteSearchText}
+                                                autoCapitalize="none"
+                                                autoCorrect={false}
+                                            />
+                                        </View>
+                                        <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                            {filteredClientes.length === 0 ? (
+                                                <View style={styles.clienteDropdownLoading}>
+                                                    <Text style={styles.clienteDropdownLoadingText}>
+                                                        {clienteSearchText.trim() ? 'No hay clientes que coincidan' : 'No hay clientes'}
                                                     </Text>
-                                                </TouchableOpacity>
-                                            ))}
+                                                </View>
+                                            ) : (
+                                                filteredClientes.map((cliente, index) => (
+                                                    <TouchableOpacity
+                                                        key={cliente.codigo ?? index}
+                                                        style={[
+                                                            styles.clienteDropdownItem,
+                                                            selectedCliente?.codigo === cliente.codigo && styles.clienteDropdownItemSelected
+                                                        ]}
+                                                        onPress={() => handleSelectCliente(cliente)}
+                                                    >
+                                                        <Text style={styles.clienteDropdownItemText}>
+                                                            {cliente.codigo ?? ''} - {cliente.nombrecomercial ?? ''}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                ))
+                                            )}
                                         </ScrollView>
                                     </View>
                                 )}
@@ -636,6 +689,7 @@ export default function NotaPedido() {
                                         if (!selectedCliente) return;
                                         setShowClienteDropdown(false);
                                         if (!showTerminalDropdown) {
+                                            setTerminalSearchText('');
                                             setShowTerminalDropdown(true);
                                             setLoadingTerminales(true);
                                             await fetchTerminalesPorCliente();
@@ -677,27 +731,48 @@ export default function NotaPedido() {
                                             </View>
                                         ) : (
                                             <>
-                                                {terminalesList.length > 0 ? (
-                                                    <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true}>
-                                                        {terminalesList.map((term, index) => (
-                                                            <TouchableOpacity
-                                                                key={index}
-                                                                style={[
-                                                                    styles.clienteDropdownItem,
-                                                                    selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
-                                                                ]}
-                                                                onPress={() => handleSelectTerminal(term)}
-                                                            >
-                                                                <Text style={styles.clienteDropdownItemText}>
-                                                                    {term.codigo} - {term.nombre}
-                                                                </Text>
-                                                            </TouchableOpacity>
-                                                        ))}
-                                                    </ScrollView>
-                                                ) : (
+                                                {terminalesList.length > 0 && (
+                                                    <View style={styles.clienteSearchWrapper}>
+                                                        <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
+                                                        <Input
+                                                            style={styles.clienteSearchInput}
+                                                            placeholder="Buscar por código o nombre..."
+                                                            value={terminalSearchText}
+                                                            onChangeText={setTerminalSearchText}
+                                                            autoCapitalize="none"
+                                                            autoCorrect={false}
+                                                        />
+                                                    </View>
+                                                )}
+                                                {terminalesList.length === 0 ? (
                                                     <View style={styles.clienteDropdownLoading}>
                                                         <Text style={styles.clienteDropdownLoadingText}>No hay terminales disponibles</Text>
                                                     </View>
+                                                ) : (
+                                                    <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                                        {filteredTerminales.length === 0 ? (
+                                                            <View style={styles.clienteDropdownLoading}>
+                                                                <Text style={styles.clienteDropdownLoadingText}>
+                                                                    {terminalSearchText.trim() ? 'No hay terminales que coincidan' : 'No hay terminales'}
+                                                                </Text>
+                                                            </View>
+                                                        ) : (
+                                                            filteredTerminales.map((term, index) => (
+                                                                <TouchableOpacity
+                                                                    key={term.codigo ?? index}
+                                                                    style={[
+                                                                        styles.clienteDropdownItem,
+                                                                        selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
+                                                                    ]}
+                                                                    onPress={() => handleSelectTerminal(term)}
+                                                                >
+                                                                    <Text style={styles.clienteDropdownItemText}>
+                                                                        {term.codigo} - {term.nombre}
+                                                                    </Text>
+                                                                </TouchableOpacity>
+                                                            ))
+                                                        )}
+                                                    </ScrollView>
                                                 )}
                                             </>
                                         )}
@@ -706,17 +781,28 @@ export default function NotaPedido() {
                             </>
                         )}
 
-                        {/* Terminal (solo usuario no admin): fila fija */}
+                        {/* Cliente y Terminal (solo usuario 8 dígitos): filas fijas de solo lectura */}
                         {!isAdmin && (
-                            <View style={styles.infoRow}>
-                                <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
-                                    <Icon name="business" size={20} color="#3B82F6" />
+                            <>
+                                <View style={[styles.infoRow, styles.infoRowClienteTerminalSpacing]}>
+                                    <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                        <Icon name="person" size={20} color="#3B82F6" />
+                                    </View>
+                                    <View style={styles.infoTextContainer}>
+                                        <Text style={styles.infoLabel}>CLIENTE</Text>
+                                        <Text style={styles.infoValue}>{cliName || 'CARGANDO...'}</Text>
+                                    </View>
                                 </View>
-                                <View style={styles.infoTextContainer}>
-                                    <Text style={styles.infoLabel}>TERMINAL</Text>
-                                    <Text style={styles.infoValue}>{terminalName || 'CARGANDO...'}</Text>
+                                <View style={styles.infoRow}>
+                                    <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                        <Icon name="business" size={20} color="#3B82F6" />
+                                    </View>
+                                    <View style={styles.infoTextContainer}>
+                                        <Text style={styles.infoLabel}>TERMINAL</Text>
+                                        <Text style={styles.infoValue}>{terminalName || 'CARGANDO...'}</Text>
+                                    </View>
                                 </View>
-                            </View>
+                            </>
                         )}
 
                         {/* Date Selection */}
@@ -919,6 +1005,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    infoRowClienteTerminalSpacing: {
+        marginBottom: 16,
+    },
     iconCircle: {
         width: 40,
         height: 40,
@@ -954,6 +1043,7 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#9CA3AF',
         marginBottom: 10,
+        marginTop: 7,
         letterSpacing: 0.5,
         textTransform: 'uppercase',
     },
@@ -1167,15 +1257,32 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         backgroundColor: '#FFFFFF',
         marginBottom: 20,
-        maxHeight: 250,
+        maxHeight: 300,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
     },
+    clienteSearchWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    clienteSearchIcon: {
+        marginRight: 8,
+    },
+    clienteSearchInput: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+        borderWidth: 0,
+        minHeight: 40,
+    },
     clienteDropdownScroll: {
-        maxHeight: 248,
+        maxHeight: 240,
     },
     clienteDropdownLoading: {
         padding: 24,
