@@ -444,8 +444,8 @@ export default function NotaPedido() {
 
         if (products !== undefined && products !== null && products.length > 0) {
             //    console.error('FT::USEEFFECT-products[0]:. '+products[0].clienteproductoPK.codigo+' -cliente:. '+products[0].cliente.clientePK.codigo);
-            const codigoCliente = isAdmin && selectedCliente 
-                ? selectedCliente.codigo 
+            const codigoCliente = isAdmin && selectedCliente
+                ? selectedCliente.codigo
                 : products[0].cliente.clientePK.codigo || '';
             setCodCli(codigoCliente);
         }
@@ -461,7 +461,7 @@ export default function NotaPedido() {
 
     const handleSubmit = async () => {
         try {
-            
+
             // Validar que se haya seleccionado un cliente si es administrador
             if (isAdmin && !selectedCliente) {
                 Alert.alert("Error", "Debe seleccionar un cliente primero");
@@ -543,7 +543,7 @@ export default function NotaPedido() {
                         const response = await crearNotaPedido.postNotaPedido<ApiResponse<any>>(envioNP);
                         if (response !== undefined && response !== null) {
                             setNpNumber(response.developerMessage);
-                            Alert.alert("Éxito", "Su Pedido se ha registrado");
+                            Alert.alert("Éxito", `Su pedido ha sido registrado correctamente.\nEl número de pedido es: ${response.developerMessage}`);
                         }
                     } else {
                         Alert.alert("Error", "Ingrese una cantidad");
@@ -577,7 +577,19 @@ export default function NotaPedido() {
                         />
                         <Text style={styles.headerSubtitle}>GENERAR PEDIDO</Text>
                     </View>
-                    <TouchableOpacity onPress={() => navigation.navigate('ListaNotaPedido')} style={styles.navButton}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (isAdmin && selectedCliente) {
+                                navigation.navigate('ListaNotaPedido', {
+                                    codigocliente: selectedCliente.codigo,
+                                    nombreCliente: selectedCliente.nombrecomercial || selectedCliente.nombre
+                                });
+                            } else {
+                                navigation.navigate('ListaNotaPedido', {});
+                            }
+                        }}
+                        style={styles.navButton}
+                    >
                         <Icon name="eye-outline" size={28} color="#6B7280" />
                     </TouchableOpacity>
                 </View>
@@ -609,302 +621,302 @@ export default function NotaPedido() {
                             </View>
                         ) : (
                             <>
-                        {/* Selector de Cliente (Solo para administradores) */}
-                        {isAdmin && (
-                            <>
-                                <Text style={styles.sectionTitle}>SELECCIONE UN CLIENTE</Text>
-                                <TouchableOpacity
-                                    style={styles.clienteSelectorButton}
-                                    onPress={() => {
-                                        setShowTerminalDropdown(false);
-                                        if (!showClienteDropdown) setClienteSearchText('');
-                                        setShowClienteDropdown(!showClienteDropdown);
-                                    }}
-                                >
-                                    <View style={styles.clienteSelectorContent}>
-                                        <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
-                                            <Icon name="person" size={20} color="#3B82F6" />
-                                        </View>
-                                        <View style={styles.clienteSelectorText}>
-                                            <Text style={styles.infoLabel}>CLIENTE</Text>
-                                            <Text style={styles.infoValue}>
-                                                {selectedCliente 
-                                                    ? `${selectedCliente.codigo ?? ''} - ${selectedCliente.nombrecomercial ?? ''}`
-                                                    : 'Seleccione un cliente...'}
-                                            </Text>
-                                        </View>
-                                        <Icon 
-                                            name={showClienteDropdown ? "chevron-up" : "chevron-down"} 
-                                            size={24} 
-                                            color="#9CA3AF" 
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-
-                                {showClienteDropdown && (
-                                    <View style={styles.clienteDropdown}>
-                                        <View style={styles.clienteSearchWrapper}>
-                                            <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
-                                            <Input
-                                                style={styles.clienteSearchInput}
-                                                placeholder="Buscar por código o nombre..."
-                                                value={clienteSearchText}
-                                                onChangeText={setClienteSearchText}
-                                                autoCapitalize="none"
-                                                autoCorrect={false}
-                                            />
-                                        </View>
-                                        <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
-                                            {filteredClientes.length === 0 ? (
-                                                <View style={styles.clienteDropdownLoading}>
-                                                    <Text style={styles.clienteDropdownLoadingText}>
-                                                        {clienteSearchText.trim() ? 'No hay clientes que coincidan' : 'No hay clientes'}
+                                {/* Selector de Cliente (Solo para administradores) */}
+                                {isAdmin && (
+                                    <>
+                                        <Text style={styles.sectionTitle}>SELECCIONE UN CLIENTE</Text>
+                                        <TouchableOpacity
+                                            style={styles.clienteSelectorButton}
+                                            onPress={() => {
+                                                setShowTerminalDropdown(false);
+                                                if (!showClienteDropdown) setClienteSearchText('');
+                                                setShowClienteDropdown(!showClienteDropdown);
+                                            }}
+                                        >
+                                            <View style={styles.clienteSelectorContent}>
+                                                <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                                    <Icon name="person" size={20} color="#3B82F6" />
+                                                </View>
+                                                <View style={styles.clienteSelectorText}>
+                                                    <Text style={styles.infoLabel}>CLIENTE</Text>
+                                                    <Text style={styles.infoValue}>
+                                                        {selectedCliente
+                                                            ? `${selectedCliente.codigo ?? ''} - ${selectedCliente.nombrecomercial ?? ''}`
+                                                            : 'Seleccione un cliente...'}
                                                     </Text>
                                                 </View>
-                                            ) : (
-                                                filteredClientes.map((cliente, index) => (
-                                                    <TouchableOpacity
-                                                        key={cliente.codigo ?? index}
-                                                        style={[
-                                                            styles.clienteDropdownItem,
-                                                            selectedCliente?.codigo === cliente.codigo && styles.clienteDropdownItemSelected
-                                                        ]}
-                                                        onPress={() => handleSelectCliente(cliente)}
-                                                    >
-                                                        <Text style={styles.clienteDropdownItemText}>
-                                                            {cliente.codigo ?? ''} - {cliente.nombrecomercial ?? ''}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                ))
-                                            )}
-                                        </ScrollView>
-                                    </View>
-                                )}
-
-                                {/* Combo Terminal (admin): se puebla con la terminal del cliente; se puede cambiar */}
-                                <Text style={styles.sectionTitle}>TERMINAL</Text>
-                                <TouchableOpacity
-                                    style={[styles.clienteSelectorButton, (!selectedCliente || loadingTerminales) && styles.clienteSelectorButtonDisabled]}
-                                    onPress={async () => {
-                                        if (!selectedCliente) return;
-                                        setShowClienteDropdown(false);
-                                        if (!showTerminalDropdown) {
-                                            setTerminalSearchText('');
-                                            setShowTerminalDropdown(true);
-                                            setLoadingTerminales(true);
-                                            await fetchTerminalesPorCliente();
-                                        } else {
-                                            setShowTerminalDropdown(false);
-                                        }
-                                    }}
-                                    disabled={!selectedCliente || loadingTerminales}
-                                >
-                                    <View style={styles.clienteSelectorContent}>
-                                        <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
-                                            <Icon name="business-outline" size={20} color="#3B82F6" />
-                                        </View>
-                                        <View style={styles.clienteSelectorText}>
-                                            <Text style={styles.infoLabel}>TERMINAL</Text>
-                                            <Text style={styles.infoValue}>
-                                                {loadingTerminales
-                                                    ? 'Cargando terminales...'
-                                                    : selectedTerminal
-                                                        ? `${selectedTerminal.codigo} - ${selectedTerminal.nombre}`
-                                                        : selectedCliente
-                                                            ? 'Seleccione terminal...'
-                                                            : 'Seleccione un cliente primero'}
-                                            </Text>
-                                        </View>
-                                        <Icon
-                                            name={showTerminalDropdown ? 'chevron-up' : 'chevron-down'}
-                                            size={24}
-                                            color="#9CA3AF"
-                                        />
-                                    </View>
-                                </TouchableOpacity>
-
-                                {showTerminalDropdown && (
-                                    <View style={styles.clienteDropdown}>
-                                        {loadingTerminales ? (
-                                            <View style={styles.clienteDropdownLoading}>
-                                                <Text style={styles.clienteDropdownLoadingText}>Cargando terminales...</Text>
+                                                <Icon
+                                                    name={showClienteDropdown ? "chevron-up" : "chevron-down"}
+                                                    size={24}
+                                                    color="#9CA3AF"
+                                                />
                                             </View>
-                                        ) : (
-                                            <>
-                                                {terminalesList.length > 0 && (
-                                                    <View style={styles.clienteSearchWrapper}>
-                                                        <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
-                                                        <Input
-                                                            style={styles.clienteSearchInput}
-                                                            placeholder="Buscar por código o nombre..."
-                                                            value={terminalSearchText}
-                                                            onChangeText={setTerminalSearchText}
-                                                            autoCapitalize="none"
-                                                            autoCorrect={false}
-                                                        />
-                                                    </View>
-                                                )}
-                                                {terminalesList.length === 0 ? (
+                                        </TouchableOpacity>
+
+                                        {showClienteDropdown && (
+                                            <View style={styles.clienteDropdown}>
+                                                <View style={styles.clienteSearchWrapper}>
+                                                    <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
+                                                    <Input
+                                                        style={styles.clienteSearchInput}
+                                                        placeholder="Buscar por código o nombre..."
+                                                        value={clienteSearchText}
+                                                        onChangeText={setClienteSearchText}
+                                                        autoCapitalize="none"
+                                                        autoCorrect={false}
+                                                    />
+                                                </View>
+                                                <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                                    {filteredClientes.length === 0 ? (
+                                                        <View style={styles.clienteDropdownLoading}>
+                                                            <Text style={styles.clienteDropdownLoadingText}>
+                                                                {clienteSearchText.trim() ? 'No hay clientes que coincidan' : 'No hay clientes'}
+                                                            </Text>
+                                                        </View>
+                                                    ) : (
+                                                        filteredClientes.map((cliente, index) => (
+                                                            <TouchableOpacity
+                                                                key={cliente.codigo ?? index}
+                                                                style={[
+                                                                    styles.clienteDropdownItem,
+                                                                    selectedCliente?.codigo === cliente.codigo && styles.clienteDropdownItemSelected
+                                                                ]}
+                                                                onPress={() => handleSelectCliente(cliente)}
+                                                            >
+                                                                <Text style={styles.clienteDropdownItemText}>
+                                                                    {cliente.codigo ?? ''} - {cliente.nombrecomercial ?? ''}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        ))
+                                                    )}
+                                                </ScrollView>
+                                            </View>
+                                        )}
+
+                                        {/* Combo Terminal (admin): se puebla con la terminal del cliente; se puede cambiar */}
+                                        <Text style={styles.sectionTitle}>TERMINAL</Text>
+                                        <TouchableOpacity
+                                            style={[styles.clienteSelectorButton, (!selectedCliente || loadingTerminales) && styles.clienteSelectorButtonDisabled]}
+                                            onPress={async () => {
+                                                if (!selectedCliente) return;
+                                                setShowClienteDropdown(false);
+                                                if (!showTerminalDropdown) {
+                                                    setTerminalSearchText('');
+                                                    setShowTerminalDropdown(true);
+                                                    setLoadingTerminales(true);
+                                                    await fetchTerminalesPorCliente();
+                                                } else {
+                                                    setShowTerminalDropdown(false);
+                                                }
+                                            }}
+                                            disabled={!selectedCliente || loadingTerminales}
+                                        >
+                                            <View style={styles.clienteSelectorContent}>
+                                                <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                                    <Icon name="business-outline" size={20} color="#3B82F6" />
+                                                </View>
+                                                <View style={styles.clienteSelectorText}>
+                                                    <Text style={styles.infoLabel}>TERMINAL</Text>
+                                                    <Text style={styles.infoValue}>
+                                                        {loadingTerminales
+                                                            ? 'Cargando terminales...'
+                                                            : selectedTerminal
+                                                                ? `${selectedTerminal.codigo} - ${selectedTerminal.nombre}`
+                                                                : selectedCliente
+                                                                    ? 'Seleccione terminal...'
+                                                                    : 'Seleccione un cliente primero'}
+                                                    </Text>
+                                                </View>
+                                                <Icon
+                                                    name={showTerminalDropdown ? 'chevron-up' : 'chevron-down'}
+                                                    size={24}
+                                                    color="#9CA3AF"
+                                                />
+                                            </View>
+                                        </TouchableOpacity>
+
+                                        {showTerminalDropdown && (
+                                            <View style={styles.clienteDropdown}>
+                                                {loadingTerminales ? (
                                                     <View style={styles.clienteDropdownLoading}>
-                                                        <Text style={styles.clienteDropdownLoadingText}>No hay terminales disponibles</Text>
+                                                        <Text style={styles.clienteDropdownLoadingText}>Cargando terminales...</Text>
                                                     </View>
                                                 ) : (
-                                                    <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
-                                                        {filteredTerminales.length === 0 ? (
+                                                    <>
+                                                        {terminalesList.length > 0 && (
+                                                            <View style={styles.clienteSearchWrapper}>
+                                                                <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
+                                                                <Input
+                                                                    style={styles.clienteSearchInput}
+                                                                    placeholder="Buscar por código o nombre..."
+                                                                    value={terminalSearchText}
+                                                                    onChangeText={setTerminalSearchText}
+                                                                    autoCapitalize="none"
+                                                                    autoCorrect={false}
+                                                                />
+                                                            </View>
+                                                        )}
+                                                        {terminalesList.length === 0 ? (
                                                             <View style={styles.clienteDropdownLoading}>
-                                                                <Text style={styles.clienteDropdownLoadingText}>
-                                                                    {terminalSearchText.trim() ? 'No hay terminales que coincidan' : 'No hay terminales'}
-                                                                </Text>
+                                                                <Text style={styles.clienteDropdownLoadingText}>No hay terminales disponibles</Text>
                                                             </View>
                                                         ) : (
-                                                            filteredTerminales.map((term, index) => (
-                                                                <TouchableOpacity
-                                                                    key={term.codigo ?? index}
-                                                                    style={[
-                                                                        styles.clienteDropdownItem,
-                                                                        selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
-                                                                    ]}
-                                                                    onPress={() => handleSelectTerminal(term)}
-                                                                >
-                                                                    <Text style={styles.clienteDropdownItemText}>
-                                                                        {term.codigo} - {term.nombre}
-                                                                    </Text>
-                                                                </TouchableOpacity>
-                                                            ))
+                                                            <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                                                {filteredTerminales.length === 0 ? (
+                                                                    <View style={styles.clienteDropdownLoading}>
+                                                                        <Text style={styles.clienteDropdownLoadingText}>
+                                                                            {terminalSearchText.trim() ? 'No hay terminales que coincidan' : 'No hay terminales'}
+                                                                        </Text>
+                                                                    </View>
+                                                                ) : (
+                                                                    filteredTerminales.map((term, index) => (
+                                                                        <TouchableOpacity
+                                                                            key={term.codigo ?? index}
+                                                                            style={[
+                                                                                styles.clienteDropdownItem,
+                                                                                selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
+                                                                            ]}
+                                                                            onPress={() => handleSelectTerminal(term)}
+                                                                        >
+                                                                            <Text style={styles.clienteDropdownItemText}>
+                                                                                {term.codigo} - {term.nombre}
+                                                                            </Text>
+                                                                        </TouchableOpacity>
+                                                                    ))
+                                                                )}
+                                                            </ScrollView>
                                                         )}
-                                                    </ScrollView>
+                                                    </>
                                                 )}
-                                            </>
+                                            </View>
                                         )}
-                                    </View>
+                                    </>
                                 )}
-                            </>
-                        )}
 
-                        {/* Cliente y Terminal (solo usuario 8 dígitos): filas fijas de solo lectura */}
-                        {!isAdmin && (
-                            <>
-                                <View style={[styles.infoRow, styles.infoRowClienteTerminalSpacing]}>
-                                    <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
-                                        <Icon name="person" size={20} color="#3B82F6" />
-                                    </View>
-                                    <View style={styles.infoTextContainer}>
-                                        <Text style={styles.infoLabel}>CLIENTE</Text>
-                                        <Text style={styles.infoValue}>{cliName || 'CARGANDO...'}</Text>
-                                    </View>
+                                {/* Cliente y Terminal (solo usuario 8 dígitos): filas fijas de solo lectura */}
+                                {!isAdmin && (
+                                    <>
+                                        <View style={[styles.infoRow, styles.infoRowClienteTerminalSpacing]}>
+                                            <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                                <Icon name="person" size={20} color="#3B82F6" />
+                                            </View>
+                                            <View style={styles.infoTextContainer}>
+                                                <Text style={styles.infoLabel}>CLIENTE</Text>
+                                                <Text style={styles.infoValue}>{cliName || 'CARGANDO...'}</Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.infoRow}>
+                                            <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                                <Icon name="business" size={20} color="#3B82F6" />
+                                            </View>
+                                            <View style={styles.infoTextContainer}>
+                                                <Text style={styles.infoLabel}>TERMINAL</Text>
+                                                <Text style={styles.infoValue}>{terminalName || 'CARGANDO...'}</Text>
+                                            </View>
+                                        </View>
+                                    </>
+                                )}
+
+                                {/* Date Selection */}
+                                <Text style={styles.sectionTitle}>¿CUÁNDO RETIRARÁ SU PEDIDO?</Text>
+                                <View style={styles.dateToggleContainer}>
+                                    <TouchableOpacity
+                                        style={[styles.dateOption, selectedDate === 'hoy' && styles.dateOptionActive]}
+                                        onPress={setCurrentDate}
+                                    >
+                                        <Text style={[styles.dateOptionText, selectedDate === 'hoy' && styles.dateOptionTextActive]}>Hoy</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.dateOption, selectedDate === 'manana' && styles.dateOptionActive]}
+                                        onPress={setTomorrowDate}
+                                    >
+                                        <Text style={[styles.dateOptionText, selectedDate === 'manana' && styles.dateOptionTextActive]}>Mañana</Text>
+                                    </TouchableOpacity>
                                 </View>
-                                <View style={styles.infoRow}>
-                                    <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
-                                        <Icon name="business" size={20} color="#3B82F6" />
-                                    </View>
-                                    <View style={styles.infoTextContainer}>
-                                        <Text style={styles.infoLabel}>TERMINAL</Text>
-                                        <Text style={styles.infoValue}>{terminalName || 'CARGANDO...'}</Text>
-                                    </View>
+
+                                {/* Dispatch Date Display */}
+                                <Text style={styles.sectionTitle}>SE DESPACHARÁ:</Text>
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.inputText}>
+                                        {selectedDateDate ? new Date(selectedDateDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Seleccione una fecha'}
+                                    </Text>
+                                    <Icon name="bus-outline" size={20} color="#9CA3AF" />
                                 </View>
-                            </>
-                        )}
 
-                        {/* Date Selection */}
-                        <Text style={styles.sectionTitle}>¿CUÁNDO RETIRARÁ SU PEDIDO?</Text>
-                        <View style={styles.dateToggleContainer}>
-                            <TouchableOpacity
-                                style={[styles.dateOption, selectedDate === 'hoy' && styles.dateOptionActive]}
-                                onPress={setCurrentDate}
-                            >
-                                <Text style={[styles.dateOptionText, selectedDate === 'hoy' && styles.dateOptionTextActive]}>Hoy</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.dateOption, selectedDate === 'manana' && styles.dateOptionActive]}
-                                onPress={setTomorrowDate}
-                            >
-                                <Text style={[styles.dateOptionText, selectedDate === 'manana' && styles.dateOptionTextActive]}>Mañana</Text>
-                            </TouchableOpacity>
-                        </View>
+                                {/* Product Selection */}
+                                <Text style={styles.sectionTitle}>SELECCIONE UN PRODUCTO</Text>
+                                <View style={styles.productsContainer}>
+                                    {products && products.length > 0 ? (
+                                        products.map((product, index) => {
+                                            const isSelected = codProducto === product.producto.codigo;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={[styles.productChip, isSelected && styles.productChipActive]}
+                                                    onPress={() => handleSelectProduct(product.producto)}
+                                                >
+                                                    <Text style={[styles.productChipText, isSelected && styles.productChipTextActive]}>
+                                                        {product.producto.nombre}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })
+                                    ) : (
+                                        <Text style={styles.placeholderText}>Cargando productos...</Text>
+                                    )}
+                                </View>
 
-                        {/* Dispatch Date Display */}
-                        <Text style={styles.sectionTitle}>SE DESPACHARÁ:</Text>
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputText}>
-                                {selectedDateDate ? new Date(selectedDateDate).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Seleccione una fecha'}
-                            </Text>
-                            <Icon name="bus-outline" size={20} color="#9CA3AF" />
-                        </View>
+                                {/* Volume Input */}
+                                <Text style={styles.sectionTitle}>VOLUMEN REQUERIDO (GALONES)</Text>
+                                <View style={styles.volumeInputWrapper}>
+                                    <View style={styles.volumeIconContainer}>
+                                        <Icon name="remove-outline" size={24} color="#374151" />
+                                    </View>
+                                    <Input
+                                        style={styles.volumeInput}
+                                        textStyle={styles.volumeInputText}
+                                        placeholder="0"
+                                        placeholderTextColor="#9CA3AF"
+                                        keyboardType="numeric"
+                                        value={cantidad === 0 ? '' : cantidad.toString()}
+                                        onChangeText={(text) => setCantidad(Number(text.replace(/[^0-9]/g, "")))}
+                                        status='basic'
+                                    />
+                                </View>
 
-                        {/* Product Selection */}
-                        <Text style={styles.sectionTitle}>SELECCIONE UN PRODUCTO</Text>
-                        <View style={styles.productsContainer}>
-                            {products && products.length > 0 ? (
-                                products.map((product, index) => {
-                                    const isSelected = codProducto === product.producto.codigo;
-                                    return (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={[styles.productChip, isSelected && styles.productChipActive]}
-                                            onPress={() => handleSelectProduct(product.producto)}
-                                        >
-                                            <Text style={[styles.productChipText, isSelected && styles.productChipTextActive]}>
-                                                {product.producto.nombre}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    );
-                                })
-                            ) : (
-                                <Text style={styles.placeholderText}>Cargando productos...</Text>
-                            )}
-                        </View>
+                                {/* Summary Section */}
+                                <View style={styles.summaryContainer}>
+                                    <Text style={styles.summaryLabel}>RESUMEN DE PEDIDO</Text>
+                                    <Text style={styles.summaryVolume}>
+                                        {cantidad} <Text style={styles.summaryUnit}>Galones</Text>
+                                    </Text>
+                                    <Text style={styles.summaryProduct}>
+                                        {products?.find(p => p.producto.codigo === codProducto)?.producto.nombre || 'Seleccione producto'}
+                                    </Text>
+                                </View>
 
-                        {/* Volume Input */}
-                        <Text style={styles.sectionTitle}>VOLUMEN REQUERIDO (GALONES)</Text>
-                        <View style={styles.volumeInputWrapper}>
-                            <View style={styles.volumeIconContainer}>
-                                <Icon name="remove-outline" size={24} color="#374151" />
-                            </View>
-                            <Input
-                                style={styles.volumeInput}
-                                textStyle={styles.volumeInputText}
-                                placeholder="0"
-                                placeholderTextColor="#9CA3AF"
-                                keyboardType="numeric"
-                                value={cantidad === 0 ? '' : cantidad.toString()}
-                                onChangeText={(text) => setCantidad(Number(text.replace(/[^0-9]/g, "")))}
-                                status='basic'
-                            />
-                        </View>
+                                {/* Action Buttons */}
+                                <Button
+                                    style={styles.mainButton}
+                                    size='giant'
+                                    onPress={handleSubmit}
+                                >
+                                    {(evaProps: any) => <Text {...evaProps} style={styles.mainButtonText}>Generar Pedido</Text>}
+                                </Button>
 
-                        {/* Summary Section */}
-                        <View style={styles.summaryContainer}>
-                            <Text style={styles.summaryLabel}>RESUMEN DE PEDIDO</Text>
-                            <Text style={styles.summaryVolume}>
-                                {cantidad} <Text style={styles.summaryUnit}>Galones</Text>
-                            </Text>
-                            <Text style={styles.summaryProduct}>
-                                {products?.find(p => p.producto.codigo === codProducto)?.producto.nombre || 'Seleccione producto'}
-                            </Text>
-                        </View>
+                                <TouchableOpacity onPress={() => console.log("Cancelar Nota de Pedido")} style={styles.cancelButton}>
+                                    <Text style={styles.cancelButtonText}>Cancelar</Text>
+                                </TouchableOpacity>
 
-                        {/* Action Buttons */}
-                        <Button
-                            style={styles.mainButton}
-                            size='giant'
-                            onPress={handleSubmit}
-                        >
-                            {(evaProps: any) => <Text {...evaProps} style={styles.mainButtonText}>Generar Pedido</Text>}
-                        </Button>
-
-                        <TouchableOpacity onPress={() => console.log("Cancelar Nota de Pedido")} style={styles.cancelButton}>
-                            <Text style={styles.cancelButtonText}>Cancelar</Text>
-                        </TouchableOpacity>
-
-                        {/* Footer Logo */}
-                        <View style={styles.footerContainer}>
-                            <Text style={styles.footerText}>POWERED BY</Text>
-                            <Image
-                                source={require('../../../assets/logoinfinity.png')}
-                                style={styles.footerLogoImage}
-                                resizeMode="contain"
-                            />
-                        </View>
+                                {/* Footer Logo */}
+                                <View style={styles.footerContainer}>
+                                    <Text style={styles.footerText}>POWERED BY</Text>
+                                    <Image
+                                        source={require('../../../assets/logoinfinity.png')}
+                                        style={styles.footerLogoImage}
+                                        resizeMode="contain"
+                                    />
+                                </View>
 
                             </>
                         )}

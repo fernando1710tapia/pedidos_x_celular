@@ -3,6 +3,9 @@ export type RootStackParamList = {
     Login: undefined;
     NotaPedido: undefined;
     RecuperarClave: undefined;
-    ListaNotaPedido: undefined;
+    ListaNotaPedido: {
+        codigocliente?: string;
+        nombreCliente?: string;
+    };
     MenuOperativo: undefined;
 };

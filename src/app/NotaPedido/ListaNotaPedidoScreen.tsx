@@ -1,4 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import React, { useEffect, useState } from 'react';
 import {
@@ -14,7 +14,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { format, parseISO, isToday, isYesterday, addDays, isSameDay } from 'date-fns';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
-import { getListasNotasPedido } from '../../services';
+import { getListasNotasPedido, terminalService, obtenerTerminalCliente } from '../../services';
 import {
     ApiResponse,
     ListaNotaPedidoInterace,
@@ -22,8 +22,11 @@ import {
 } from '../../types';
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
+type RouteProps = RouteProp<RootStackParamList, 'ListaNotaPedido'>;
 
-/** Parsea fechas: ISO, yyyy/MM/dd, dd/MM/yyyy, timestamp. */
+/** Parsea fechas: ISO, yyyy/MM/dd, dd/MM/yyyy, timestamp.
+ *  IMPORTANTE: Siempre crea la fecha en hora LOCAL para que
+ *  isSameDay / isToday / isYesterday funcionen correctamente. */
 const parseDate = (fecha: string | number | undefined | null): Date | null => {
     if (fecha == null) return null;
     if (typeof fecha === 'number') {
@@ -37,7 +40,8 @@ const parseDate = (fecha: string | number | undefined | null): Date | null => {
         // YYYY-MM-DD o YYYY-MM-DDTHH...
         const ymd = norm.match(/(\d{4})-(\d{2})-(\d{2})/);
         if (ymd) {
-            const date = parseISO(ymd[0]);
+            // Crear fecha LOCAL (no UTC) para evitar desfase de zona horaria
+            const date = new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
             return Number.isNaN(date.getTime()) ? null : date;
         }
         // DD-MM-YYYY o DD/MM/YYYY
@@ -94,76 +98,85 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
     codigoCliente?: string;
     nombreTerminal?: string;
     codigoTerminal?: string;
+    usuarioactual?: string;
 } => {
-    const base = (typeof item === 'object' && item !== null ? { ...(item as Record<string, unknown>) } : {}) as ListaNotaPedidoInterace & Record<string, unknown>;
-    const raw = base as Record<string, unknown>;
-    const fechasExtraidas = extraerFechasDeObjeto(item);
-    // Fechas con fallback a hoy/mañana
-    const today = new Date();
-    const tomorrow = addDays(today, 1);
-    const todayStr = format(today, 'yyyy-MM-dd');
-    const tomorrowStr = format(tomorrow, 'yyyy-MM-dd');
-    const venta = fechasExtraidas[0] || aFechaString((base.fechaVenta ?? raw.fechaventa ?? raw.fechaVenta) as string | number | undefined) || todayStr;
-    const despacho = (fechasExtraidas[1] ?? fechasExtraidas[0]) || aFechaString((base.fechaDespacho ?? raw.fechadespacho ?? raw.fechaDespacho) as string | number | undefined) || tomorrowStr;
+    const raw = (item || {}) as any;
 
-    // Extraer cliente
-    let nombreCliente = String((raw.nombreCliente ?? raw.nombrecliente ?? raw.nombreclientecomercial ?? '') || '');
-    let codigoCliente = raw.codigoCliente ?? raw.codigocliente ?? '';
-    if (codigoCliente && typeof codigoCliente === 'object') {
-        const c = codigoCliente as Record<string, unknown>;
-        if (!nombreCliente) nombreCliente = String(c.nombre ?? c.nombrecomercial ?? '');
-        codigoCliente = String(c.codigo ?? '');
-    } else {
-        codigoCliente = String(codigoCliente || '');
+    // 1. Buscar campos de venta/generación
+    let venta = String(raw.fechaventa ?? raw.fechaVenta ?? raw.fechaGeneracion ?? raw.fechageneracion ?? raw.fecha ?? '').trim();
+
+    // 2. Buscar campos de despacho/entrega
+    let despacho = String(raw.fechadespacho ?? raw.fechaDespacho ?? raw.fechaentrega ?? raw.fechaEntrega ?? raw.entrega ?? '').trim();
+
+    // 3. Fallback: buscar cualquier cosa que parezca fecha si los campos principales fallan
+    if (!venta || !despacho) {
+        const fechas = extraerFechasDeObjeto(item);
+        if (!venta) venta = fechas[0] || '';
+        if (!despacho) despacho = fechas[1] || fechas[0] || '';
     }
 
-    // Extraer terminal
-    let nombreTerminal = String((raw.nombreTerminal ?? raw.nombreterminal ?? '') || '');
-    let codigoTerminal = raw.codigoTerminal ?? raw.codigoterminal ?? '';
-    if (codigoTerminal && typeof codigoTerminal === 'object') {
-        const t = codigoTerminal as Record<string, unknown>;
-        if (!nombreTerminal) nombreTerminal = String(t.nombre ?? t.nombrecomercial ?? '');
-        codigoTerminal = String(t.codigo ?? '');
-    } else {
-        codigoTerminal = String(codigoTerminal || '');
-    }
+    // Si aún así no hay nada, asumimos 'hoy' para no dejarlo vacío
+    if (!venta) venta = 'hoy';
+    if (!despacho) despacho = venta;
+
+    // Helper para buscar nombre en un objeto o valor
+    const extractName = (val: any): string => {
+        if (!val) return '';
+        if (typeof val === 'string' && val.trim().length > 0) {
+            if (/^\d{8,}$/.test(val)) return '';
+            return val;
+        }
+        if (typeof val === 'object') {
+            return String(val.nombrecomercial ?? val.nombreComercial ?? val.nombre ?? val.razonsocial ?? val.razonSocial ?? '');
+        }
+        return '';
+    };
 
     return {
-        ...base,
+        ...raw,
         fechaVenta: venta,
         fechaDespacho: despacho,
-        nombreCliente: nombreCliente || undefined,
-        codigoCliente: (codigoCliente as string) || undefined,
-        nombreTerminal: nombreTerminal || undefined,
-        codigoTerminal: (codigoTerminal as string) || undefined,
+        nombreCliente: extractName(raw.nombreCliente ?? raw.nombrecliente ?? raw.cliente),
+        codigoCliente: String(raw.codigoCliente ?? raw.codigocliente ?? (raw.cliente?.codigo ?? '')),
+        nombreTerminal: extractName(raw.nombreTerminal ?? raw.nombreterminal ?? raw.terminal ?? raw.estacion),
+        codigoTerminal: String(raw.codigoTerminal ?? raw.codigoterminal ?? (raw.terminal?.codigo ?? '')),
+        usuarioactual: String(raw.usuarioactual ?? raw.usuarioActual ?? ''),
     };
 };
 
-/** Para GENERADA: muestra "Ayer/Hoy" y la fecha */
-const formatGeneradaDate = (fecha: string | undefined): string => {
-    const date = parseDate(fecha ?? '') ?? new Date();
-    try {
-        const formattedDate = format(date, 'dd/MM/yyyy');
-        if (isYesterday(date)) return `Ayer - ${formattedDate}`;
-        if (isToday(date)) return `Hoy - ${formattedDate}`;
-        return formattedDate;
-    } catch {
-        return format(new Date(), 'dd/MM/yyyy');
+/** Convierte fecha a etiqueta legible.
+ *  Maneja strings literales ("hoy","ayer","mañana") Y fechas reales. */
+const resolverEtiquetaFecha = (fecha: string | number | undefined, etiquetasPermitidas: string[]): string => {
+    if (!fecha) return 'Hoy';
+    const val = String(fecha).trim().toLowerCase();
+
+    // 1. Si el API devolvió un string literal o lo forzamos arriba, lo usamos directamente
+    if (val.includes('hoy') && etiquetasPermitidas.includes('Hoy')) return 'Hoy';
+    if (val.includes('ayer') && etiquetasPermitidas.includes('Ayer')) return 'Ayer';
+    if ((val.includes('mañana') || val.includes('manana')) && etiquetasPermitidas.includes('Mañana')) return 'Mañana';
+
+    // 2. Si es una fecha real o ISO, intentamos parsearla
+    const date = parseDate(fecha);
+    if (!date) {
+        // Fallback: si no es parseable pero es un string corto, mostrarlo (capitalizado)
+        if (val.length > 0 && val.length < 15) return val.charAt(0).toUpperCase() + val.slice(1);
+        return 'Hoy';
     }
+
+    const today = new Date();
+    if (isSameDay(date, today)) return etiquetasPermitidas.includes('Hoy') ? 'Hoy' : 'Hoy';
+    if (isSameDay(date, addDays(today, -1))) return etiquetasPermitidas.includes('Ayer') ? 'Ayer' : '';
+    if (isSameDay(date, addDays(today, 1))) return etiquetasPermitidas.includes('Mañana') ? 'Mañana' : '';
+
+    return 'Hoy';
 };
 
-/** Para PARA DESPACHAR: muestra "Hoy/Mañana" y la fecha */
-const formatDespacharDate = (fecha: string | number | undefined): string => {
-    const date = parseDate(fecha ?? '') ?? addDays(new Date(), 1);
-    try {
-        const formattedDate = format(date, 'dd/MM/yyyy');
-        if (isToday(date)) return `Hoy - ${formattedDate}`;
-        if (isSameDay(date, addDays(new Date(), 1))) return `Mañana - ${formattedDate}`;
-        return formattedDate;
-    } catch {
-        return format(addDays(new Date(), 1), 'dd/MM/yyyy');
-    }
-};
+/** Para GENERADA: muestra siempre Hoy por defecto */
+const formatGeneradaDate = (fecha: string | undefined): string => 'Hoy';
+
+/** Para PARA DESPACHAR: muestra "Hoy" o "Mañana" */
+const formatDespacharDate = (fecha: string | number | undefined): string =>
+    resolverEtiquetaFecha(fecha, ['Hoy', 'Mañana']);
 
 const renderStatusPill = (value: string | undefined, isFilled: boolean) => {
     const text = value && String(value).trim() ? value : 'AUN NO';
@@ -181,6 +194,8 @@ const renderStatusPill = (value: string | undefined, isFilled: boolean) => {
 export const ListaNotaPedidoScreen = () => {
     const { user, logout } = useUser();
     const navigation = useNavigation<NavigationProps>();
+    const route = useRoute<RouteProps>();
+    const { codigocliente: paramCodigoCliente, nombreCliente: paramNombreCliente } = route.params || {};
 
     // Determina si es usuario regular (8 dígitos) o admin
     const isAdmin = user?.codigo ? !/^\d{8}$/.test(user.codigo) : false;
@@ -198,14 +213,15 @@ export const ListaNotaPedidoScreen = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const getListaNP = async () => {
-        if (!user?.codigocliente) return; // Validación extra: solo usuarios con cliente asignado consultan por defecto
+    const getListaNP = async (fallbackData?: { clientName: string; stationName: string; stationCode: string }) => {
+        const codClienteToUse = paramCodigoCliente || user?.codigocliente;
+        if (!codClienteToUse) return;
 
         try {
             setLoading(true);
             const params: Record<string, any> = {
                 pcodigocomercializadora: user?.codigocomercializadora,
-                pcodigocliente: user?.codigocliente,
+                pcodigocliente: codClienteToUse,
                 pfechaventa: fechaActual,
             };
 
@@ -216,8 +232,74 @@ export const ListaNotaPedidoScreen = () => {
                 '',
                 params
             );
+
             if (response.retorno && response.retorno.length > 0) {
-                setListaNPs(response.retorno.map((item: unknown) => normalizarItemLista(item)));
+                console.log(`API RESPONSE: Recibidos ${response.retorno.length} pedidos`);
+                console.log('PRIMER ITEM COMPLETO:', JSON.stringify(response.retorno[0], null, 2));
+                const firstRaw = response.retorno[0] as any;
+                let normalized = response.retorno.map((item: unknown) => normalizarItemLista(item));
+
+                if (normalized.length > 0) {
+                    console.log('FECHAS NORMALIZADAS [0]:', JSON.stringify({
+                        fechaVenta: normalized[0].fechaVenta,
+                        fechaDespacho: normalized[0].fechaDespacho,
+                        usuarioactual: normalized[0].usuarioactual,
+                    }));
+                }
+
+                // Si somos admin y venimos de NotaPedidoScreen con un cliente seleccionado,
+                // filtramos para mostrar solo lo que ESTE administrador creó para ESE cliente.
+                // Nota: El API no devuelve 'usuarioactual', así que no podemos filtrar por creador.
+                // La consulta ya filtra por cliente (pcodigocliente), que es el filtro principal.
+
+                setListaNPs(normalized);
+
+                // 1. Resolver nombres de TERMINALES faltantes
+                const terminalsFaltantes = [...new Set(normalized
+                    .filter(item => !item.nombreTerminal && item.codigoTerminal)
+                    .map(item => item.codigoTerminal))] as string[];
+
+                terminalsFaltantes.forEach(async (codigo) => {
+                    try {
+                        const termData = await terminalService.getResource<any>(codigo);
+                        if (termData && (termData.nombre || termData.nombrecomercial)) {
+                            const nombre = String(termData.nombrecomercial || termData.nombre || '');
+                            if (nombre) {
+                                setListaNPs(prev => prev.map(item =>
+                                    item.codigoTerminal === codigo
+                                        ? { ...item, nombreTerminal: nombre }
+                                        : item
+                                ));
+                            }
+                        }
+                    } catch (e) {
+                        console.error(`Error resolviendo terminal ${codigo}:`, e);
+                    }
+                });
+
+                // 2. Resolver nombres de CLIENTES faltantes
+                const clientesFaltantes = [...new Set(normalized
+                    .filter(item => !item.nombreCliente && item.codigoCliente)
+                    .map(item => item.codigoCliente))] as string[];
+
+                clientesFaltantes.forEach(async (codigo) => {
+                    try {
+                        // El servicio obtenerTerminalCliente busca en /ec.com.infinity.modelo.cliente/
+                        const clientData = await obtenerTerminalCliente.getResource<any>(codigo);
+                        if (clientData && (clientData.nombre || clientData.nombrecomercial)) {
+                            const nombre = String(clientData.nombrecomercial || clientData.nombre || '');
+                            if (nombre) {
+                                setListaNPs(prev => prev.map(item =>
+                                    item.codigoCliente === codigo
+                                        ? { ...item, nombreCliente: nombre }
+                                        : item
+                                ));
+                            }
+                        }
+                    } catch (e) {
+                        console.error(`Error resolviendo cliente ${codigo}:`, e);
+                    }
+                });
             } else {
                 setListaNPs([]);
                 Alert.alert('Aviso', 'No se encontraron notas de pedido.');
@@ -231,10 +313,11 @@ export const ListaNotaPedidoScreen = () => {
     };
 
     useEffect(() => {
-        if (user?.codigocomercializadora && user?.codigocliente) {
+        const codClienteToUse = paramCodigoCliente || user?.codigocliente;
+        if (user?.codigocomercializadora && codClienteToUse) {
             getListaNP();
         }
-    }, [user]);
+    }, [user, isAdmin, paramCodigoCliente]);
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -265,7 +348,9 @@ export const ListaNotaPedidoScreen = () => {
                     >
                         <Icon name="chevron-back" size={28} color="#1565C0" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Tus pedidos</Text>
+                    <Text style={styles.headerTitle} numberOfLines={1}>
+                        {isAdmin && paramNombreCliente ? `Pedidos: ${paramNombreCliente}` : 'Tus pedidos'}
+                    </Text>
                     <TouchableOpacity style={styles.headerButtonRight} onPress={onLogout}>
                         <Icon name="log-out-outline" size={26} color="#DC2626" />
                     </TouchableOpacity>
@@ -313,34 +398,30 @@ export const ListaNotaPedidoScreen = () => {
                                     <Text style={styles.cardOrderNumber}>{np.numeroNotaPedido || '—'}</Text>
                                 </View>
 
-                                {/* Sección cliente y terminal (solo si tiene datos) */}
-                                {(np.nombreCliente || np.codigoCliente || np.nombreTerminal || np.codigoTerminal) && (
-                                    <>
-                                        <View style={styles.divider} />
-                                        <View style={styles.infoRow}>
-                                            <View style={styles.infoItem}>
-                                                <View style={styles.infoIconRow}>
-                                                    <Icon name="person-outline" size={13} color="#1565C0" />
-                                                    <Text style={styles.infoLabel}>CLIENTE</Text>
-                                                </View>
-                                                <Text style={styles.infoValue} numberOfLines={2}>
-                                                    {np.nombreCliente || (np.codigoCliente ? `Cód: ${np.codigoCliente}` : '—')}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.infoItemRight}>
-                                                <View style={styles.infoIconRow}>
-                                                    <Icon name="location-outline" size={13} color="#1565C0" />
-                                                    <Text style={styles.infoLabel}>TERMINAL</Text>
-                                                </View>
-                                                <Text style={[styles.infoValue, { textAlign: 'right' }]} numberOfLines={2}>
-                                                    {np.nombreTerminal || (np.codigoTerminal ? `Cód: ${np.codigoTerminal}` : '—')}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    </>
-                                )}
-
+                                {/* Sección cliente y estación (solo si tiene datos) */}
                                 <View style={styles.divider} />
+                                <View style={styles.infoRow}>
+                                    <View style={styles.infoItem}>
+                                        <View style={styles.infoIconRow}>
+                                            <Icon name="person-outline" size={18} color="#000000" />
+                                            <Text style={styles.infoLabel}>CLIENTE</Text>
+                                        </View>
+                                        <Text style={styles.infoValue} numberOfLines={2}>
+                                            {np.nombreCliente || (np.codigoCliente ? `Cód: ${np.codigoCliente}` : '—')}
+                                        </Text>
+                                    </View>
+                                    <View style={styles.infoItemRight}>
+                                        <View style={styles.infoIconRow}>
+                                            <Icon name="business-outline" size={18} color="#000000" />
+                                            <Text style={styles.infoLabel}>TERMINAL</Text>
+                                        </View>
+                                        <Text style={[styles.infoValue, { textAlign: 'right' }]} numberOfLines={2}>
+                                            {np.nombreTerminal || (np.codigoTerminal ? `Cód: ${np.codigoTerminal}` : '—')}
+                                        </Text>
+                                    </View>
+                                </View>
+
+
 
                                 {/* Fechas */}
                                 <View style={styles.cardTopRow}>
@@ -355,7 +436,7 @@ export const ListaNotaPedidoScreen = () => {
                                         <Text style={styles.cardLabelGenerada}>PARA DESPACHAR</Text>
                                         <View style={styles.despacharRow}>
                                             <Icon name="calendar-outline" size={18} color="#1565C0" />
-                                            <Text style={styles.despacharText}>{formatDespacharDate(np.fechaDespacho || np.fechaVenta)}</Text>
+                                            <Text style={styles.despacharText}>{formatDespacharDate(np.fechaDespacho)}</Text>
                                         </View>
                                     </View>
                                 </View>
@@ -427,6 +508,8 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         color: '#111827',
+        flex: 1,
+        textAlign: 'center',
     },
     headerButtonRight: {
         padding: 6,
@@ -497,7 +580,7 @@ const styles = StyleSheet.create({
     cardLabelGenerada: {
         fontSize: 13,
         fontWeight: '700',
-        color: '#374151',
+        color: '#000000',
         letterSpacing: 0.4,
         marginBottom: 6,
     },
@@ -547,15 +630,15 @@ const styles = StyleSheet.create({
         marginBottom: 3,
     },
     infoLabel: {
-        fontSize: 10,
+        fontSize: 13,
         fontWeight: '700' as const,
-        color: '#1565C0',
-        letterSpacing: 0.5,
+        color: '#000000',
+        letterSpacing: 0.4,
     },
     infoValue: {
-        fontSize: 13,
+        fontSize: 14,
         fontWeight: '600' as const,
-        color: '#111827',
+        color: '#1565C0',
     },
     cardDespachar: {
         alignItems: 'flex-end',
