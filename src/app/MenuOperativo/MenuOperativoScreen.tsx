@@ -75,9 +75,10 @@ export default function MenuOperativoScreen() {
                             onPress={() => navigation.navigate('NotaPedido')}
                         />
                         <MenuButton
-                            title="Revisa tus pedidos"
-                            iconName="eye-outline"
-                            onPress={() => navigation.navigate('ListaNotaPedido')}
+                            title="Valida tus sellos"
+                            iconName="checkmark-done-circle-outline"
+                            onPress={() => navigation.navigate('ValidaSellos')}
+                            disabled={!isEightDigitUser}
                         />
                     </View>
                     <View style={styles.gridRow}>
@@ -87,11 +88,13 @@ export default function MenuOperativoScreen() {
                             onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
                             disabled={isEightDigitUser}
                         />
+                        {/* 
                         <MenuButton
-                            title="Valida tus sellos"
-                            iconName="checkmark-done-circle-outline"
-                            onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
+                            title="Revisa tus pedidos"
+                            iconName="eye-outline"
+                            onPress={() => navigation.navigate('ListaNotaPedido')}
                         />
+                        */}
                     </View>
                 </View>
 

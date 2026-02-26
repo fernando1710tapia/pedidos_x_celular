@@ -18,3 +18,4 @@ export * from './productoInterace';
 export * from './terminalClienteInterface';
 export * from './terminalInterface';
 export * from './userInterface';
+export * from './usoSelloInterface';

@@ -211,11 +211,41 @@ export const ListaNotaPedidoScreen = () => {
     })[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [resolvedClientName, setResolvedClientName] = useState<string>('');
     const itemsPerPage = 10;
 
+    const fetchClientNameOnce = async (codigo: string) => {
+        if (!codigo || resolvedClientName) return;
+        try {
+            const response = await obtenerTerminalCliente.getResource<ApiResponse<any>>(
+                'porComercializadoraCliente',
+                '',
+                {
+                    codigocomercializadora: user?.codigocomercializadora,
+                    codigo: codigo
+                }
+            );
+            if (response.retorno && response.retorno[0]) {
+                const nombre = String(response.retorno[0].nombrecomercial || response.retorno[0].nombre || '');
+                if (nombre) setResolvedClientName(nombre);
+            }
+        } catch (e) {
+            console.error('Error precargando nombre cliente:', e);
+        }
+    };
+
     const getListaNP = async (fallbackData?: { clientName: string; stationName: string; stationCode: string }) => {
-        const codClienteToUse = paramCodigoCliente || user?.codigocliente;
+        const codClienteToUse = paramCodigoCliente || user?.codigocliente || user?.codigo;
         if (!codClienteToUse) return;
+
+        // Intentar precargar el nombre si no lo tenemos
+        if (!resolvedClientName) {
+            if (paramNombreCliente) {
+                setResolvedClientName(paramNombreCliente);
+            } else {
+                fetchClientNameOnce(codClienteToUse);
+            }
+        }
 
         try {
             setLoading(true);
@@ -234,59 +264,42 @@ export const ListaNotaPedidoScreen = () => {
             );
 
             if (response.retorno && response.retorno.length > 0) {
-                console.log(`API RESPONSE: Recibidos ${response.retorno.length} pedidos`);
-                console.log('PRIMER ITEM COMPLETO:', JSON.stringify(response.retorno[0], null, 2));
-                const firstRaw = response.retorno[0] as any;
-                let normalized = response.retorno.map((item: unknown) => normalizarItemLista(item));
-
-                if (normalized.length > 0) {
-                    console.log('FECHAS NORMALIZADAS [0]:', JSON.stringify({
-                        fechaVenta: normalized[0].fechaVenta,
-                        fechaDespacho: normalized[0].fechaDespacho,
-                        usuarioactual: normalized[0].usuarioactual,
-                    }));
-                }
-
-                // Si somos admin y venimos de NotaPedidoScreen con un cliente seleccionado,
-                // filtramos para mostrar solo lo que ESTE administrador creó para ESE cliente.
-                // Nota: El API no devuelve 'usuarioactual', así que no podemos filtrar por creador.
-                // La consulta ya filtra por cliente (pcodigocliente), que es el filtro principal.
+                let normalized = response.retorno.map((item: unknown) => {
+                    const norm = normalizarItemLista(item);
+                    // Si el item no trae nombre pero tenemos el nombre resuelto para este cliente, lo aplicamos
+                    if (!norm.nombreCliente && (norm.codigoCliente === codClienteToUse || !norm.codigoCliente)) {
+                        norm.nombreCliente = resolvedClientName;
+                    }
+                    return norm;
+                });
 
                 setListaNPs(normalized);
 
-                // 1. Resolver nombres de TERMINALES faltantes
-                const terminalsFaltantes = [...new Set(normalized
-                    .filter(item => !item.nombreTerminal && item.codigoTerminal)
-                    .map(item => item.codigoTerminal))] as string[];
-
-                terminalsFaltantes.forEach(async (codigo) => {
-                    try {
-                        const termData = await terminalService.getResource<any>(codigo);
-                        if (termData && (termData.nombre || termData.nombrecomercial)) {
-                            const nombre = String(termData.nombrecomercial || termData.nombre || '');
-                            if (nombre) {
-                                setListaNPs(prev => prev.map(item =>
-                                    item.codigoTerminal === codigo
-                                        ? { ...item, nombreTerminal: nombre }
-                                        : item
-                                ));
-                            }
-                        }
-                    } catch (e) {
-                        console.error(`Error resolviendo terminal ${codigo}:`, e);
-                    }
-                });
-
-                // 2. Resolver nombres de CLIENTES faltantes
+                // 1. Resolver nombres de CLIENTES faltantes (para casos donde hay múltiples clientes en la lista)
                 const clientesFaltantes = [...new Set(normalized
                     .filter(item => !item.nombreCliente && item.codigoCliente)
                     .map(item => item.codigoCliente))] as string[];
 
                 clientesFaltantes.forEach(async (codigo) => {
+                    if (codigo === codClienteToUse && resolvedClientName) {
+                        setListaNPs(prev => prev.map(item =>
+                            item.codigoCliente === codigo ? { ...item, nombreCliente: resolvedClientName } : item
+                        ));
+                        return;
+                    }
+
                     try {
-                        // El servicio obtenerTerminalCliente busca en /ec.com.infinity.modelo.cliente/
-                        const clientData = await obtenerTerminalCliente.getResource<any>(codigo);
-                        if (clientData && (clientData.nombre || clientData.nombrecomercial)) {
+                        const response = await obtenerTerminalCliente.getResource<ApiResponse<any>>(
+                            'porComercializadoraCliente',
+                            '',
+                            {
+                                codigocomercializadora: user?.codigocomercializadora,
+                                codigo: codigo
+                            }
+                        );
+
+                        if (response.retorno && response.retorno[0]) {
+                            const clientData = response.retorno[0];
                             const nombre = String(clientData.nombrecomercial || clientData.nombre || '');
                             if (nombre) {
                                 setListaNPs(prev => prev.map(item =>
@@ -313,11 +326,11 @@ export const ListaNotaPedidoScreen = () => {
     };
 
     useEffect(() => {
-        const codClienteToUse = paramCodigoCliente || user?.codigocliente;
+        const codClienteToUse = paramCodigoCliente || user?.codigocliente || user?.codigo;
         if (user?.codigocomercializadora && codClienteToUse) {
             getListaNP();
         }
-    }, [user, isAdmin, paramCodigoCliente]);
+    }, [user, isAdmin, paramCodigoCliente, resolvedClientName]);
 
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -344,7 +357,7 @@ export const ListaNotaPedidoScreen = () => {
                 <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.headerButtonLeft}
-                        onPress={() => navigation.navigate('MenuOperativo')}
+                        onPress={() => navigation.navigate('NotaPedido')}
                     >
                         <Icon name="chevron-back" size={28} color="#1565C0" />
                     </TouchableOpacity>
@@ -395,7 +408,7 @@ export const ListaNotaPedidoScreen = () => {
                                 {/* Número de pedido */}
                                 <View style={styles.cardOrderRow}>
                                     <Text style={styles.cardOrderLabel}>Pedido Nro:</Text>
-                                    <Text style={styles.cardOrderNumber}>{np.numeroNotaPedido || '—'}</Text>
+                                    <Text style={styles.cardOrderNumber}>{np.numeroNotaPedido || ''}</Text>
                                 </View>
 
                                 {/* Sección cliente y estación (solo si tiene datos) */}
@@ -407,16 +420,7 @@ export const ListaNotaPedidoScreen = () => {
                                             <Text style={styles.infoLabel}>CLIENTE</Text>
                                         </View>
                                         <Text style={styles.infoValue} numberOfLines={2}>
-                                            {np.nombreCliente || (np.codigoCliente ? `Cód: ${np.codigoCliente}` : '—')}
-                                        </Text>
-                                    </View>
-                                    <View style={styles.infoItemRight}>
-                                        <View style={styles.infoIconRow}>
-                                            <Icon name="business-outline" size={18} color="#000000" />
-                                            <Text style={styles.infoLabel}>TERMINAL</Text>
-                                        </View>
-                                        <Text style={[styles.infoValue, { textAlign: 'right' }]} numberOfLines={2}>
-                                            {np.nombreTerminal || (np.codigoTerminal ? `Cód: ${np.codigoTerminal}` : '—')}
+                                            {np.nombreCliente || np.codigoCliente || ''}
                                         </Text>
                                     </View>
                                 </View>

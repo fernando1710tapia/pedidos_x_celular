@@ -8,4 +8,5 @@ export type RootStackParamList = {
         nombreCliente?: string;
     };
     MenuOperativo: undefined;
+    ValidaSellos: undefined;
 };
