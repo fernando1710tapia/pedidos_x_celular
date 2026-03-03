@@ -7,8 +7,9 @@ import {
     Image,
     TextInput,
     Alert,
+    Platform,
 } from 'react-native';
-import { Layout, Text, Button, Datepicker, Icon as KittenIcon } from '@ui-kitten/components';
+import { Layout, Text, Button, Datepicker, Icon as KittenIcon, NativeDateService } from '@ui-kitten/components';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -37,6 +38,7 @@ export default function ValidaSellosScreen() {
     const [usosellos, setUsosellos] = useState<UsoSelloInterface[]>([]);
     const [selectedUsoSello, setSelectedUsoSello] = useState<UsoSelloInterface | null>(null);
     const [showUsoSelloDropdown, setShowUsoSelloDropdown] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // Efecto cuando cambia la fecha: buscar nuevos registros
     React.useEffect(() => {
@@ -47,7 +49,20 @@ export default function ValidaSellosScreen() {
         if (!user?.codigocliente && !user?.codigo) return;
 
         const codCliente = user?.codigocliente || user?.codigo;
-        const fechaStr = format(date, 'yyyy/MM/dd');
+
+        // Guardar seguridad: asegurar que la fecha es válida antes de formatear
+        let fechaStr = '';
+        try {
+            const dateObj = date instanceof Date ? date : new Date(date);
+            if (isNaN(dateObj.getTime())) {
+                console.warn('FT-handleSearchRecords::Fecha inválida detectada:', date);
+                return;
+            }
+            fechaStr = format(dateObj, 'yyyy/MM/dd');
+        } catch (error) {
+            console.error('FT-handleSearchRecords::Error al formatear fecha:', error);
+            return;
+        }
 
         try {
             setLoading(true);
@@ -63,12 +78,12 @@ export default function ValidaSellosScreen() {
 
             console.log('FT-handleSearchRecords::Respuesta Servidor:', JSON.stringify(response));
 
-            if (response.retorno && response.retorno.length > 0) {
+            if (response && response.retorno && Array.isArray(response.retorno) && response.retorno.length > 0) {
                 console.log('FT-handleSearchRecords::Registros encontrados:', response.retorno.length);
                 setUsosellos(response.retorno);
                 setSelectedUsoSello(null);
             } else {
-                console.log('FT-handleSearchRecords::No se encontraron registros en retorno');
+                console.log('FT-handleSearchRecords::No se encontraron registros en retorno o no es un arreglo');
                 setUsosellos([]);
                 setSelectedUsoSello(null);
             }
@@ -122,6 +137,15 @@ export default function ValidaSellosScreen() {
         } else {
             setSelectedSellos([...selectedSellos, id]);
         }
+    };
+
+    const getResumenValidacion = (data: any) => {
+        const recibidos = Object.keys(data).filter(k => k.endsWith('recibido') && data[k] === true);
+        return {
+            totalSellos: recibidos.length,
+            novedades: data.observacionrecibido || 'Ninguna',
+            usuario: data.usuarioactual
+        };
     };
 
     const toggleProblem = (value: string) => {
@@ -189,10 +213,24 @@ export default function ValidaSellosScreen() {
             }
 
             updatedUsoSello.observacionrecibido = observacion.substring(0, 500); // Límite de seguridad
-            updatedUsoSello.informado = true; // Marcamos como informado al guardar
             updatedUsoSello.usuarioactual = user?.nombre || 'AppMovil';
 
-            console.log('FT-handleSave::Objeto a enviar:', JSON.stringify(updatedUsoSello));
+            // Eliminar campo 'informado' para evitar error 400 del servidor
+            delete (updatedUsoSello as any).informado;
+
+            console.log('--- DATOS A GUARDAR ---');
+            console.log('📅 Fecha:', format(date, 'dd/MM/yyyy'));
+            console.log('📦 Pedido:', `${selectedUsoSello.usoselloPK.codigocliente} - ${selectedUsoSello.nombreconductor}`);
+
+            const sellosRecibidosNum = getSellosFromSelected()
+                .filter(s => selectedSellos.includes(s.id))
+                .map(s => s.numero);
+            console.log('🔑 Sellos Recibidos:', sellosRecibidosNum.length > 0 ? sellosRecibidosNum.join(', ') : 'Ninguno');
+
+            console.log('⚠️ Inconvenientes:', selectedProblems.length > 0 ? selectedProblems.join(' ; ') : 'Ninguno');
+            console.log('💬 Novedad/Comentario:', comment.trim() || 'Sin comentario');
+            console.log('👤 Usuario:', user?.nombre || 'AppMovil');
+            console.log('-----------------------');
 
             if (usoSelloService.putResource) {
                 const result = await usoSelloService.putResource<ApiResponse<any>>(
@@ -200,16 +238,24 @@ export default function ValidaSellosScreen() {
                     updatedUsoSello
                 );
 
+                console.log('Respuesta servidor:', result);
+
                 if (result.statusCode === 200) {
-                    Alert.alert('Éxito', 'La validación de sellos se ha guardado correctamente.');
-                    navigation.goBack();
-                } else {
-                    Alert.alert('Error', result.errorMessage || 'No se pudo guardar la validación.');
+                    setShowSuccessModal(true);
+                    // Esperar un momento para que el usuario vea el mensaje y luego regresar
+                    setTimeout(() => {
+                        setShowSuccessModal(false);
+                        navigation.goBack();
+                    }, 2500);
                 }
             }
         } catch (error: any) {
             console.error('Error guardando validación:', error);
-            Alert.alert('Error', 'Ocurrió un problema al conectar con el servidor.');
+            if (Platform.OS === 'web') {
+                window.alert('Error: Ocurrió un problema al conectar con el servidor.');
+            } else {
+                Alert.alert('Error', 'Ocurrió un problema al conectar con el servidor.');
+            }
         } finally {
             setLoading(false);
         }
@@ -234,15 +280,50 @@ export default function ValidaSellosScreen() {
                         <Text style={styles.greetingSubtitle}>Es importante que verifique los sellos recibidos en los autotanques.</Text>
                     </View>
 
-                    {/* Selector de Fecha */}
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Estamos viendo pedidos de:</Text>
-                        <Datepicker
-                            date={date}
-                            onSelect={nextDate => setDate(nextDate)}
-                            accessoryRight={(props) => <Icon name="calendar-outline" size={20} color="#9CA3AF" />}
-                            controlStyle={styles.datepickerControl}
-                        />
+                        {Platform.OS === 'web' ? (
+                            <input
+                                type="date"
+                                value={format(date, 'yyyy-MM-dd')}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val) {
+                                        // Usamos T12:00:00 para evitar que la zona horaria reste un día
+                                        const newDate = new Date(val + 'T12:00:00');
+                                        if (!isNaN(newDate.getTime())) {
+                                            setDate(newDate);
+                                        }
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid #E5E7EB',
+                                    backgroundColor: '#F9FAFB',
+                                    color: '#111827',
+                                    fontSize: '15px',
+                                    outline: 'none',
+                                    boxSizing: 'border-box'
+                                }}
+                            />
+                        ) : (
+                            <Datepicker
+                                date={date}
+                                onSelect={setDate}
+                                accessoryRight={(props) => (
+                                    <View style={[props?.style as any, { justifyContent: 'center', alignItems: 'center' }]}>
+                                        <Icon
+                                            name="calendar-outline"
+                                            size={20}
+                                            color="#9CA3AF"
+                                        />
+                                    </View>
+                                )}
+                                controlStyle={styles.datepickerControl}
+                            />
+                        )}
                     </View>
 
                     {/* Selector de Pedido */}
@@ -304,9 +385,8 @@ export default function ValidaSellosScreen() {
                                             onPress={() => toggleSello(sello.id)}
                                             disabled={!!selectedUsoSello?.informado}
                                         >
-                                            <Text style={[styles.selloLabel, isSelected && styles.selloLabelSelected]}>SELLO</Text>
                                             <Text style={[styles.selloNumber, isSelected && styles.selloNumberSelected]}>{sello.numero}</Text>
-                                            {isSelected && <Icon name="checkmark-circle" size={18} color="#FFFFFF" style={styles.selloCheck} />}
+                                            {isSelected && <Icon name="checkmark-circle" size={12} color="#FFFFFF" style={styles.selloCheck} />}
                                         </TouchableOpacity>
                                     );
                                 })}
@@ -355,6 +435,22 @@ export default function ValidaSellosScreen() {
                     )}
 
                 </ScrollView>
+
+                {/* Modal de Éxito Custom (más profesional) */}
+                {showSuccessModal && (
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.successIconCircle}>
+                                <Icon name="checkmark" size={40} color="#FFFFFF" />
+                            </View>
+                            <Text style={styles.modalTitle}>¡Guardado Exitoso!</Text>
+                            <Text style={styles.modalMessage}>La validación de sellos se ha registrado correctamente en el sistema.</Text>
+                            <View style={styles.loadingBarContainer}>
+                                <View style={styles.loadingBarFill} />
+                            </View>
+                        </View>
+                    </View>
+                )}
             </Layout>
         </ScreenWrapper>
     );
@@ -480,17 +576,19 @@ const styles = StyleSheet.create({
     sellosGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         marginBottom: 25,
     },
     selloCard: {
-        width: '31%',
+        width: '18%',
+        maxWidth: 100,
+        marginRight: '2%',
         aspectRatio: 1,
         backgroundColor: '#F9FAFB',
         borderWidth: 1,
         borderColor: '#E5E7EB',
-        borderRadius: 16,
-        padding: 10,
+        borderRadius: 8,
+        padding: 3,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 10,
@@ -500,7 +598,7 @@ const styles = StyleSheet.create({
         borderColor: '#3B82F6',
     },
     selloLabel: {
-        fontSize: 10,
+        fontSize: 8,
         color: '#6B7280',
         fontWeight: 'bold',
     },
@@ -511,7 +609,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
         color: '#111827',
-        marginTop: 2,
     },
     selloNumberSelected: {
         color: '#FFFFFF',
@@ -587,5 +684,60 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         marginTop: 5,
         marginRight: 5,
+    },
+    // Estilos para el Modal de Éxito
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 999,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        width: '85%',
+        maxWidth: 400,
+        borderRadius: 24,
+        padding: 30,
+        alignItems: 'center',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    successIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#10B981',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 10,
+    },
+    modalMessage: {
+        fontSize: 16,
+        color: '#4B5563',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 25,
+    },
+    loadingBarContainer: {
+        width: '100%',
+        height: 4,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    loadingBarFill: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#10B981',
     },
 });
