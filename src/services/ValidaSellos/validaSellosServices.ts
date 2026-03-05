@@ -2,12 +2,10 @@ import axios, { AxiosResponse } from "axios";
 import { API_CONFIG } from "../../constants/Config";
 import { GlobalServiceInterface } from "../../types";
 
-const SUPERTECH_URL = 'http://www.supertech.ec:8080/infinityone1/resources';
-
 export const usoSelloService: GlobalServiceInterface = {
     getResource: async <T>(resource: string, id: string = '', queryParams: Record<string, any> = {}): Promise<T> => {
         try {
-            const url = `${SUPERTECH_URL}/${resource}`;
+            const url = `${API_CONFIG.BASE_URL}/${resource}`;
             console.log('FT-usoSelloService::URL LLAMADA:', url);
             console.log('FT-usoSelloService::PARAMS:', JSON.stringify(queryParams));
 
@@ -33,7 +31,7 @@ export const usoSelloService: GlobalServiceInterface = {
     },
     putResource: async <T>(resource: string, body: any): Promise<T> => {
         try {
-            const url = `${SUPERTECH_URL}/${resource}`;
+            const url = `${API_CONFIG.BASE_URL}/${resource}`;
             console.log('FT-usoSelloService::PUT URL:', url);
 
             const response: AxiosResponse<T> = await axios.put(url, body, {

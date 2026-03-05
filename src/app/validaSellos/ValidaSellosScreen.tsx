@@ -98,6 +98,46 @@ export default function ValidaSellosScreen() {
         }
     };
 
+    // Efecto cuando se selecciona un registro específico
+    React.useEffect(() => {
+        if (selectedUsoSello) {
+            if (selectedUsoSello.informado) {
+                // 1. Cargar sellos seleccionados
+                const sellosCargados: string[] = [];
+                for (let i = 1; i <= 16; i++) {
+                    if ((selectedUsoSello as any)[`sello${i}recibido`]) {
+                        sellosCargados.push(`sello${i}`);
+                    }
+                }
+                setSelectedSellos(sellosCargados);
+
+                // 2. Cargar problemas y comentarios desde la observación
+                const obs = selectedUsoSello.observacionrecibido || '';
+                const problemasCargados: string[] = [];
+
+                if (obs.includes('rotos')) problemasCargados.push('rotos');
+                if (obs.includes('otros')) problemasCargados.push('otros');
+
+                // Buscar "Otra novedad: " para extraer el comentario
+                if (obs.includes('Otra novedad:')) {
+                    problemasCargados.push('otra');
+                    const parts = obs.split('Otra novedad:');
+                    if (parts.length > 1) {
+                        setComment(parts[1].trim());
+                    }
+                } else {
+                    setComment('');
+                }
+                setSelectedProblems(problemasCargados);
+            } else {
+                // Resetear para registros nuevos
+                setSelectedSellos([]);
+                setSelectedProblems([]);
+                setComment('');
+            }
+        }
+    }, [selectedUsoSello]);
+
     const formatUsoSello = (item: UsoSelloInterface) => {
         // NP1 viene dentro de usoselloPK
         const np1 = item.usoselloPK?.np1;
@@ -213,10 +253,12 @@ export default function ValidaSellosScreen() {
             }
 
             updatedUsoSello.observacionrecibido = observacion.substring(0, 500); // Límite de seguridad
-            updatedUsoSello.usuarioactual = user?.nombre || 'AppMovil';
 
-            // Eliminar campo 'informado' para evitar error 400 del servidor
-            delete (updatedUsoSello as any).informado;
+            // EL PEDIDO SE MARCA COMO INFORMADO SOLO SI HAY SELLOS O INCONVENIENTES SELECCIONADOS
+            const tieneCambios = selectedSellos.length > 0 || selectedProblems.length > 0 || comment.trim() !== '';
+            updatedUsoSello.informado = tieneCambios;
+
+            updatedUsoSello.usuarioactual = user?.nombre || 'AppMovil';
 
             console.log('--- DATOS A GUARDAR ---');
             console.log('📅 Fecha:', format(date, 'dd/MM/yyyy'));
@@ -405,14 +447,17 @@ export default function ValidaSellosScreen() {
                     {/* Comentarios */}
                     <View style={styles.commentSection}>
                         <TextInput
-                            style={[styles.textArea, selectedUsoSello?.informado && styles.disabledOpacity]}
+                            style={[
+                                styles.textArea,
+                                (selectedUsoSello?.informado || !selectedProblems.includes('otra')) && styles.disabledOpacity
+                            ]}
                             multiline
                             numberOfLines={4}
-                            placeholder="Descríbenos la novedad por favor, uno de nuestros colaboradores se comunicará contigo"
+                            placeholder={selectedProblems.includes('otra') ? "Descríbenos la novedad por favor, en un máximo de 200 caracteres" : "Selecciona 'Otra novedad' para habilitar este campo"}
                             value={comment}
                             onChangeText={setComment}
                             placeholderTextColor="#9CA3AF"
-                            editable={!selectedUsoSello?.informado}
+                            editable={!selectedUsoSello?.informado && selectedProblems.includes('otra')}
                             maxLength={200}
                         />
                         {!selectedUsoSello?.informado && (
