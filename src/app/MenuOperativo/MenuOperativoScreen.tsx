@@ -74,20 +74,28 @@ export default function MenuOperativoScreen() {
                             iconName="cart-outline"
                             onPress={() => navigation.navigate('NotaPedido')}
                         />
-                        <MenuButton
-                            title="Valida tus sellos"
-                            iconName="checkmark-done-circle-outline"
-                            onPress={() => navigation.navigate('ValidaSellos')}
-                            disabled={!isEightDigitUser}
-                        />
+                        {isEightDigitUser ? (
+                            <MenuButton
+                                title="Valida tus sellos"
+                                iconName="checkmark-done-circle-outline"
+                                onPress={() => navigation.navigate('ValidaSellos')}
+                            />
+                        ) : (
+                            <MenuButton
+                                title="Observa el volumen total"
+                                iconName="bar-chart-outline"
+                                onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
+                            />
+                        )}
                     </View>
                     <View style={styles.gridRow}>
-                        <MenuButton
-                            title="Observa el volumen total"
-                            iconName="bar-chart-outline"
-                            onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
-                            disabled={isEightDigitUser}
-                        />
+                        {isEightDigitUser && (
+                            <MenuButton
+                                title="Observa el volumen total"
+                                iconName="bar-chart-outline"
+                                onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
+                            />
+                        )}
                         {/* 
                         <MenuButton
                             title="Revisa tus pedidos"

@@ -353,16 +353,7 @@ export default function ValidaSellosScreen() {
                         ) : (
                             <Datepicker
                                 date={date}
-                                onSelect={setDate}
-                                accessoryRight={(props) => (
-                                    <View style={[props?.style as any, { justifyContent: 'center', alignItems: 'center' }]}>
-                                        <Icon
-                                            name="calendar-outline"
-                                            size={20}
-                                            color="#9CA3AF"
-                                        />
-                                    </View>
-                                )}
+                                onSelect={(nextDate) => setDate(nextDate)}
                                 controlStyle={styles.datepickerControl}
                             />
                         )}
@@ -427,8 +418,9 @@ export default function ValidaSellosScreen() {
                                             onPress={() => toggleSello(sello.id)}
                                             disabled={!!selectedUsoSello?.informado}
                                         >
-                                            <Text style={[styles.selloNumber, isSelected && styles.selloNumberSelected]}>{sello.numero}</Text>
-                                            {isSelected && <Icon name="checkmark-circle" size={12} color="#FFFFFF" style={styles.selloCheck} />}
+                                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                                                <Text style={[styles.selloNumber, isSelected && styles.selloNumberSelected]}>{sello.numero}</Text>
+                                            </View>
                                         </TouchableOpacity>
                                     );
                                 })}
@@ -622,21 +614,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'flex-start',
+        columnGap: '2%',
+        rowGap: 10,
         marginBottom: 25,
     },
     selloCard: {
-        width: '18%',
-        maxWidth: 100,
-        marginRight: '2%',
+        width: '23.5%',
         aspectRatio: 1,
         backgroundColor: '#F9FAFB',
         borderWidth: 1,
         borderColor: '#E5E7EB',
         borderRadius: 8,
-        padding: 3,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 10,
+        marginBottom: 0,
     },
     selloCardSelected: {
         backgroundColor: '#3B82F6',
@@ -651,9 +642,10 @@ const styles = StyleSheet.create({
         color: '#E0F2FE',
     },
     selloNumber: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 'bold',
         color: '#111827',
+        textAlign: 'center',
     },
     selloNumberSelected: {
         color: '#FFFFFF',
