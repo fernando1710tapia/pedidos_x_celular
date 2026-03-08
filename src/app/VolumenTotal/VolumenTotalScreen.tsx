@@ -285,7 +285,7 @@ export default function VolumenTotalScreen() {
                                             })}
                                         </View>
                                     </View>
-                                    <Text style={styles.barLabel}>{bar.label.toLowerCase()}</Text>
+                                    <Text style={styles.barLabel}>{bar.fullName}</Text>
                                 </View>
                             );
                         })}
@@ -717,10 +717,10 @@ const styles = StyleSheet.create({
     },
     barColumn: {
         alignItems: 'center',
-        width: 40,
+        width: 90,
     },
     barTrack: {
-        width: 38,
+        width: 60,
         height: '100%',
         backgroundColor: '#F3F4F6',
         borderRadius: 6,
@@ -741,9 +741,12 @@ const styles = StyleSheet.create({
     },
     barLabel: {
         marginTop: 8,
-        fontSize: 11,
+        fontSize: 10,
         color: '#9CA3AF',
         fontWeight: 'bold',
+        textAlign: 'center',
+        flexWrap: 'wrap',
+        width: 90,
     },
     viewMoreButton: {
         flexDirection: 'row',
