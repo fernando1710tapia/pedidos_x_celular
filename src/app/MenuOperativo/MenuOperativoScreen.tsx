@@ -84,7 +84,7 @@ export default function MenuOperativoScreen() {
                             <MenuButton
                                 title="Observa el volumen total"
                                 iconName="bar-chart-outline"
-                                onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
+                                onPress={() => navigation.navigate('VolumenTotal')}
                             />
                         )}
                     </View>
@@ -93,7 +93,7 @@ export default function MenuOperativoScreen() {
                             <MenuButton
                                 title="Observa el volumen total"
                                 iconName="bar-chart-outline"
-                                onPress={() => Alert.alert('Próximamente', 'Esta función estará disponible pronto.')}
+                                onPress={() => navigation.navigate('VolumenTotal')}
                             />
                         )}
                         {/* 

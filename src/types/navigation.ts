@@ -9,4 +9,5 @@ export type RootStackParamList = {
     };
     MenuOperativo: undefined;
     ValidaSellos: undefined;
+    VolumenTotal: undefined;
 };

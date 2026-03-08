@@ -13,6 +13,8 @@ import RecuperarClaveScreen from './src/app/Login/RecuperarClaveScreen';
 import { ListaNotaPedidoScreen } from './src/app/NotaPedido/ListaNotaPedidoScreen';
 import MenuOperativoScreen from './src/app/MenuOperativo/MenuOperativoScreen';
 import ValidaSellosScreen from './src/app/validaSellos/ValidaSellosScreen';
+import VolumenTotalScreen from './src/app/VolumenTotal/VolumenTotalScreen';
+
 
 
 const Stack = createStackNavigator<RootStackParamList>(); // ✅ Tipado del Stack
@@ -35,6 +37,8 @@ export default function App() {
                 <Stack.Screen name="ListaNotaPedido" component={ListaNotaPedidoScreen} />
                 <Stack.Screen name="MenuOperativo" component={MenuOperativoScreen} />
                 <Stack.Screen name="ValidaSellos" component={ValidaSellosScreen} />
+                <Stack.Screen name="VolumenTotal" component={VolumenTotalScreen} />
+
               </Stack.Navigator>
             </NavigationContainer>
           </ThemeProvider>
