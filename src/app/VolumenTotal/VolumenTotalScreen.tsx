@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Layout, Text, Icon as KittenIcon, Calendar, Card, NativeDateService } from '@ui-kitten/components';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Svg, Circle, G, Path, Text as SvgText } from 'react-native-svg';
+import { Svg, Circle, G, Path, Text as SvgText, TSpan } from 'react-native-svg';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
 import { useNavigation } from '@react-navigation/native';
@@ -133,8 +133,8 @@ export default function VolumenTotalScreen() {
     };
 
     const renderPieChart = () => {
-        const size = 260;
-        const radius = 80;
+        const size = 320;
+        const radius = 120;
         const centerX = size / 2;
         const centerY = size / 2;
 
@@ -170,37 +170,48 @@ export default function VolumenTotalScreen() {
                             const largeArcFlag = angle > 180 ? 1 : 0;
                             const d = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
 
-                            const labelAngle = currentAngle + angle / 2;
-                            const labelRad = (labelAngle * Math.PI) / 180;
-                            const lx = centerX + (radius + 40) * Math.cos(labelRad);
-                            const ly = centerY + (radius + 25) * Math.sin(labelRad);
+                            // Punto central del segmento (2/3 del radio para que esté bien dentro)
+                            const midAngle = currentAngle + angle / 2;
+                            const midRad = (midAngle * Math.PI) / 180;
+                            const labelDist = radius * 0.60;
+                            const lx = centerX + labelDist * Math.cos(midRad);
+                            const ly = centerY + labelDist * Math.sin(midRad);
+
+                            // Dividir el nombre en palabras para multi-línea
+                            const words = item.nombre.split(' ');
+                            const pct = Math.round(percent * 100);
 
                             currentAngle += angle;
+
+                            // Solo mostrar texto si el segmento es suficientemente grande
+                            const showLabel = angle >= 30;
 
                             return (
                                 <G key={item.id}>
                                     <Path d={d} fill={color} stroke="#FFF" strokeWidth={2} />
-                                    <SvgText
-                                        x={lx}
-                                        y={ly}
-                                        fill="#333"
-                                        fontSize="10"
-                                        fontWeight="700"
-                                        textAnchor="middle"
-                                        alignmentBaseline="middle"
-                                    >
-                                        {`${item.nombre}`}
-                                    </SvgText>
-                                    <SvgText
-                                        x={lx}
-                                        y={ly + 12}
-                                        fill="#666"
-                                        fontSize="9"
-                                        textAnchor="middle"
-                                        alignmentBaseline="middle"
-                                    >
-                                        {`${item.total.toLocaleString()} gls`}
-                                    </SvgText>
+                                    {showLabel && (
+                                        <SvgText
+                                            x={lx}
+                                            y={ly - (words.length * 7)}
+                                            fill="#FFF"
+                                            fontSize="10"
+                                            fontWeight="bold"
+                                            textAnchor="middle"
+                                        >
+                                            {words.map((word, wi) => (
+                                                <TSpan
+                                                    key={wi}
+                                                    x={lx}
+                                                    dy={wi === 0 ? 0 : 13}
+                                                >
+                                                    {word}
+                                                </TSpan>
+                                            ))}
+                                            <TSpan x={lx} dy={13} fontSize="9" fontWeight="normal">
+                                                {`${pct}%`}
+                                            </TSpan>
+                                        </SvgText>
+                                    )}
                                 </G>
                             );
                         })}
@@ -210,8 +221,8 @@ export default function VolumenTotalScreen() {
         );
     };
 
-    const renderProgressBar = (color: string, label: string, value: string) => (
-        <View style={styles.legendItem}>
+    const renderProgressBar = (color: string, label: string, value: string, key?: string) => (
+        <View key={key} style={styles.legendItem}>
             <View style={styles.legendLeft}>
                 <View style={[styles.colorDot, { backgroundColor: color }]} />
                 <Text style={styles.legendLabel}>{label}</Text>
@@ -274,11 +285,15 @@ export default function VolumenTotalScreen() {
                                                                 backgroundColor: color,
                                                                 justifyContent: 'center',
                                                                 alignItems: 'center',
+                                                                overflow: 'hidden',
                                                             }
                                                         ]}
                                                     >
-                                                        {i === 0 && (val / total > 0.1) && (
-                                                            <Text style={styles.innerBarLabel}>{labelShort}</Text>
+                                                        {(val / total > 0.12) && (
+                                                            <>
+                                                                <Text style={styles.innerBarLabel}>{labelShort}</Text>
+                                                                <Text style={styles.innerBarPct}>{`${Math.round((val / total) * 100)}%`}</Text>
+                                                            </>
                                                         )}
                                                     </View>
                                                 );
@@ -406,7 +421,7 @@ export default function VolumenTotalScreen() {
                                             else if (item.nombre.toLowerCase().includes('super')) color = COLORS.super;
                                             else if (item.nombre.toLowerCase().includes('diesel')) color = COLORS.diesel;
 
-                                            return renderProgressBar(color, item.nombre, `${item.total.toLocaleString()} gls`);
+                                            return renderProgressBar(color, item.nombre, `${item.total.toLocaleString()} gls`, item.id);
                                         })}
                                         {getAggregatedData().length === 0 && <Text style={{ textAlign: 'center', color: COLORS.gray }}>No hay ventas para esta fecha</Text>}
                                     </View>
