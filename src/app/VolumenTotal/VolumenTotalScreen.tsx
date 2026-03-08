@@ -305,17 +305,9 @@ export default function VolumenTotalScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                        <Icon name="chevron-back" size={24} color={COLORS.primary} />
+                        <Icon name="arrow-back" size={24} color="#1F2937" />
                     </TouchableOpacity>
-                    <View style={styles.logoContainer}>
-                        <View style={styles.logoBox}>
-                            <Icon name="gas-station" size={20} color={COLORS.white} />
-                        </View>
-                        <Text style={styles.logoText}>PETROLRIOS</Text>
-                    </View>
-                    <TouchableOpacity style={styles.notificationBtn}>
-                        <Icon name="notifications-outline" size={24} color={COLORS.gray} />
-                    </TouchableOpacity>
+                    <View style={{ flex: 1 }} />
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -359,6 +351,7 @@ export default function VolumenTotalScreen() {
                                 <Calendar
                                     date={date}
                                     dateService={dateService}
+                                    min={new Date(2025, 0, 1)}
                                     onSelect={(nextDate) => {
                                         setDate(nextDate);
                                         setActiveTab('Nacional');
@@ -437,40 +430,10 @@ export default function VolumenTotalScreen() {
                     )}
 
                     {/* Logout */}
-                    <TouchableOpacity
-                        style={styles.logoutBtn}
-                        onPress={async () => {
-                            await logout();
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'Login' as any }],
-                            });
-                        }}
-                    >
-                        <Icon name="log-out-outline" size={20} color="#9CA3AF" />
-                        <Text style={styles.logoutText}>Salir del sistema</Text>
-                    </TouchableOpacity>
+
                 </ScrollView>
 
-                {/* Bottom Nav Placeholder */}
-                <View style={styles.bottomNav}>
-                    <TouchableOpacity style={styles.navItem}>
-                        <Icon name="grid" size={24} color={COLORS.primary} />
-                        <Text style={[styles.navText, { color: COLORS.primary }]}>Dashboard</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.navItem}>
-                        <Icon name="stats-chart-outline" size={24} color="#9CA3AF" />
-                        <Text style={styles.navText}>Reportes</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.navItem}>
-                        <Icon name="map-outline" size={24} color="#9CA3AF" />
-                        <Text style={styles.navText}>Mapa</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.navItem}>
-                        <Icon name="person-outline" size={24} color="#9CA3AF" />
-                        <Text style={styles.navText}>Perfil</Text>
-                    </TouchableOpacity>
-                </View>
+
             </Layout>
         </ScreenWrapper>
     );
@@ -794,34 +757,6 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginRight: 5,
     },
-    logoutBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 20,
-    },
-    logoutText: {
-        fontSize: 16,
-        color: '#9CA3AF',
-        marginLeft: 10,
-    },
-    bottomNav: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        backgroundColor: COLORS.white,
-        paddingTop: 12,
-        paddingBottom: 25,
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
-    },
-    navItem: {
-        alignItems: 'center',
-    },
-    navText: {
-        fontSize: 10,
-        marginTop: 4,
-        color: '#9CA3AF',
-        fontWeight: '500',
-    },
+
+
 });
