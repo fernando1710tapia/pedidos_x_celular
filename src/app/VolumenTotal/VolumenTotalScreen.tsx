@@ -62,8 +62,8 @@ export default function VolumenTotalScreen() {
 
         setLoading(true);
         try {
-            const isEightDigitUser = user?.codigo && user.codigo.length === 8;
-            const codigocliente = isEightDigitUser ? user.codigo : "";
+            const isAdmin = user?.codigo ? !/^\d{8}$/.test(user.codigo) : true;
+            const codigocliente = isAdmin ? "" : (user.codigo ?? "");
             const pfecha = format(date, "yyyy/MM/dd");
             const tipoconsulta = activeTab === 'Nacional' ? 'n' : 't';
 
@@ -597,6 +597,13 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
         textAlign: 'center',
+    },
+    innerBarPct: {
+        fontSize: 8,
+        color: 'white',
+        fontWeight: '600',
+        textAlign: 'center',
+        opacity: 0.9,
     },
     scrollIndicator: {
         flexDirection: 'row',
