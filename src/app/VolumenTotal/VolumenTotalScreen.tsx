@@ -292,7 +292,11 @@ export default function VolumenTotalScreen() {
                                                         {(val / total > 0.12) && (
                                                             <>
                                                                 <Text style={styles.innerBarLabel}>{labelShort}</Text>
-                                                                <Text style={styles.innerBarPct}>{`${Math.round((val / total) * 100)}%`}</Text>
+                                                                <Text style={styles.innerBarPct}>
+                                                                    {val >= 1000
+                                                                        ? `${(val / 1000).toFixed(1)}k`
+                                                                        : `${Math.round(val)}`}
+                                                                </Text>
                                                             </>
                                                         )}
                                                     </View>

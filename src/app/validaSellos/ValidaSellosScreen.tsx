@@ -90,6 +90,15 @@ export default function ValidaSellosScreen() {
         } catch (error: any) {
             console.error('Error buscando sellos:', error);
             console.error('FT-handleSearchRecords::Detalle Error:', error?.response?.data || error?.message);
+            if (Platform.OS === 'web') {
+                window.alert('No se pudieron cargar los pedidos. Verifica tu conexión e intenta de nuevo.');
+            } else {
+                Alert.alert(
+                    'Error al cargar pedidos',
+                    'No se pudieron obtener los registros. Verifica tu conexión e intenta de nuevo.',
+                    [{ text: 'Entendido', style: 'default' }]
+                );
+            }
         } finally {
             setLoading(false);
             setSelectedSellos([]);
@@ -353,7 +362,12 @@ export default function ValidaSellosScreen() {
                         ) : (
                             <Datepicker
                                 date={date}
-                                onSelect={(nextDate) => setDate(nextDate)}
+                                onSelect={(nextDate) => {
+                                    // Diferir el setState al siguiente tick para evitar
+                                    // "Cannot update during an existing state transition"
+                                    // que ocurre cuando ui-kitten llama onSelect dentro de su propio render
+                                    setTimeout(() => setDate(nextDate), 0);
+                                }}
                                 controlStyle={styles.datepickerControl}
                             />
                         )}
