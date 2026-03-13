@@ -104,7 +104,7 @@ export default function LoginScreen() {
             <Layout style={loginStyles.container}>
                 <View style={loginStyles.headerContainer}>
                     <Image
-                        source={require('../../../assets/logo.png')}
+                        source={require('../../../assets/logoPYS.png')}
                         style={loginStyles.image}
                         resizeMode="contain"
                     />

@@ -1,12 +1,4 @@
-node_modules/
-.expo/
-dist/
-web-build/
-.idea/
-.vscode/
-*.log
-
-# Android build artifacts
+# Ignore Android build artifacts to prevent EBUSY locks during EAS upload
 android/.gradle
 android/build
 android/app/build
@@ -16,6 +8,7 @@ android/gradle/*
 !android/gradle/wrapper/gradle-wrapper.jar
 !android/gradle/wrapper/gradle-wrapper.properties
 
-# Local configuration
-local.properties
-.bundle
+node_modules/
+.expo/
+dist/
+web-build/

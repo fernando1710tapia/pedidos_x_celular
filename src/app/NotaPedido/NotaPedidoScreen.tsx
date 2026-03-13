@@ -571,7 +571,7 @@ export default function NotaPedido() {
                     </TouchableOpacity>
                     <View style={styles.headerTitleContainer}>
                         <Image
-                            source={require('../../../assets/logo.png')}
+                            source={require('../../../assets/logoPYS.png')}
                             style={styles.headerLogo}
                             resizeMode="contain"
                         />

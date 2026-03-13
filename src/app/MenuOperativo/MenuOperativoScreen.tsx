@@ -50,7 +50,7 @@ export default function MenuOperativoScreen() {
                     />
                     <Image
                         // Usamos logoPYS.png como aproximación al logo de Petrolrios
-                        source={require('../../../assets/logo.png')}
+                        source={require('../../../assets/logoPYS.png')}
                         style={styles.logoPetrolrios}
                         resizeMode="contain"
                     />

@@ -321,7 +321,7 @@ export default function ValidaSellosScreen() {
                         <Icon name="arrow-back" size={24} color="#1F2937" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Validación de Sellos</Text>
-                    <Text style={styles.logoText}>PETROLRIOS</Text>
+                    <Text style={styles.logoText}>P&S</Text>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

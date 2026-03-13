@@ -24,22 +24,21 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.dsas97.InfinityMobile",
-      "usesCleartextTraffic": true,
-      "androidStatusBar": {
-        "barStyle": "dark-content",
-        "backgroundColor": "#ffffff",
-        "translucent": false
-      }
+      "package": "com.dsas97.InfinityMobile"
+    },
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#ffffff",
+      "translucent": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "router": "expo-router",
     "extra": {
       "eas": {
-        "projectId": "85374cac-0042-4ca1-8f9d-af1af27c14a0"
+        "projectId": "5650b062-5e2e-4b45-8330-514f24d31bc4"
       }
-    }
+    },
+    "owner": "christian2305"
   }
 }
