@@ -42,6 +42,35 @@ const COLORS = {
     dark: '#111827',
 };
 
+const CHART_COLORS = [
+    '#3B82F6', // Blue
+    '#EF4444', // Red
+    '#10B981', // Green
+    '#F59E0B', // Amber
+    '#8B5CF6', // Violet
+    '#EC4899', // Pink
+    '#06B6D4', // Cyan
+    '#F97316', // Orange
+];
+
+const cleanProductName = (name: string) => {
+    return name
+        .replace(/^DES\s+/i, '')
+        .replace(/^[\s\d\-]+-\s*/, '')
+        .replace(/\./g, ' ')
+        .trim();
+};
+
+const formatFullProductName = (name: string) => {
+    // DES  - 0101-GAS.EXTRA -> 0101-GAS EXTRA VOL
+    // Si no hay código, solo devuelve el nombre limpio + VOL
+    const codeMatch = name.match(/(\d+)-/);
+    const code = codeMatch ? codeMatch[1] : '';
+    const cleanName = cleanProductName(name);
+    const label = code ? `${code}-${cleanName}` : cleanName;
+    return `${label} VOL`.trim();
+};
+
 const dateService = new NativeDateService('es', { format: 'DD/MM/YYYY' });
 
 export default function VolumenTotalScreen() {
@@ -52,6 +81,12 @@ export default function VolumenTotalScreen() {
     const [showPicker, setShowPicker] = useState(false);
     const [loading, setLoading] = useState(false);
     const [ventasData, setVentasData] = useState<VentaTotalData[]>([]);
+    const [selectedTerminal, setSelectedTerminal] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Resetear selección al cambiar de fecha o de pestaña
+        setSelectedTerminal(null);
+    }, [date, activeTab]);
 
     useEffect(() => {
         fetchData();
@@ -133,8 +168,8 @@ export default function VolumenTotalScreen() {
     };
 
     const renderPieChart = () => {
-        const size = 320;
-        const radius = 120;
+        const size = 380; // Aumentado para dar más margen a los nombres
+        const radius = 85;
         const centerX = size / 2;
         const centerY = size / 2;
 
@@ -143,21 +178,43 @@ export default function VolumenTotalScreen() {
 
         if (totalVolume === 0) return <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}><Text>No hay datos</Text></View>;
 
+        // Lógica de ángulo mínimo (15 grados)
+        const MIN_ANGLE = 15;
+        let flexibleAnglesTotal = 360;
+        let flexibleVolumeTotal = 0;
+        const angles: number[] = [];
+
+        // Primero asignamos ángulos mínimos
+        aggData.forEach(item => {
+            const rawPercent = item.total / totalVolume;
+            const rawAngle = rawPercent * 360;
+
+            if (rawAngle < MIN_ANGLE) {
+                angles.push(MIN_ANGLE);
+                flexibleAnglesTotal -= MIN_ANGLE;
+            } else {
+                angles.push(0); // Pendiente
+                flexibleVolumeTotal += item.total;
+            }
+        });
+
+        // Distribuimos el resto proporcionalmente
+        const finalAngles = angles.map((angle, i) => {
+            if (angle > 0) return angle;
+            const volPercent = aggData[i].total / flexibleVolumeTotal;
+            return volPercent * flexibleAnglesTotal;
+        });
+
         let currentAngle = -90;
 
         return (
             <View style={styles.chartContainer}>
-                <Svg width={size} height={size}>
+                <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                     <G>
                         {aggData.map((item, index) => {
-                            const percent = item.total / totalVolume;
-                            const angle = percent * 360;
-
-                            let color = COLORS.gray;
-                            const nameLower = item.nombre.toLowerCase();
-                            if (nameLower.includes('extra')) color = COLORS.extra;
-                            else if (nameLower.includes('super')) color = COLORS.super;
-                            else if (nameLower.includes('diesel')) color = COLORS.diesel;
+                            const angle = finalAngles[index];
+                            const color = CHART_COLORS[index % CHART_COLORS.length];
+                            const formattedLabel = formatFullProductName(item.nombre);
 
                             const startRad = (currentAngle * Math.PI) / 180;
                             const endRad = ((currentAngle + angle) * Math.PI) / 180;
@@ -170,53 +227,67 @@ export default function VolumenTotalScreen() {
                             const largeArcFlag = angle > 180 ? 1 : 0;
                             const d = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
 
-                            // Punto central del segmento (2/3 del radio para que esté bien dentro)
                             const midAngle = currentAngle + angle / 2;
                             const midRad = (midAngle * Math.PI) / 180;
-                            const labelDist = radius * 0.60;
-                            const lx = centerX + labelDist * Math.cos(midRad);
-                            const ly = centerY + labelDist * Math.sin(midRad);
 
-                            // Dividir el nombre en palabras para multi-línea
-                            const words = item.nombre.split(' ');
-                            const pct = Math.round(percent * 100);
+                            // Coordenadas para la línea y el texto afuera
+                            const lineStartDist = radius * 0.8;
+                            const lineEndDist = radius * 1.25;
+                            const textDist = radius * 1.35;
 
+                            const lx1 = centerX + lineStartDist * Math.cos(midRad);
+                            const ly1 = centerY + lineStartDist * Math.sin(midRad);
+                            const lx2 = centerX + lineEndDist * Math.cos(midRad);
+                            const ly2 = centerY + lineEndDist * Math.sin(midRad);
+                            const tx = centerX + textDist * Math.cos(midRad);
+                            const ty = centerY + textDist * Math.sin(midRad);
+
+                            const words = formattedLabel.split(' ');
                             currentAngle += angle;
-
-                            // Solo mostrar texto si el segmento es suficientemente grande
-                            const showLabel = angle >= 30;
 
                             return (
                                 <G key={item.id}>
                                     <Path d={d} fill={color} stroke="#FFF" strokeWidth={2} />
-                                    {showLabel && (
-                                        <SvgText
-                                            x={lx}
-                                            y={ly - (words.length * 7)}
-                                            fill="#FFF"
-                                            fontSize="10"
-                                            fontWeight="bold"
-                                            textAnchor="middle"
-                                        >
-                                            {words.map((word, wi) => (
-                                                <TSpan
-                                                    key={wi}
-                                                    x={lx}
-                                                    dy={wi === 0 ? 0 : 13}
-                                                >
-                                                    {word}
-                                                </TSpan>
-                                            ))}
-                                            <TSpan x={lx} dy={13} fontSize="9" fontWeight="normal">
-                                                {`${pct}%`}
+
+                                    {/* Línea de llamada (Callout) */}
+                                    <Path
+                                        d={`M ${lx1} ${ly1} L ${lx2} ${ly2}`}
+                                        stroke={color}
+                                        strokeWidth={1.5}
+                                    />
+
+                                    <SvgText
+                                        x={tx}
+                                        y={ty - ((words.length - 1) * 6)} // Ajuste vertical para multi-línea
+                                        fill={COLORS.dark}
+                                        fontSize="9"
+                                        fontWeight="bold"
+                                        textAnchor={tx > centerX ? 'start' : 'end'}
+                                    >
+                                        {words.map((word, wi) => (
+                                            <TSpan
+                                                key={wi}
+                                                x={tx}
+                                                dy={wi === 0 ? 0 : 12}
+                                            >
+                                                {word}
                                             </TSpan>
-                                        </SvgText>
-                                    )}
+                                        ))}
+                                    </SvgText>
                                 </G>
                             );
                         })}
                     </G>
                 </Svg>
+
+                {/* Leyenda Nacional Unificada */}
+                <View style={[styles.legendContainer, { marginTop: 10 }]}>
+                    {aggData.map((prod, idx) => {
+                        const color = CHART_COLORS[idx % CHART_COLORS.length];
+                        const label = formatFullProductName(prod.nombre);
+                        return renderProgressBar(color, label, `${prod.total.toLocaleString()} gls`, prod.id);
+                    })}
+                </View>
             </View>
         );
     };
@@ -231,6 +302,7 @@ export default function VolumenTotalScreen() {
         </View>
     );
 
+
     const renderBarChart = () => {
         const barData = getBarChartData();
 
@@ -240,76 +312,145 @@ export default function VolumenTotalScreen() {
 
         const maxTotal = Math.max(...barData.map(b => Object.values(b.values).reduce((a, b) => a + b, 0)), 1);
 
+        // Obtener productos únicos para asignar colores y crear la leyenda
+        const uniqueProducts = Array.from(new Set(barData.flatMap(b => Object.keys(b.values))));
+        const productColors: Record<string, string> = {};
+        uniqueProducts.forEach((prod, idx) => {
+            productColors[prod] = CHART_COLORS[idx % CHART_COLORS.length];
+        });
+
         return (
             <View style={styles.barChartContainer}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.barsRow}>
+                    <View style={styles.barsRow} key={`chart-container-${selectedTerminal || 'all'}`}>
                         {barData.map((bar, i) => {
-                            const total = Object.values(bar.values).reduce((a, b) => a + b, 0);
-                            const heightPercent = (total / maxTotal) * 100;
-                            const sortedEntries = Object.entries(bar.values).sort((a, b) => {
-                                const getOrder = (n: string) => {
-                                    if (n.toLowerCase().includes('extra')) return 0;
-                                    if (n.toLowerCase().includes('super')) return 1;
-                                    if (n.toLowerCase().includes('diesel')) return 2;
-                                    return 3;
-                                };
-                                return getOrder(b[0]) - getOrder(a[0]);
-                            });
+                            // Cálculo robusto del total para esta barra específica
+                            const barValues = Object.values(bar.values);
+                            const currentTotal = barValues.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+                            const safeTotal = Math.max(currentTotal, 0.001);
+                            
+                            // Altura proporcional respecto al valor máximo de todas las terminales
+                            const heightPercent = Math.max((safeTotal / maxTotal) * 95, 4);
+                            
+                            const isSelected = selectedTerminal === bar.fullName;
+                            const isDimmed = selectedTerminal !== null && !isSelected;
 
                             return (
-                                <View key={i} style={styles.barColumn}>
-                                    <View style={styles.barTrack}>
+                                <TouchableOpacity 
+                                    key={`terminal-${i}-${bar.fullName}`} 
+                                    activeOpacity={0.7}
+                                    onPress={() => setSelectedTerminal(isSelected ? null : bar.fullName)}
+                                    style={[styles.barColumn, isDimmed && { opacity: 0.4 }]}
+                                >
+                                    <View style={[styles.barTrack, isSelected && { borderColor: COLORS.primary, borderWidth: 2 }]}>
                                         <View style={[styles.stackedBar, { height: `${heightPercent}%` }]}>
-                                            {sortedEntries.map(([prod, val], idx) => {
-                                                let color = COLORS.gray;
-                                                let labelShort = "";
-                                                if (prod.toLowerCase().includes('extra')) {
-                                                    color = COLORS.extra;
-                                                    labelShort = "Extra";
-                                                } else if (prod.toLowerCase().includes('super')) {
-                                                    color = COLORS.super;
-                                                    labelShort = "Super";
-                                                } else if (prod.toLowerCase().includes('diesel')) {
-                                                    color = COLORS.diesel;
-                                                    labelShort = "Diesel P";
-                                                }
+                                            {uniqueProducts.map((prod, idx) => {
+                                                const val = bar.values[prod] || 0;
+                                                if (val <= 0) return null;
+
+                                                const color = productColors[prod];
+                                                const cleanName = cleanProductName(prod);
+                                                // Flex proporcional asegurando al menos un espacio mínimo visible
+                                                const flexValue = Math.max(val / safeTotal, 0.01);
 
                                                 return (
                                                     <View
-                                                        key={idx}
-                                                        style={[
-                                                            styles.barSegment,
-                                                            {
-                                                                flex: val / total,
-                                                                backgroundColor: color,
-                                                                justifyContent: 'center',
-                                                                alignItems: 'center',
-                                                                overflow: 'hidden',
-                                                            }
-                                                        ]}
+                                                        key={`segment-${idx}-${prod}`}
+                                                        style={[styles.segmentContainer, { flex: flexValue }]}
                                                     >
-                                                        {(val / total > 0.12) && (
-                                                            <>
-                                                                <Text style={styles.innerBarLabel}>{labelShort}</Text>
-                                                                <Text style={styles.innerBarPct}>
-                                                                    {val >= 1000
-                                                                        ? `${(val / 1000).toFixed(1)}k`
-                                                                        : `${Math.round(val)}`}
+                                                        <View
+                                                            style={[
+                                                                styles.barSegment,
+                                                                {
+                                                                    backgroundColor: color,
+                                                                    justifyContent: 'center',
+                                                                    alignItems: 'center',
+                                                                    overflow: 'hidden',
+                                                                    height: '100%',
+                                                                    width: '100%'
+                                                                }
+                                                            ]}
+                                                        >
+                                                            <Text style={[
+                                                                styles.innerBarPct, 
+                                                                { 
+                                                                    fontSize: flexValue > 0.15 ? 8 : 7,
+                                                                    fontWeight: 'bold',
+                                                                    color: COLORS.white,
+                                                                    textShadowColor: 'rgba(0,0,0,0.6)',
+                                                                    textShadowOffset: { width: 0.5, height: 0.5 },
+                                                                    textShadowRadius: 1
+                                                                }
+                                                            ]}>
+                                                                {val >= 1000
+                                                                    ? `${(val / 1000).toFixed(1)}k`
+                                                                    : `${Math.round(val)}`}
+                                                            </Text>
+                                                            {flexValue > 0.15 && (
+                                                                <Text style={[
+                                                                    styles.innerBarLabel, 
+                                                                    { 
+                                                                        fontSize: 8,
+                                                                        color: COLORS.white,
+                                                                        textShadowColor: 'rgba(0,0,0,0.6)',
+                                                                        textShadowOffset: { width: 0.5, height: 0.5 },
+                                                                        textShadowRadius: 1
+                                                                    }
+                                                                ]}>
+                                                                    {cleanName.split(' ')[0]}
                                                                 </Text>
-                                                            </>
-                                                        )}
+                                                            )}
+                                                        </View>
                                                     </View>
                                                 );
                                             })}
                                         </View>
                                     </View>
-                                    <Text style={styles.barLabel}>{bar.fullName}</Text>
-                                </View>
+                                    <Text style={[styles.barLabel, isSelected && { color: COLORS.primary }]}>
+                                        {bar.fullName}
+                                    </Text>
+                                </TouchableOpacity>
                             );
                         })}
                     </View>
                 </ScrollView>
+
+                {/* Encabezado de la Leyenda Dinámica */}
+                <View style={[styles.legendHeader, { marginTop: 20 }]}>
+                    <Text style={styles.legendHeaderTitle}>
+                        {selectedTerminal ? `Detalle: ${selectedTerminal.split('-').pop()?.trim()}` : 'Resumen Consolidado'}
+                    </Text>
+                    {selectedTerminal && (
+                        <TouchableOpacity 
+                            onPress={() => setSelectedTerminal(null)}
+                            style={styles.closeButtonContainer}
+                        >
+                            <Icon name="close-circle" size={24} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {/* Leyenda de Terminal Dinámica */}
+                <View style={styles.legendContainer}>
+                    {uniqueProducts.map((prod) => {
+                        const color = productColors[prod];
+                        const label = formatFullProductName(prod);
+                        
+                        // Si hay terminal seleccionado, mostrar solo sus valores. Si no, el total.
+                        let displayValue = 0;
+                        if (selectedTerminal) {
+                            const termData = barData.find(b => b.fullName === selectedTerminal);
+                            displayValue = termData?.values[prod] || 0;
+                        } else {
+                            displayValue = barData.reduce((sum, bar) => sum + (bar.values[prod] || 0), 0);
+                        }
+                        
+                        // Solo mostrar productos que tengan volumen en el contexto actual
+                        if (displayValue <= 0 && selectedTerminal) return null;
+
+                        return renderProgressBar(color, label, `${displayValue.toLocaleString()} gls`, prod);
+                    })}
+                </View>
                 <View style={styles.scrollIndicator}>
                     <Icon name="swap-horizontal-outline" size={16} color={COLORS.gray} />
                     <Text style={styles.scrollIndicatorText}>{barData.length} terminales</Text>
@@ -323,10 +464,10 @@ export default function VolumenTotalScreen() {
             <Layout style={styles.container}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <Icon name="arrow-back" size={24} color="#1F2937" />
                     </TouchableOpacity>
-                    <View style={{ flex: 1 }} />
+                    <Text style={styles.headerTitle}>Volumen total</Text>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -358,34 +499,6 @@ export default function VolumenTotalScreen() {
                         <Icon name="chevron-forward" size={20} color={COLORS.gray} />
                     </TouchableOpacity>
 
-                    {showPicker && (
-                        <View style={styles.customOverlay}>
-                            <TouchableOpacity
-                                style={styles.customBackdrop}
-                                onPress={() => setShowPicker(false)}
-                                activeOpacity={1}
-                            />
-                            <Card disabled={true} style={styles.modalCard}>
-                                <Text category='h6' style={styles.modalTitle}>Seleccione una fecha</Text>
-                                <Calendar
-                                    date={date}
-                                    dateService={dateService}
-                                    min={new Date(2025, 0, 1)}
-                                    onSelect={(nextDate) => {
-                                        setDate(nextDate);
-                                        setActiveTab('Nacional');
-                                        setShowPicker(false);
-                                    }}
-                                />
-                                <TouchableOpacity
-                                    style={styles.closeModalBtn}
-                                    onPress={() => setShowPicker(false)}
-                                >
-                                    <Text style={styles.closeModalText}>Cerrar</Text>
-                                </TouchableOpacity>
-                            </Card>
-                        </View>
-                    )}
 
 
                     {/* Tabs */}
@@ -417,18 +530,6 @@ export default function VolumenTotalScreen() {
                             ) : (
                                 <>
                                     {renderPieChart()}
-
-                                    <View style={styles.legendContainer}>
-                                        {getAggregatedData().map(item => {
-                                            let color = COLORS.gray;
-                                            if (item.nombre.toLowerCase().includes('extra')) color = COLORS.extra;
-                                            else if (item.nombre.toLowerCase().includes('super')) color = COLORS.super;
-                                            else if (item.nombre.toLowerCase().includes('diesel')) color = COLORS.diesel;
-
-                                            return renderProgressBar(color, item.nombre, `${item.total.toLocaleString()} gls`, item.id);
-                                        })}
-                                        {getAggregatedData().length === 0 && <Text style={{ textAlign: 'center', color: COLORS.gray }}>No hay ventas para esta fecha</Text>}
-                                    </View>
                                 </>
                             )}
                         </View>
@@ -452,6 +553,36 @@ export default function VolumenTotalScreen() {
 
                 </ScrollView>
 
+                {showPicker && (
+                    <View style={styles.customOverlay}>
+                        <TouchableOpacity
+                            style={styles.customBackdrop}
+                            onPress={() => setShowPicker(false)}
+                            activeOpacity={1}
+                        />
+                        <Card disabled={true} style={styles.modalCard}>
+                            <Text category='h6' style={styles.modalTitle}>Seleccione una fecha</Text>
+                            <Calendar
+                                date={date}
+                                dateService={dateService}
+                                min={new Date(2025, 0, 1)}
+                                onSelect={(nextDate) => {
+                                    setDate(nextDate);
+                                    setActiveTab('Nacional');
+                                    setShowPicker(false);
+                                }}
+                                style={styles.calendarComponent}
+                            />
+                            <TouchableOpacity
+                                style={styles.closeModalBtn}
+                                onPress={() => setShowPicker(false)}
+                            >
+                                <Text style={styles.closeModalText}>Cerrar</Text>
+                            </TouchableOpacity>
+                        </Card>
+                    </View>
+                )}
+
 
             </Layout>
         </ScreenWrapper>
@@ -465,38 +596,22 @@ const styles = StyleSheet.create({
     },
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 15,
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
         backgroundColor: COLORS.white,
     },
-    logoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    backButton: {
+        padding: 5,
     },
-    logoBox: {
-        width: 32,
-        height: 32,
-        backgroundColor: COLORS.primary,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 10,
-    },
-    logoText: {
+    headerTitle: {
+        flex: 1,
         fontSize: 18,
-        fontWeight: '900',
-        color: COLORS.primary,
-        letterSpacing: 0.5,
-    },
-    notificationBtn: {
-        padding: 5,
-    },
-    backBtn: {
-        padding: 5,
-        marginRight: 10,
+        fontWeight: 'bold',
+        marginLeft: 15,
+        color: '#111827',
     },
     scrollContent: {
         padding: 20,
@@ -549,45 +664,41 @@ const styles = StyleSheet.create({
         color: COLORS.dark,
     },
     customOverlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        ...StyleSheet.absoluteFillObject,
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 1000,
     },
     customBackdrop: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     modalCard: {
         borderRadius: 24,
-        padding: 8,
-        width: width * 0.9,
-        maxWidth: 400,
-        elevation: 5,
+        padding: 4,
+        width: width * 0.95,
+        maxWidth: 380,
+        elevation: 8,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
     },
     modalTitle: {
-        marginBottom: 15,
+        marginBottom: 10,
         textAlign: 'center',
         color: COLORS.dark,
         fontWeight: 'bold',
         fontSize: 18,
     },
+    calendarComponent: {
+        width: '100%',
+        backgroundColor: 'transparent',
+    },
     closeModalBtn: {
-        marginTop: 15,
+        marginTop: 10,
         alignItems: 'center',
-        padding: 10,
+        padding: 12,
         borderTopWidth: 1,
         borderTopColor: '#F3F4F6',
     },
@@ -737,7 +848,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',
-        height: 180,
+        height: 240, // Aumentado de 180 para mejor visibilidad
         paddingHorizontal: 5,
         marginBottom: 10,
     },
@@ -759,6 +870,11 @@ const styles = StyleSheet.create({
     },
     barSegment: {
         width: '100%',
+    },
+    segmentContainer: {
+        width: '100%',
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.3)',
     },
     simpleBar: {
         width: '100%',
@@ -786,6 +902,24 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginRight: 5,
     },
-
-
+    legendHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 10,
+    },
+    legendHeaderTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: COLORS.dark,
+    },
+    clearFilterText: {
+        fontSize: 12,
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    closeButtonContainer: {
+        padding: 4,
+    },
 });

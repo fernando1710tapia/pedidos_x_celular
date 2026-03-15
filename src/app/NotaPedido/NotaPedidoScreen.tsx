@@ -564,19 +564,11 @@ export default function NotaPedido() {
     return (
         <ScreenWrapper>
             <View style={styles.mainContainer}>
-                {/* Header Navbar */}
-                <View style={styles.headerNavbar}>
-                    <TouchableOpacity onPress={() => navigation.navigate('MenuOperativo')} style={styles.navButton}>
-                        <Icon name="arrow-back-outline" size={28} color="#6B7280" />
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.navigate('MenuOperativo')} style={styles.backButton}>
+                        <Icon name="arrow-back" size={24} color="#1F2937" />
                     </TouchableOpacity>
-                    <View style={styles.headerTitleContainer}>
-                        <Image
-                            source={require('../../../assets/logoPYS.png')}
-                            style={styles.headerLogo}
-                            resizeMode="contain"
-                        />
-                        <Text style={styles.headerSubtitle}>GENERAR PEDIDO</Text>
-                    </View>
+                    <Text style={styles.headerTitle}>Generar pedido</Text>
                     <TouchableOpacity
                         onPress={() => {
                             if (isAdmin && selectedCliente) {
@@ -588,7 +580,7 @@ export default function NotaPedido() {
                                 navigation.navigate('ListaNotaPedido', {});
                             }
                         }}
-                        style={styles.navButton}
+                        style={styles.backButton}
                     >
                         <Icon name="eye-outline" size={28} color="#6B7280" />
                     </TouchableOpacity>
@@ -908,15 +900,7 @@ export default function NotaPedido() {
                                     <Text style={styles.cancelButtonText}>Cancelar</Text>
                                 </TouchableOpacity>
 
-                                {/* Footer Logo */}
-                                <View style={styles.footerContainer}>
-                                    <Text style={styles.footerText}>POWERED BY</Text>
-                                    <Image
-                                        source={require('../../../assets/logoinfinity.png')}
-                                        style={styles.footerLogoImage}
-                                        resizeMode="contain"
-                                    />
-                                </View>
+
 
                             </>
                         )}
@@ -932,31 +916,23 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#FFFFFF',
     },
-    headerNavbar: {
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
         paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 20,
-        backgroundColor: '#FFFFFF',
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
     },
-    navButton: {
+    backButton: {
         padding: 5,
     },
-    headerTitleContainer: {
-        alignItems: 'center',
-    },
-    headerLogo: {
-        width: 120,
-        height: 35,
-    },
-    headerSubtitle: {
-        fontSize: 10,
-        fontWeight: '600',
-        color: '#9CA3AF',
-        marginTop: 2,
-        letterSpacing: 1,
+    headerTitle: {
+        flex: 1,
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginLeft: 15,
+        color: '#111827',
     },
     contentContainer: {
         paddingHorizontal: 20,

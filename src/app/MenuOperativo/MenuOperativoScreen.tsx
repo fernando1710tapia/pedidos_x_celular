@@ -41,7 +41,7 @@ export default function MenuOperativoScreen() {
     return (
         <ScreenWrapper>
             <Layout style={styles.container}>
-                {/* Header Superior con Logos */}
+                {/* Header Superior con Logos 
                 <View style={styles.headerRow}>
                     <Image
                         source={require('../../../assets/logoinfinity.png')}
@@ -54,7 +54,7 @@ export default function MenuOperativoScreen() {
                         style={styles.logoPetrolrios}
                         resizeMode="contain"
                     />
-                </View>
+                </View> */}
 
                 {/* Sección de Saludo */}
                 <View style={styles.greetingSection}>

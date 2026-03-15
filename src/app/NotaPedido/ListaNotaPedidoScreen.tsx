@@ -473,17 +473,7 @@ export const ListaNotaPedidoScreen = () => {
                 </View>
 
                 {/* Footer */}
-                <View style={styles.footer}>
-                    <View style={styles.footerBrand}>
-                        <Text style={styles.footerBrandText}>ESTA APP ES PARTE DE</Text>
-                        <Text style={styles.footerBrandName}>infinityOne</Text>
-                        <Image
-                            source={require('../../../assets/logoinfinity.png')}
-                            style={styles.footerLogo}
-                            resizeMode="contain"
-                        />
-                    </View>
-                </View>
+
             </View>
         </ScreenWrapper>
     );

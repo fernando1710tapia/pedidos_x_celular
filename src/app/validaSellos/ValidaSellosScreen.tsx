@@ -321,7 +321,6 @@ export default function ValidaSellosScreen() {
                         <Icon name="arrow-back" size={24} color="#1F2937" />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Validación de Sellos</Text>
-                    <Text style={styles.logoText}>P&S</Text>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -388,26 +387,28 @@ export default function ValidaSellosScreen() {
 
                         {showUsoSelloDropdown && (
                             <View style={styles.dropdownList}>
-                                {loading ? (
-                                    <Text style={styles.loadingText}>Cargando...</Text>
-                                ) : usosellos.length > 0 ? (
-                                    usosellos.map((item, index) => (
-                                        <TouchableOpacity
-                                            key={index}
-                                            style={styles.dropdownItem}
-                                            onPress={() => {
-                                                setSelectedUsoSello(item);
-                                                setShowUsoSelloDropdown(false);
-                                            }}
-                                        >
-                                            <Text style={styles.dropdownItemText}>{formatUsoSello(item)}</Text>
-                                        </TouchableOpacity>
-                                    ))
-                                ) : (
-                                    <View style={styles.dropdownItem}>
-                                        <Text style={styles.dropdownItemText}>No hay pedidos para esta fecha</Text>
-                                    </View>
-                                )}
+                                <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 200 }}>
+                                    {loading ? (
+                                        <Text style={styles.loadingText}>Cargando...</Text>
+                                    ) : usosellos.length > 0 ? (
+                                        usosellos.map((item, index) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={styles.dropdownItem}
+                                                onPress={() => {
+                                                    setSelectedUsoSello(item);
+                                                    setShowUsoSelloDropdown(false);
+                                                }}
+                                            >
+                                                <Text style={styles.dropdownItemText}>{formatUsoSello(item)}</Text>
+                                            </TouchableOpacity>
+                                        ))
+                                    ) : (
+                                        <View style={styles.dropdownItem}>
+                                            <Text style={styles.dropdownItemText}>No hay pedidos para esta fecha</Text>
+                                        </View>
+                                    )}
+                                </ScrollView>
                             </View>
                         )}
                     </View>

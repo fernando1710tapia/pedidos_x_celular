@@ -3,6 +3,7 @@ import { ApplicationProvider, IconRegistry } from '@ui-kitten/components';
 import { EvaIconsPack } from '@ui-kitten/eva-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import React from 'react';
 import LoginScreen from './src/app/Login/LoginScreen';
 import NotaPedidoScreen from './src/app/NotaPedido/NotaPedidoScreen';
@@ -23,27 +24,29 @@ export default function App() {
   return (
     <>
       <IconRegistry icons={EvaIconsPack} />
-      <ApplicationProvider {...eva} theme={eva.light}>
-        <UserProvider>
-          <ThemeProvider>
-            <NavigationContainer>
-              <Stack.Navigator
-                initialRouteName="Login"
-                screenOptions={{ headerShown: false }}
-              >
-                <Stack.Screen name="Login" component={LoginScreen} />
-                <Stack.Screen name="RecuperarClave" component={RecuperarClaveScreen} />
-                <Stack.Screen name="NotaPedido" component={NotaPedidoScreen} />
-                <Stack.Screen name="ListaNotaPedido" component={ListaNotaPedidoScreen} />
-                <Stack.Screen name="MenuOperativo" component={MenuOperativoScreen} />
-                <Stack.Screen name="ValidaSellos" component={ValidaSellosScreen} />
-                <Stack.Screen name="VolumenTotal" component={VolumenTotalScreen} />
+      <SafeAreaProvider>
+        <ApplicationProvider {...eva} theme={eva.light}>
+          <UserProvider>
+            <ThemeProvider>
+              <NavigationContainer>
+                <Stack.Navigator
+                  initialRouteName="Login"
+                  screenOptions={{ headerShown: false }}
+                >
+                  <Stack.Screen name="Login" component={LoginScreen} />
+                  <Stack.Screen name="RecuperarClave" component={RecuperarClaveScreen} />
+                  <Stack.Screen name="NotaPedido" component={NotaPedidoScreen} />
+                  <Stack.Screen name="ListaNotaPedido" component={ListaNotaPedidoScreen} />
+                  <Stack.Screen name="MenuOperativo" component={MenuOperativoScreen} />
+                  <Stack.Screen name="ValidaSellos" component={ValidaSellosScreen} />
+                  <Stack.Screen name="VolumenTotal" component={VolumenTotalScreen} />
 
-              </Stack.Navigator>
-            </NavigationContainer>
-          </ThemeProvider>
-        </UserProvider>
-      </ApplicationProvider>
+                </Stack.Navigator>
+              </NavigationContainer>
+            </ThemeProvider>
+          </UserProvider>
+        </ApplicationProvider>
+      </SafeAreaProvider>
     </>
   );
 }

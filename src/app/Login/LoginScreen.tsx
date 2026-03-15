@@ -2,8 +2,7 @@ import { Button, Input, Layout, Text, Icon } from '@ui-kitten/components';
 import CryptoJS from 'crypto-js';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback } from 'react-native';
-
+import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -101,86 +100,89 @@ export default function LoginScreen() {
 
     return (
         <ScreenWrapper>
-            <Layout style={loginStyles.container}>
-                <View style={loginStyles.headerContainer}>
-                    <Image
-                        source={require('../../../assets/logoPYS.png')}
-                        style={loginStyles.image}
-                        resizeMode="contain"
-                    />
-                </View>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <Layout style={loginStyles.container}>
+                        <View style={loginStyles.headerContainer}>
+                            <Image
+                                source={require('../../../assets/infinityOne.png')}
+                                style={loginStyles.image}
+                                resizeMode="contain"
+                            />
+                        </View>
 
-                <Text style={loginStyles.title}>¡Bienvenido!</Text>
-                <Text style={loginStyles.SubtituloPequeno}>INGRESA TUS CREDENCIALES</Text>
+                        <Text style={loginStyles.title}>¡Bienvenido!</Text>
+                        <Text style={loginStyles.SubtituloPequeno}>INGRESA TUS CREDENCIALES</Text>
 
-                <Layout style={loginStyles.formContainer}>
-                    <Controller
-                        control={control}
-                        name="username"
-                        rules={{ required: 'El usuario es obligatorio' }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <View>
-                                <Text style={loginStyles.label}>Usuario:</Text>
-                                <Input
-                                    style={loginStyles.input}
-                                    placeholder="Ingrese su usuario"
-                                    placeholderTextColor="#C5CEE0"
-                                    keyboardType="default"
-                                    accessoryLeft={renderPersonIcon}
-                                    value={value}
-                                    onChangeText={onChange}
-                                    onBlur={onBlur}
-                                    status={errors.username ? 'danger' : 'basic'}
-                                    textStyle={loginStyles.inputText}
-                                />
-                            </View>
-                        )}
-                    />
-                    {errors.username && <Text style={loginStyles.error}>{errors.username.message}</Text>}
+                        <Layout style={loginStyles.formContainer}>
+                            <Controller
+                                control={control}
+                                name="username"
+                                rules={{ required: 'El usuario es obligatorio' }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <View>
+                                        <Text style={loginStyles.label}>Usuario:</Text>
+                                        <Input
+                                            style={loginStyles.input}
+                                            placeholder="Ingrese su usuario"
+                                            placeholderTextColor="#C5CEE0"
+                                            keyboardType="default"
+                                            accessoryLeft={renderPersonIcon}
+                                            value={value}
+                                            onChangeText={onChange}
+                                            onBlur={onBlur}
+                                            status={errors.username ? 'danger' : 'basic'}
+                                            textStyle={loginStyles.inputText}
+                                        />
+                                    </View>
+                                )}
+                            />
+                            {errors.username && <Text style={loginStyles.error}>{errors.username.message}</Text>}
 
-                    <Controller
-                        control={control}
-                        name="password"
-                        rules={{ required: 'La contraseña es obligatoria' }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <View>
-                                <Text style={loginStyles.label}>Contraseña:</Text>
-                                <Input
-                                    style={loginStyles.input}
-                                    placeholder="Ingrese su contraseña"
-                                    placeholderTextColor="#C5CEE0"
-                                    accessoryLeft={renderLockIcon}
-                                    accessoryRight={renderEyeIcon}
-                                    secureTextEntry={secureTextEntry}
-                                    value={value}
-                                    onChangeText={onChange}
-                                    onBlur={onBlur}
-                                    status={errors.password ? 'danger' : 'basic'}
-                                    textStyle={loginStyles.inputText}
-                                />
-                            </View>
-                        )}
-                    />
-                    {errors.password && <Text style={loginStyles.error}>{errors.password.message}</Text>}
+                            <Controller
+                                control={control}
+                                name="password"
+                                rules={{ required: 'La contraseña es obligatoria' }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <View>
+                                        <Text style={loginStyles.label}>Contraseña:</Text>
+                                        <Input
+                                            style={loginStyles.input}
+                                            placeholder="Ingrese su contraseña"
+                                            placeholderTextColor="#C5CEE0"
+                                            accessoryLeft={renderLockIcon}
+                                            accessoryRight={renderEyeIcon}
+                                            secureTextEntry={secureTextEntry}
+                                            value={value}
+                                            onChangeText={onChange}
+                                            onBlur={onBlur}
+                                            status={errors.password ? 'danger' : 'basic'}
+                                            textStyle={loginStyles.inputText}
+                                        />
+                                    </View>
+                                )}
+                            />
+                            {errors.password && <Text style={loginStyles.error}>{errors.password.message}</Text>}
 
-                    <Button style={loginStyles.button} onPress={handleSubmit(onLogin)}>
-                        Entrar
-                    </Button>
+                            <Button style={loginStyles.button} onPress={handleSubmit(onLogin)}>
+                                Entrar
+                            </Button>
 
-                    <TouchableOpacity onPress={() => navigation.navigate('RecuperarClave')}>
-                        <Text style={loginStyles.forgotPassword}>Olvidé mi contraseña</Text>
-                    </TouchableOpacity>
-                </Layout>
-
-                <View style={loginStyles.footerlogin}>
-                    <Text style={loginStyles.footerText}>Esta App es parte de infinityOne</Text>
-                    <Image
-                        source={require('../../../assets/logoinfinity.png')}
-                        style={loginStyles.footerLogo}
-                        resizeMode="contain"
-                    />
-                </View>
-            </Layout>
+                            <TouchableOpacity onPress={() => navigation.navigate('RecuperarClave')}>
+                                <Text style={loginStyles.forgotPassword}>Olvidé mi contraseña</Text>
+                            </TouchableOpacity>
+                        </Layout>
+                    </Layout>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </ScreenWrapper>
     );
 }
