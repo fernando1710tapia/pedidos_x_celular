@@ -2,7 +2,7 @@ import { Button, Input, Layout, Text, Icon } from '@ui-kitten/components';
 import CryptoJS from 'crypto-js';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -26,6 +26,12 @@ export default function LoginScreen() {
     const navigation = useNavigation<NavigationProps>();
     const { setUser } = useUser();
     const [secureTextEntry, setSecureTextEntry] = React.useState(true);
+    const [alertModal, setAlertModal] = React.useState({
+        visible: false,
+        title: '',
+        message: '',
+        type: 'success' // 'success' o 'error'
+    });
 
     const toggleSecureEntry = () => {
         setSecureTextEntry(!secureTextEntry);
@@ -70,7 +76,12 @@ export default function LoginScreen() {
                 setUser(user);
 
                 if (user && !user.habilitadoapp) {
-                    Alert.alert('¡Lo sentimos!', '¡InfinityOne APP No está disponible para usted!');
+                    setAlertModal({
+                        visible: true,
+                        title: '¡Lo sentimos!',
+                        message: '¡InfinityOne APP No está disponible para usted!',
+                        type: 'error'
+                    });
                     return;
                 }
 
@@ -80,10 +91,12 @@ export default function LoginScreen() {
 
                     const hasComercializadora = user?.codigocomercializadora != null && String(user.codigocomercializadora).trim() !== '';
                     if (!hasComercializadora) {
-                        Alert.alert(
-                            'Aviso',
-                            'Su usuario no tiene comercializadora asignada. No podrá generar ni revisar pedidos hasta que un administrador le asigne una. Contacte al administrador.'
-                        );
+                        setAlertModal({
+                            visible: true,
+                            title: 'Aviso',
+                            message: 'Su usuario no tiene comercializadora asignada. No podrá generar ni revisar pedidos hasta que un administrador le asigne una. Contacte al administrador.',
+                            type: 'error'
+                        });
                     }
 
                     const isEightDigitUser = /^\d{8}$/.test(data.username);
@@ -96,11 +109,21 @@ export default function LoginScreen() {
                     }
                 }
             } else {
-                Alert.alert('Error', 'Usuario o contraseña incorrectos');
+                setAlertModal({
+                    visible: true,
+                    title: 'Error',
+                    message: 'Usuario o contraseña incorrectos',
+                    type: 'error'
+                });
             }
         } catch (error: any) {
             console.error("Error de red:", error);
-            Alert.alert('Error', `No se pudo conectar al servidor: ${error.message}`);
+            setAlertModal({
+                visible: true,
+                title: 'Error',
+                message: `No se pudo conectar al servidor: ${error.message}`,
+                type: 'error'
+            });
         }
     };
 
@@ -189,6 +212,104 @@ export default function LoginScreen() {
                     </Layout>
                 </ScrollView>
             </KeyboardAvoidingView>
+            {/* Modal de Alerta Custom */}
+            {alertModal.visible && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={[
+                            styles.iconCircle,
+                            { backgroundColor: alertModal.type === 'success' ? '#10B981' : '#EF4444' }
+                        ]}>
+                            <Icon 
+                                name={alertModal.type === 'success' ? 'checkmark' : 'close'} 
+                                fill="#FFFFFF" 
+                                style={{ width: 40, height: 40 }} 
+                            />
+                        </View>
+                        <Text style={styles.modalTitle}>{alertModal.title}</Text>
+                        <Text style={styles.modalMessage}>{alertModal.message}</Text>
+                        <TouchableOpacity 
+                            style={[
+                                styles.modalButton, 
+                                { backgroundColor: alertModal.type === 'success' ? '#10B981' : '#EF4444' }
+                            ]}
+                            onPress={() => setAlertModal({ ...alertModal, visible: false })}
+                        >
+                            <Text style={styles.modalButtonText}>Entendido</Text>
+                        </TouchableOpacity>
+                        
+                    </View>
+                </View>
+            )}
         </ScreenWrapper>
     );
 }
+
+const styles = StyleSheet.create({
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 999,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        width: '85%',
+        maxWidth: 400,
+        borderRadius: 24,
+        padding: 30,
+        alignItems: 'center',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    iconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    modalMessage: {
+        fontSize: 16,
+        color: '#4B5563',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 25,
+    },
+    modalButton: {
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 12,
+        marginBottom: 20,
+        minWidth: 150,
+        alignItems: 'center'
+    },
+    modalButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    loadingBarContainer: {
+        width: '100%',
+        height: 4,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    loadingBarFill: {
+        width: '100%',
+        height: '100%',
+    },
+});
