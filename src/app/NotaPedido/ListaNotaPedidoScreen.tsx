@@ -20,6 +20,8 @@ import {
     ListaNotaPedidoInterace,
     RootStackParamList,
 } from '../../types';
+import BrandLogo from '../../components/BrandLogo';
+
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 type RouteProps = RouteProp<RootStackParamList, 'ListaNotaPedido'>;
@@ -360,23 +362,30 @@ export const ListaNotaPedidoScreen = () => {
     return (
         <ScreenWrapper>
             <View style={styles.screen}>
-                {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity
                         style={styles.headerButtonLeft}
-                        onPress={() => navigation.navigate('NotaPedido')}
+                        onPress={() => navigation.goBack()}
                     >
-                        <Icon name="chevron-back" size={28} color="#1565C0" />
+                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle} numberOfLines={1}>
-                        {isAdmin && paramNombreCliente ? `Pedidos: ${paramNombreCliente}` : 'Tus pedidos'}
-                    </Text>
-                    <TouchableOpacity style={styles.headerButtonRight} onPress={onLogout}>
+
+                    <View style={styles.headerCenter}>
+                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
+                        <Text style={styles.headerTitle} numberOfLines={1}>
+                            {isAdmin && paramNombreCliente ? `PEDIDOS: ${paramNombreCliente}` : 'TUS PEDIDOS'}
+                        </Text>
+                    </View>
+
+                    <TouchableOpacity
+                        style={styles.headerButtonRight}
+                        onPress={onLogout}
+                    >
                         <Icon name="log-out-outline" size={26} color="#DC2626" />
                     </TouchableOpacity>
                 </View>
 
-                {/* Pagination */}
+
                 <View style={styles.pagination}>
                     <TouchableOpacity
                         onPress={handlePrevPage}
@@ -388,6 +397,7 @@ export const ListaNotaPedidoScreen = () => {
                         </Text>
                     </TouchableOpacity>
                     <Text style={styles.pageInfo}>Página {currentPage} de {totalPages}</Text>
+
                     <TouchableOpacity
                         onPress={handleNextPage}
                         disabled={currentPage >= totalPages}
@@ -452,6 +462,19 @@ export const ListaNotaPedidoScreen = () => {
                                     </View>
                                 </View>
 
+                                <View style={styles.productInfoRow}>
+                                    <View style={styles.infoIconRow}>
+                                        <Icon name="cube-outline" size={18} color="#000000" />
+                                        <Text style={styles.infoLabel}>PRODUCTO</Text>
+                                    </View>
+                                    <Text style={styles.productDetailText}>
+                                        {np.nombreProducto} - {Math.floor(Number(np.volumenAutorizado || 0))} {np.medida}
+                                    </Text>
+                                </View>
+
+
+
+
                                 {/* Estado: Facturada / Despachada */}
                                 <View style={styles.cardStatusRow}>
                                     <View>
@@ -492,31 +515,44 @@ const styles = StyleSheet.create({
         backgroundColor: '#EFF6FF',
     },
     header: {
+        paddingHorizontal: 15,
+        paddingVertical: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-        backgroundColor: '#FFFFFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        justifyContent: 'center',
+        minHeight: 80,
+    },
+    headerCenter: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerButtonLeft: {
+        position: 'absolute',
+        left: 15,
+        zIndex: 10,
         padding: 6,
-        minWidth: 44,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#111827',
-        flex: 1,
-        textAlign: 'center',
     },
     headerButtonRight: {
+        position: 'absolute',
+        right: 15,
+        zIndex: 10,
         padding: 6,
-        minWidth: 44,
-        alignItems: 'flex-end',
     },
+    headerTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#9CA3AF',
+        textAlign: 'center',
+        marginTop: 4,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+
+
+
     pagination: {
         flexDirection: 'row',
         alignItems: 'center',

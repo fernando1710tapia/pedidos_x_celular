@@ -13,6 +13,7 @@ import { Svg, Circle, G, Path, Text as SvgText, TSpan } from 'react-native-svg';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
 import { useNavigation } from '@react-navigation/native';
+import BrandLogo from '../../components/BrandLogo';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { volumenTotalService } from '../../services';
@@ -82,6 +83,8 @@ export default function VolumenTotalScreen() {
     const [loading, setLoading] = useState(false);
     const [ventasData, setVentasData] = useState<VentaTotalData[]>([]);
     const [selectedTerminal, setSelectedTerminal] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
 
     useEffect(() => {
         // Resetear selección al cambiar de fecha o de pestaña
@@ -96,8 +99,10 @@ export default function VolumenTotalScreen() {
         if (!user) return;
 
         setLoading(true);
+        setError(null);
         try {
             const isAdmin = user?.codigo ? !/^\d{8}$/.test(user.codigo) : true;
+
             const codigocliente = isAdmin ? "" : (user.codigo ?? "");
             const pfecha = format(date, "yyyy/MM/dd");
             const tipoconsulta = activeTab === 'Nacional' ? 'n' : 't';
@@ -118,11 +123,11 @@ export default function VolumenTotalScreen() {
             } else {
                 setVentasData([]);
             }
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            // Alert.alert("Error", "No se pudo obtener la información de ventas.");
+        } catch (error: any) {
+            setError(error?.message || "Error de conexión");
             setVentasData([]);
         } finally {
+
             setLoading(false);
         }
     };
@@ -447,20 +452,30 @@ export default function VolumenTotalScreen() {
     return (
         <ScreenWrapper>
             <Layout style={styles.container}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Icon name="arrow-back" size={24} color="#1F2937" />
+                            <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Volumen total</Text>
+
+                    <View style={styles.headerCenter}>
+                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
+                        <Text style={styles.headerTitle}>VOLUMEN TOTAL</Text>
+                    </View>
                 </View>
+
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                     {/* Welcome */}
                     <View style={styles.welcomeSection}>
-                        <Text style={styles.welcomeTitle}>Hola, {user?.nombre || 'Juan'}</Text>
+                        <Text style={styles.welcomeTitle}>
+                            Hola, <Text style={styles.userName}>{user?.nombre || 'Usuario'}</Text>
+                        </Text>
                         <Text style={styles.welcomeSub}>Miremos las ventas totales</Text>
                     </View>
+
 
                     {/* Date Selector */}
                     <TouchableOpacity
@@ -511,12 +526,21 @@ export default function VolumenTotalScreen() {
                             </View>
 
                             {loading ? (
-                                <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}><Text>Cargando datos...</Text></View>
+                                <View style={styles.loadingContainer}><Text>Cargando datos...</Text></View>
+                            ) : error ? (
+                                <View style={styles.errorContainer}>
+                                    <Icon name="alert-circle-outline" size={40} color={COLORS.extra} />
+                                    <Text style={styles.errorText}>No se pudo cargar la información</Text>
+                                    <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                                        <Text style={styles.retryButtonText}>Reintentar</Text>
+                                    </TouchableOpacity>
+                                </View>
                             ) : (
                                 <>
                                     {renderPieChart()}
                                 </>
                             )}
+
                         </View>
                     )}
 
@@ -529,8 +553,17 @@ export default function VolumenTotalScreen() {
                             </View>
 
                             {loading ? (
-                                <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}><Text>Cargando datos...</Text></View>
+                                <View style={styles.loadingContainer}><Text>Cargando datos...</Text></View>
+                            ) : error ? (
+                                <View style={styles.errorContainer}>
+                                    <Icon name="alert-circle-outline" size={40} color={COLORS.extra} />
+                                    <Text style={styles.errorText}>No se pudo cargar la información</Text>
+                                    <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+                                        <Text style={styles.retryButtonText}>Reintentar</Text>
+                                    </TouchableOpacity>
+                                </View>
                             ) : renderBarChart()}
+
                         </View>
                     )}
 
@@ -580,40 +613,59 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 15,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
-        backgroundColor: COLORS.white,
+        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 80,
+    },
+    headerCenter: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     backButton: {
+        position: 'absolute',
+        left: 15,
+        zIndex: 10,
         padding: 5,
     },
     headerTitle: {
-        flex: 1,
-        fontSize: 18,
+        fontSize: 12,
         fontWeight: 'bold',
-        marginLeft: 15,
-        color: '#111827',
+        color: '#9CA3AF',
+        textAlign: 'center',
+        marginTop: 4,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
+
+
+
     scrollContent: {
         padding: 20,
     },
     welcomeSection: {
-        marginBottom: 25,
+        marginBottom: 30,
     },
     welcomeTitle: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
-        color: COLORS.dark,
+        color: '#111827',
+    },
+    userName: {
+        color: '#1565C0',
+        fontWeight: 'bold',
     },
     welcomeSub: {
         fontSize: 16,
-        color: COLORS.gray,
-        marginTop: 4,
+        color: '#6B7280',
+        marginTop: 8,
     },
+
     dateCard: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -801,6 +853,36 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 12,
         marginBottom: 10,
+    },
+    loadingContainer: {
+        height: 200,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    errorContainer: {
+        height: 200,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    errorText: {
+        color: COLORS.extra,
+        fontSize: 14,
+        fontWeight: '600',
+        marginTop: 10,
+        textAlign: 'center',
+    },
+    retryButton: {
+        marginTop: 15,
+        backgroundColor: COLORS.primary,
+        paddingVertical: 8,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+    },
+    retryButtonText: {
+        color: COLORS.white,
+        fontWeight: '700',
+        fontSize: 14,
     },
     legendLeft: {
         flexDirection: 'row',

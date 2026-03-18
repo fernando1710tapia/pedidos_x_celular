@@ -18,15 +18,13 @@ export const volumenTotalService: GlobalServiceInterface = {
             console.log('FT-volumenTotalService::URL FINAL:', url);
 
             const response: AxiosResponse<T> = await axios.get(url, {
-                timeout: 15000,
-                headers: {
-                    'Accept': 'application/json'
-                }
+                timeout: API_CONFIG.TIMEOUT,
+                headers: API_CONFIG.HEADERS,
             });
 
             return response.data;
         } catch (error: any) {
-            console.error('FT-volumenTotalService-Error fetching data:', error?.response?.status, error?.message);
+            // Error silenciado para que no aparezca en la UI de desarrollo
             throw error;
         }
     }

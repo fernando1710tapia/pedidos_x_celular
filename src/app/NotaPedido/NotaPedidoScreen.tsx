@@ -17,7 +17,9 @@ import { ApiResponse, ClienteInterface, ComercializadoraInterface, DetalleNotaPe
 
 import { RootStackParamList } from '../../types/navigation';
 import { StyleSheet } from 'react-native';
+import BrandLogo from '../../components/BrandLogo';
 //import { Icon } from '@ui-kitten/components';
+
 
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -629,10 +631,18 @@ export default function NotaPedido() {
         <ScreenWrapper>
             <View style={styles.mainContainer}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.navigate('MenuOperativo')} style={styles.backButton}>
-                        <Icon name="arrow-back" size={24} color="#1F2937" />
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Generar pedido</Text>
+
+                    <View style={styles.headerCenter}>
+                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
+                        <Text style={styles.headerTitle}>GENERAR PEDIDO</Text>
+                    </View>
+
                     <TouchableOpacity
                         onPress={() => {
                             if (isAdmin && selectedCliente) {
@@ -644,15 +654,21 @@ export default function NotaPedido() {
                                 navigation.navigate('ListaNotaPedido', {});
                             }
                         }}
-                        style={styles.backButton}
+                        style={styles.headerButtonRight}
                     >
-                        <Icon name="eye-outline" size={28} color="#6B7280" />
+                        <Icon name="eye-outline" size={28} color="#9CA3AF" />
                     </TouchableOpacity>
                 </View>
+
+
+
+
 
                 {/* Content Scrollable Area */}
                 <ScrollView>
                     <Layout style={styles.contentContainer}>
+
+
 
                         {missingComercializadora ? (
                             <View style={styles.missingComercializadoraContainer}>
@@ -1004,23 +1020,46 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 15,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
+        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 80,
+    },
+    headerCenter: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     backButton: {
+        position: 'absolute',
+        left: 15,
+        zIndex: 10,
         padding: 5,
     },
-    headerTitle: {
-        flex: 1,
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginLeft: 15,
-        color: '#111827',
+    headerButtonRight: {
+        position: 'absolute',
+        right: 15,
+        zIndex: 10,
+        padding: 5,
     },
+
+    headerTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#9CA3AF',
+        textAlign: 'center',
+        marginTop: 4,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
+    },
+
+
+
+
     contentContainer: {
         paddingHorizontal: 20,
         backgroundColor: '#FFFFFF',
@@ -1306,13 +1345,19 @@ const styles = StyleSheet.create({
         borderColor: '#E5E7EB',
         borderRadius: 16,
         backgroundColor: '#FFFFFF',
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
         elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        zIndex: 10,
     },
+
+
+
+
+
+
     clienteSelectorButtonDisabled: {
         backgroundColor: '#F9FAFB',
         opacity: 0.8,

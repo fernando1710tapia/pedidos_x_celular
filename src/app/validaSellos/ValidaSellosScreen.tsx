@@ -20,6 +20,8 @@ import { RootStackParamList } from '../../types/navigation';
 import { useUser } from '../../hooks';
 import { usoSelloService } from '../../services';
 import { ApiResponse, UsoSelloInterface } from '../../types';
+import BrandLogo from '../../components/BrandLogo';
+
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'ValidaSellos'>;
 
@@ -317,18 +319,29 @@ export default function ValidaSellosScreen() {
             <Layout style={styles.container}>
                 {/* Header Custom */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Icon name="arrow-back" size={24} color="#1F2937" />
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Validación de Sellos</Text>
+
+                    <View style={styles.headerCenter}>
+                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
+                        <Text style={styles.headerTitle}>Validación de Sellos</Text>
+                    </View>
                 </View>
+
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
                     {/* Saludo */}
                     <View style={styles.greetingSection}>
-                        <Text style={styles.greetingTitle}>Hola, <Text style={styles.userName}>{user?.nombre || 'Usuario'}</Text></Text>
+                        <Text style={styles.greetingTitle}>
+                            Hola, <Text style={styles.userName}>{user?.nombre || 'Usuario'}</Text>
+                        </Text>
                         <Text style={styles.greetingSubtitle}>Es importante que verifique los sellos recibidos en los autotanques.</Text>
                     </View>
+
 
                     <View style={styles.inputGroup}>
                         <Text style={styles.label}>Estamos viendo pedidos de:</Text>
@@ -514,23 +527,36 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     header: {
-        flexDirection: 'row',
-        alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 15,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
+        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 80,
+    },
+    headerCenter: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     backButton: {
+        position: 'absolute',
+        left: 15,
+        zIndex: 10,
         padding: 5,
     },
     headerTitle: {
-        flex: 1,
-        fontSize: 18,
+        fontSize: 12,
         fontWeight: 'bold',
-        marginLeft: 15,
-        color: '#111827',
+        color: '#9CA3AF',
+        textAlign: 'center',
+        marginTop: 4,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
+
     logoText: {
         fontSize: 14,
         fontWeight: 'bold',
@@ -544,18 +570,20 @@ const styles = StyleSheet.create({
         marginBottom: 25,
     },
     greetingTitle: {
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#111827',
     },
     userName: {
-        color: '#1F2937',
+        color: '#1565C0',
+        fontWeight: 'bold',
     },
     greetingSubtitle: {
-        fontSize: 14,
+        fontSize: 16,
         color: '#6B7280',
-        marginTop: 5,
+        marginTop: 8,
     },
+
     inputGroup: {
         marginBottom: 20,
     },

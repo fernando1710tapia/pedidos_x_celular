@@ -41,20 +41,6 @@ export default function MenuOperativoScreen() {
     return (
         <ScreenWrapper>
             <Layout style={styles.container}>
-                {/* Header Superior con Logos 
-                <View style={styles.headerRow}>
-                    <Image
-                        source={require('../../../assets/logoinfinity.png')}
-                        style={styles.logoInfinity}
-                        resizeMode="contain"
-                    />
-                    <Image
-                        // Usamos logoPYS.png como aproximación al logo de Petrolrios
-                        source={require('../../../assets/logoPYS.png')}
-                        style={styles.logoPetrolrios}
-                        resizeMode="contain"
-                    />
-                </View> */}
 
                 {/* Sección de Saludo */}
                 <View style={styles.greetingSection}>
@@ -106,12 +92,21 @@ export default function MenuOperativoScreen() {
                     </View>
                 </View>
 
-                {/* Footer con Botón Salir */}
+                {/* Footer con Botón Salir y Branding Infinity */}
                 <View style={styles.footer}>
                     <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
                         <Icon name="log-out-outline" size={24} color="#374151" style={styles.logoutIcon} />
                         <Text style={styles.logoutText}>Cerrar sesión</Text>
                     </TouchableOpacity>
+
+                    <View style={styles.poweredByContainer}>
+                        <Text style={styles.poweredByText}>Powered by</Text>
+                        <Image
+                            source={require('../../../assets/infinityOne.png')}
+                            style={styles.poweredByLogo}
+                            resizeMode="contain"
+                        />
+                    </View>
                 </View>
 
             </Layout>
@@ -203,8 +198,27 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     footer: {
-        marginBottom: 30,
+        marginTop: 'auto',
+        marginBottom: 20,
     },
+    poweredByContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 25,
+    },
+    poweredByText: {
+        fontSize: 12,
+        color: '#9CA3AF',
+        marginRight: 8,
+        fontWeight: '500',
+    },
+    poweredByLogo: {
+        width: 80,
+        height: 24,
+        opacity: 0.8,
+    },
+
     logoutButton: {
         flexDirection: 'row',
         alignItems: 'center',
