@@ -989,8 +989,8 @@ export default function NotaPedido() {
                             </>
                         )}
                     </Layout>
-                </ScrollView >
-            </View >
+                </ScrollView>
+            </View>
             {/* Modal de Éxito Custom (más profesional) */}
             {showSuccessModal && (
                 <View style={styles.modalOverlay}>
@@ -1010,9 +1010,10 @@ export default function NotaPedido() {
                     </View>
                 </View>
             )}
-        </ScreenWrapper >
+        </ScreenWrapper>
     );
 }
+
 
 const styles = StyleSheet.create({
     mainContainer: {

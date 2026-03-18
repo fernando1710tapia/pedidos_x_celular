@@ -21,7 +21,7 @@
         "ACCESS_NETWORK_STATE"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/remove-new-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.dsas97.InfinityMobile"

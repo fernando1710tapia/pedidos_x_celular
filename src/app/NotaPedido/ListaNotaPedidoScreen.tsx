@@ -468,7 +468,7 @@ export const ListaNotaPedidoScreen = () => {
                                         <Text style={styles.infoLabel}>PRODUCTO</Text>
                                     </View>
                                     <Text style={styles.productDetailText}>
-                                        {np.nombreProducto} - {Math.floor(Number(np.volumenAutorizado || 0))} {np.medida}
+                                        {np.nombreProducto} - {Math.round(Number(np.volumenAutorizado || 0))} {np.medida}
                                     </Text>
                                 </View>
 
@@ -503,11 +503,11 @@ export const ListaNotaPedidoScreen = () => {
                 </View>
 
                 {/* Footer */}
-
             </View>
         </ScreenWrapper>
     );
 };
+
 
 const styles = StyleSheet.create({
     screen: {
