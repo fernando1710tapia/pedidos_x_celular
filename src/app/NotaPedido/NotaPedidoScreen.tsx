@@ -72,6 +72,7 @@ export default function NotaPedido() {
 
     // Sin comercializadora asignada: no se hacen llamadas al API
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
 
 
@@ -597,8 +598,16 @@ export default function NotaPedido() {
                     if (cantidad !== 0 && cantidad !== null) {
                         const response = await crearNotaPedido.postNotaPedido<ApiResponse<any>>(envioNP);
                         if (response !== undefined && response !== null) {
-                            setNpNumber(response.developerMessage);
-                            Alert.alert("Éxito", `Su pedido ha sido registrado correctamente.\nEl número de pedido es: ${response.developerMessage}`);
+                            // Extraer el número de pedido del campo correcto según feedback previo
+                            const resultNumber = response.retorno && response.retorno.length > 0 
+                                ? response.retorno[0].notapedidoPK.numero 
+                                : response.developerMessage;
+                            setNpNumber(resultNumber);
+                            setShowSuccessModal(true);
+                            // Cierre automático después de 4 segundos
+                            setTimeout(() => {
+                                setShowSuccessModal(false);
+                            }, 4000);
                         }
                     } else {
                         Alert.alert("Error", "Ingrese una cantidad");
@@ -966,6 +975,25 @@ export default function NotaPedido() {
                     </Layout>
                 </ScrollView >
             </View >
+            {/* Modal de Éxito Custom (más profesional) */}
+            {showSuccessModal && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.successIconCircle}>
+                            <Icon name="checkmark" size={40} color="#FFFFFF" />
+                        </View>
+                        <Text style={styles.modalTitle}>Pedido registrado</Text>
+                        <Text style={styles.modalMessage}>El pedido generado: {npNumber}</Text>
+                        <TouchableOpacity 
+                            style={styles.modalButton}
+                            onPress={() => setShowSuccessModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Entendido</Text>
+                        </TouchableOpacity>
+                        
+                    </View>
+                </View>
+            )}
         </ScreenWrapper >
     );
 }
@@ -1352,5 +1380,79 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#374151',
         fontWeight: '500',
+    },
+    // Estilos para el Modal de Éxito Custom
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1001,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        width: '85%',
+        maxWidth: 400,
+        borderRadius: 24,
+        padding: 30,
+        alignItems: 'center',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    successIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#10B981',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    modalMessage: {
+        fontSize: 16,
+        color: '#4B5563',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 25,
+    },
+    modalButton: {
+        backgroundColor: '#10B981',
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 12,
+        marginBottom: 20,
+        minWidth: 150,
+        alignItems: 'center'
+    },
+    modalButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    loadingBarContainer: {
+        width: '100%',
+        height: 4,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 2,
+        overflow: 'hidden',
+    },
+    loadingBarFill: {
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#10B981',
     },
 });

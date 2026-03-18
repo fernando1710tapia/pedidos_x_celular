@@ -99,6 +99,9 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
     nombreTerminal?: string;
     codigoTerminal?: string;
     usuarioactual?: string;
+    nombreProducto?: string;
+    volumenAutorizado?: string | number;
+    medida?: string;
 } => {
     const raw = (item || {}) as any;
 
@@ -141,6 +144,9 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
         nombreTerminal: extractName(raw.nombreTerminal ?? raw.nombreterminal ?? raw.terminal ?? raw.estacion),
         codigoTerminal: String(raw.codigoTerminal ?? raw.codigoterminal ?? (raw.terminal?.codigo ?? '')),
         usuarioactual: String(raw.usuarioactual ?? raw.usuarioActual ?? ''),
+        nombreProducto: String(raw.NombreProducto ?? raw.nombreproducto ?? raw.nombreProducto ?? ''),
+        volumenAutorizado: raw.volumenautorizado ?? raw.volumenAutorizado ?? raw.volumennaturalautorizado ?? '',
+        medida: String(raw.medida ?? ''),
     };
 };
 
@@ -208,6 +214,7 @@ export const ListaNotaPedidoScreen = () => {
         fechaVenta: string; fechaDespacho: string;
         nombreCliente?: string; codigoCliente?: string;
         nombreTerminal?: string; codigoTerminal?: string;
+        nombreProducto?: string; volumenAutorizado?: string | number; medida?: string;
     })[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -444,15 +451,6 @@ export const ListaNotaPedidoScreen = () => {
                                         </View>
                                     </View>
                                 </View>
-                                
-                                <View style={styles.productInfoRow}>
-                                    <Text style={styles.infoLabel}>PRODUCTO</Text>
-                                    <Text style={styles.productDetailText}>
-                                        {np.nombreproducto} - {np.volumenautorizado} {np.medida}
-                                    </Text>
-                                </View>
-
-
 
                                 {/* Estado: Facturada / Despachada */}
                                 <View style={styles.cardStatusRow}>
@@ -755,5 +753,43 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.35,
         shadowRadius: 8,
         elevation: 6,
+    },
+    productSection: {
+        marginBottom: 16,
+    },
+    productInfoWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 4,
+        backgroundColor: '#F8FAFC',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: '#3B82F6',
+    },
+    productNameValue: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1F2937',
+        flex: 1,
+        marginRight: 8,
+    },
+    productVolumePill: {
+        backgroundColor: '#E0F2FE',
+        paddingVertical: 4,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+    },
+    productVolumeValue: {
+        fontSize: 14,
+        fontWeight: '800',
+        color: '#1565C0',
+    },
+    productUnitText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#6B7280',
     },
 });

@@ -214,7 +214,7 @@ export default function VolumenTotalScreen() {
                         {aggData.map((item, index) => {
                             const angle = finalAngles[index];
                             const color = CHART_COLORS[index % CHART_COLORS.length];
-                            const formattedLabel = formatFullProductName(item.nombre);
+                            const formattedLabel = cleanProductName(item.nombre);
 
                             const startRad = (currentAngle * Math.PI) / 180;
                             const endRad = ((currentAngle + angle) * Math.PI) / 180;
@@ -260,8 +260,8 @@ export default function VolumenTotalScreen() {
                                         x={tx}
                                         y={ty - ((words.length - 1) * 6)} // Ajuste vertical para multi-línea
                                         fill={COLORS.dark}
-                                        fontSize="9"
-                                        fontWeight="bold"
+                                        fontSize="8"
+                                        fontWeight="600"
                                         textAnchor={tx > centerX ? 'start' : 'end'}
                                     >
                                         {words.map((word, wi) => (
@@ -328,16 +328,16 @@ export default function VolumenTotalScreen() {
                             const barValues = Object.values(bar.values);
                             const currentTotal = barValues.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
                             const safeTotal = Math.max(currentTotal, 0.001);
-                            
+
                             // Altura proporcional respecto al valor máximo de todas las terminales
                             const heightPercent = Math.max((safeTotal / maxTotal) * 95, 4);
-                            
+
                             const isSelected = selectedTerminal === bar.fullName;
                             const isDimmed = selectedTerminal !== null && !isSelected;
 
                             return (
-                                <TouchableOpacity 
-                                    key={`terminal-${i}-${bar.fullName}`} 
+                                <TouchableOpacity
+                                    key={`terminal-${i}-${bar.fullName}`}
                                     activeOpacity={0.7}
                                     onPress={() => setSelectedTerminal(isSelected ? null : bar.fullName)}
                                     style={[styles.barColumn, isDimmed && { opacity: 0.4 }]}
@@ -371,25 +371,10 @@ export default function VolumenTotalScreen() {
                                                                 }
                                                             ]}
                                                         >
-                                                            <Text style={[
-                                                                styles.innerBarPct, 
-                                                                { 
-                                                                    fontSize: flexValue > 0.15 ? 8 : 7,
-                                                                    fontWeight: 'bold',
-                                                                    color: COLORS.white,
-                                                                    textShadowColor: 'rgba(0,0,0,0.6)',
-                                                                    textShadowOffset: { width: 0.5, height: 0.5 },
-                                                                    textShadowRadius: 1
-                                                                }
-                                                            ]}>
-                                                                {val >= 1000
-                                                                    ? `${(val / 1000).toFixed(1)}k`
-                                                                    : `${Math.round(val)}`}
-                                                            </Text>
-                                                            {flexValue > 0.15 && (
+                                                            {flexValue > 0.12 && (
                                                                 <Text style={[
-                                                                    styles.innerBarLabel, 
-                                                                    { 
+                                                                    styles.innerBarLabel,
+                                                                    {
                                                                         fontSize: 8,
                                                                         color: COLORS.white,
                                                                         textShadowColor: 'rgba(0,0,0,0.6)',
@@ -397,7 +382,7 @@ export default function VolumenTotalScreen() {
                                                                         textShadowRadius: 1
                                                                     }
                                                                 ]}>
-                                                                    {cleanName.split(' ')[0]}
+                                                                    {cleanName}
                                                                 </Text>
                                                             )}
                                                         </View>
@@ -421,7 +406,7 @@ export default function VolumenTotalScreen() {
                         {selectedTerminal ? `Detalle: ${selectedTerminal.split('-').pop()?.trim()}` : 'Resumen Consolidado'}
                     </Text>
                     {selectedTerminal && (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             onPress={() => setSelectedTerminal(null)}
                             style={styles.closeButtonContainer}
                         >
@@ -435,7 +420,7 @@ export default function VolumenTotalScreen() {
                     {uniqueProducts.map((prod) => {
                         const color = productColors[prod];
                         const label = formatFullProductName(prod);
-                        
+
                         // Si hay terminal seleccionado, mostrar solo sus valores. Si no, el total.
                         let displayValue = 0;
                         if (selectedTerminal) {
@@ -444,7 +429,7 @@ export default function VolumenTotalScreen() {
                         } else {
                             displayValue = barData.reduce((sum, bar) => sum + (bar.values[prod] || 0), 0);
                         }
-                        
+
                         // Solo mostrar productos que tengan volumen en el contexto actual
                         if (displayValue <= 0 && selectedTerminal) return null;
 
@@ -828,12 +813,12 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     legendLabel: {
-        fontSize: 14,
+        fontSize: 12,
         color: '#1F2937',
         fontWeight: '500',
     },
     legendValue: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: 'bold',
         color: COLORS.dark,
     },
