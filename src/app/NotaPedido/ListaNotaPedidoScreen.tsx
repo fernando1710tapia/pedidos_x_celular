@@ -444,6 +444,15 @@ export const ListaNotaPedidoScreen = () => {
                                         </View>
                                     </View>
                                 </View>
+                                
+                                <View style={styles.productInfoRow}>
+                                    <Text style={styles.infoLabel}>PRODUCTO</Text>
+                                    <Text style={styles.productDetailText}>
+                                        {np.nombreproducto} - {np.volumenautorizado} {np.medida}
+                                    </Text>
+                                </View>
+
+
 
                                 {/* Estado: Facturada / Despachada */}
                                 <View style={styles.cardStatusRow}>
@@ -647,7 +656,16 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#1565C0',
     },
+    productInfoRow: {
+        marginBottom: 16,
+    },
+    productDetailText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1565C0',
+    },
     cardStatusRow: {
+
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-end',

@@ -11,8 +11,10 @@ import { crearNotaPedido } from '../../services/NotaPedido/notaPedidoServices';
 import ProductoServices from '../../services/Producto/productoServices';
 import obtenerTerminalCliente from '../../services/Terminal/teminalService';
 import terminalService from '../../services/Terminal/terminalService';
-import { notaPedidoStyles, loginStyles } from '../../styles';
-import { ApiResponse, ClienteInterface, ComercializadoraInterface, DetalleNotaPedidoInterface, DetalleNotaPedidoPKInterface, EnvioNotaPedidoInterface, NotaPedidoInterface, NotaPedidoPKInterface, ProductoInterface, ProductoResponseInterface, TerminalClienteInterface, TerminalInterface } from '../../types';
+import { factorCorreccionService } from '../../services';
+
+import { ApiResponse, ClienteInterface, ComercializadoraInterface, DetalleNotaPedidoInterface, DetalleNotaPedidoPKInterface, EnvioNotaPedidoInterface, FactorCorreccionInterface, NotaPedidoInterface, NotaPedidoPKInterface, ProductoInterface, ProductoResponseInterface, TerminalClienteInterface, TerminalInterface } from '../../types';
+
 import { RootStackParamList } from '../../types/navigation';
 import { StyleSheet } from 'react-native';
 //import { Icon } from '@ui-kitten/components';
@@ -64,8 +66,13 @@ export default function NotaPedido() {
     const [terminalSearchText, setTerminalSearchText] = useState<string>('');
     const [loadingTerminales, setLoadingTerminales] = useState<boolean>(false);
 
+    // Factor de corrección
+    const [factores, setFactores] = useState<FactorCorreccionInterface[]>([]);
+    const [volumen60F, setVolumen60F] = useState<number>(0);
+
     // Sin comercializadora asignada: no se hacen llamadas al API
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
+
 
 
 
@@ -363,6 +370,53 @@ export default function NotaPedido() {
         loadInitialData();
     }, [user]);
 
+    // Cargar factores de corrección
+    useEffect(() => {
+        const fetchFactores = async () => {
+            if (!user?.codigocomercializadora) return;
+            try {
+                const response = await factorCorreccionService.getResource<ApiResponse<FactorCorreccionInterface>>(
+                    'ec.com.infinity.modelo.factorcorreccion/factoractual',
+                    '',
+                    { codigocomercializadora: user.codigocomercializadora }
+                );
+                if (response?.retorno) {
+                    setFactores(response.retorno);
+                }
+            } catch (error) {
+                console.error('Error al cargar factores:', error);
+            }
+        };
+        fetchFactores();
+    }, [user?.codigocomercializadora]);
+
+    // Calcular Volumen a 60F
+    useEffect(() => {
+        if (isAdmin) {
+            setVolumen60F(cantidad);
+            return;
+        }
+
+        if (!codProducto || !terminal?.codigo || cantidad === 0) {
+            setVolumen60F(cantidad);
+            return;
+        }
+
+        // Buscar el factor para (terminal, producto)
+        const factorObj = factores.find(f => 
+            f.factorcorreccionPK.codigoproducto === codProducto && 
+            f.factorcorreccionPK.codigoterminal === terminal.codigo
+        );
+
+        if (factorObj) {
+            const calculado = Number((cantidad * factorObj.factor).toFixed(2));
+            setVolumen60F(calculado);
+        } else {
+            setVolumen60F(cantidad);
+        }
+    }, [cantidad, codProducto, terminal?.codigo, factores, isAdmin]);
+
+
     //
     useEffect(() => {
         if (comercializadora !== undefined && comercializadora !== null) {
@@ -514,9 +568,10 @@ export default function NotaPedido() {
 
             const detalleNotaPedido: DetalleNotaPedidoInterface = {
                 detallenotapedidoPK: detalleNotaPedidoPk,
-                volumennaturalrequerido: cantidad,
-                volumennaturalautorizado: cantidad,
+                volumennaturalrequerido: volumen60F,
+                volumennaturalautorizado: volumen60F,
                 usuarioactual: user?.nombrever || "",
+
                 medida: { codigo: detalleNotaPedidoPk.codigomedida },
                 producto: { codigo: codProducto },
                 compartimento1: 0,
@@ -883,8 +938,9 @@ export default function NotaPedido() {
                                 <View style={styles.summaryContainer}>
                                     <Text style={styles.summaryLabel}>RESUMEN DE PEDIDO</Text>
                                     <Text style={styles.summaryVolume}>
-                                        {cantidad} <Text style={styles.summaryUnit}>Galones a 60°F</Text>
+                                        {volumen60F} <Text style={styles.summaryUnit}>Galones a 60°F</Text>
                                     </Text>
+
                                     <Text style={styles.summaryProduct}>
                                         {products?.find(p => p.producto.codigo === codProducto)?.producto.nombre || 'Seleccione producto'}
                                     </Text>

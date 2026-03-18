@@ -10,4 +10,8 @@ export interface ListaNotaPedidoInterace {
     /** Fecha de despacho elegida al crear el pedido (Hoy/Mañana) → PARA DESPACHAR. Si no viene, se usa fechaVenta. */
     fechaDespacho?: string
     estadoFactura: boolean
+    nombreproducto: string
+    volumenautorizado: string
+    medida: string
 }
+
