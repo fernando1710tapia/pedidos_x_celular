@@ -69,9 +69,15 @@ export default function LoginScreen() {
                 const user = response.retorno.length > 0 ? response.retorno[0] : null;
                 setUser(user);
 
+                if (user && !user.habilitadoapp) {
+                    Alert.alert('¡Lo sentimos!', '¡InfinityOne APP No está disponible para usted!');
+                    return;
+                }
+
                 if (encryptedPassword === CryptoJS.SHA256(API_CONFIG.FIRST_ACCES).toString(CryptoJS.enc.Hex)) {
                     navigation.navigate('RecuperarClave');
                 } else {
+
                     const hasComercializadora = user?.codigocomercializadora != null && String(user.codigocomercializadora).trim() !== '';
                     if (!hasComercializadora) {
                         Alert.alert(

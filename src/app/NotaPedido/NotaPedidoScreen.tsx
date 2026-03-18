@@ -859,7 +859,10 @@ export default function NotaPedido() {
                                 </View>
 
                                 {/* Volume Input */}
-                                <Text style={styles.sectionTitle}>VOLUMEN REQUERIDO (GALONES)</Text>
+                                <Text style={styles.sectionTitle}>
+                                    {isAdmin ? 'VOLUMEN REQUERIDO (GALONES A 60 °F)' : 'VOLUMEN REQUERIDO (GALONES AL NATURAL)'}
+                                </Text>
+
                                 <View style={styles.volumeInputWrapper}>
                                     <View style={styles.volumeIconContainer}>
                                         <Icon name="remove-outline" size={24} color="#374151" />
@@ -880,7 +883,7 @@ export default function NotaPedido() {
                                 <View style={styles.summaryContainer}>
                                     <Text style={styles.summaryLabel}>RESUMEN DE PEDIDO</Text>
                                     <Text style={styles.summaryVolume}>
-                                        {cantidad} <Text style={styles.summaryUnit}>Galones</Text>
+                                        {cantidad} <Text style={styles.summaryUnit}>Galones a 60°F</Text>
                                     </Text>
                                     <Text style={styles.summaryProduct}>
                                         {products?.find(p => p.producto.codigo === codProducto)?.producto.nombre || 'Seleccione producto'}

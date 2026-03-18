@@ -19,4 +19,5 @@ export interface UserInterface {
     respuesta1: string;
     respuesta2: string;
     respuesta3: string;
-}
+    habilitadoapp: boolean;
+}
