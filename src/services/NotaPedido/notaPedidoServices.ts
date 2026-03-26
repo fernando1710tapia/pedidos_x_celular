@@ -33,79 +33,43 @@ const crearNotaPedido = {
         body: EnvioNotaPedidoInterface
     ): Promise<T> => {
         const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.notapedido`;
-
-        try {
-            // console.error(
-            //     'FT-NotaPedidoService::URL POST =>',
-            //     url
-            // );
-
-            // console.error(
-            //     'FT-NotaPedidoService::BODY JSON =>',
-            //     JSON.stringify(body, null, 2)
-            // );
-
-            // console.error(
-            //     'FT-NotaPedidoService::HEADERS =>',
-            //     API_CONFIG.HEADERS
-            // );
-
-            const response: AxiosResponse<T> = await axios.post(
-                url,
-                body,
-                {
-                    timeout: API_CONFIG.TIMEOUT,
-                    headers: API_CONFIG.HEADERS,
-                }
-            );
-
-            // console.error(
-            //     'FT-NotaPedidoService::RESPONSE STATUS =>',
-            //     response.status
-            // );
-
-            // console.error(
-            //     'FT-NotaPedidoService::RESPONSE DATA =>',
-            //     response.data
-            // );
-
-            return response.data;
-
-        } catch (error: any) {
-
-            console.error(
-                'FT-NotaPedidoService::ERROR URL =>',
-                url
-            );
-
-            if (error?.response) {
-                console.error(
-                    'FT-NotaPedidoService::ERROR STATUS =>',
-                    error.response.status
-                );
-                console.error(
-                    'FT-NotaPedidoService::ERROR DATA =>',
-                    error.response.data
-                );
-                console.error(
-                    'FT-NotaPedidoService::ERROR HEADERS =>',
-                    error.response.headers
-                );
-            } else if (error?.request) {
-                console.error(
-                    'FT-NotaPedidoService::NO RESPONSE (NETWORK/TIMEOUT)',
-                    error.request
-                );
-            } else {
-                console.error(
-                    'FT-NotaPedidoService::ERROR MENSAJE =>',
-                    error.message
-                );
-            }
-
-            throw error;
-        }
+        return sendPostRequest<T>(url, body);
     },
+
+    crearSolicitud: async <T>(
+        body: EnvioNotaPedidoInterface
+    ): Promise<T> => {
+        const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.notapedido/crearSolicitud`;
+        return sendPostRequest<T>(url, body);
+    },
+
+    crearyenviar: async <T>(
+        body: EnvioNotaPedidoInterface
+    ): Promise<T> => {
+        const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.notapedido/crearyenviar`;
+        return sendPostRequest<T>(url, body);
+    },
+};
+
+const sendPostRequest = async <T>(url: string, body: EnvioNotaPedidoInterface): Promise<T> => {
+    try {
+        const response: AxiosResponse<T> = await axios.post(
+            url,
+            body,
+            {
+                timeout: API_CONFIG.TIMEOUT,
+                headers: API_CONFIG.HEADERS,
+            }
+        );
+        return response.data;
+    } catch (error: any) {
+        console.error('FT-NotaPedidoService::ERROR URL =>', url);
+        if (error?.response) {
+            console.error('FT-NotaPedidoService::ERROR STATUS =>', error.response.status);
+            console.error('FT-NotaPedidoService::ERROR DATA =>', error.response.data);
+        }
+        throw error;
+    }
 };
 
 

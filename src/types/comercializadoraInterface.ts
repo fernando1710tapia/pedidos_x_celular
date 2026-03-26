@@ -43,7 +43,9 @@ export interface ComercializadoraInterface {
   codigoabastecedora: AbastecedortaInterface
   codigobancodebito: BancoComerInterface
   numeracionList: NumeracionInterface[]
-  notapedidoList: NotaPedidoInterface[] 
+  notapedidoList: NotaPedidoInterface[]
+  generasolicitud?: boolean
+  generapedidodirecto?: boolean
 }
 
 export interface BancoComerInterface {

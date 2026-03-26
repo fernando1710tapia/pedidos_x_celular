@@ -328,7 +328,7 @@ export default function ValidaSellosScreen() {
 
                     <View style={styles.headerCenter}>
                         <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
-                        <Text style={styles.headerTitle}>Validación de Sellos</Text>
+                        <Text style={styles.headerTitle}>VALIDACIÓN DE SELLOS</Text>
                     </View>
                 </View>
 
@@ -337,7 +337,7 @@ export default function ValidaSellosScreen() {
                     {/* Saludo */}
                     <View style={styles.greetingSection}>
                         <Text style={styles.greetingTitle}>
-                            Hola, <Text style={styles.userName}>{user?.nombre || 'Usuario'}</Text>
+                            Hola, {user?.nombre || 'Usuario'}
                         </Text>
                         <Text style={styles.greetingSubtitle}>Es importante que verifique los sellos recibidos en los autotanques.</Text>
                     </View>
@@ -527,15 +527,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     header: {
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingHorizontal: 15,
+        paddingVertical: 0,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
         backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 80,
+        height: 80,
     },
     headerCenter: {
         alignItems: 'center',
@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#9CA3AF',
         textAlign: 'center',
-        marginTop: 4,
+        marginTop: -15,
         letterSpacing: 1,
         textTransform: 'uppercase',
     },
@@ -570,13 +570,9 @@ const styles = StyleSheet.create({
         marginBottom: 25,
     },
     greetingTitle: {
-        fontSize: 28,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#111827',
-    },
-    userName: {
         color: '#1565C0',
-        fontWeight: 'bold',
     },
     greetingSubtitle: {
         fontSize: 16,

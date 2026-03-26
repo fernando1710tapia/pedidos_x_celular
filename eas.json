@@ -6,7 +6,7 @@
                 "buildType": "apk"
             },
             "ios": {
-                "simulator": true
+                "simulator": false
             }
         },
         "preview": {
@@ -15,7 +15,7 @@
                 "buildType": "apk"
             },
             "ios": {
-                "simulator": true
+                "simulator": false
             }
         },
         "production": {

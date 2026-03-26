@@ -12,9 +12,12 @@ const BrandLogo: React.FC<BrandLogoProps> = ({ codigoComercializadora, style }) 
 
 
 
+  let logoSize = { width: 150, height: 50 };
+
   switch (codigoComercializadora) {
     case '0002':
       logoSource = require('../../assets/logoPYS.png');
+      logoSize = { width: 220, height: 75 };
       break;
     case '0008':
       logoSource = require('../../assets/logo.png');
@@ -30,7 +33,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({ codigoComercializadora, style }) 
   return (
     <Image
       source={logoSource}
-      style={[{ width: 120, height: 40 }, style]}
+      style={[logoSize, style]}
       resizeMode="contain"
     />
   );

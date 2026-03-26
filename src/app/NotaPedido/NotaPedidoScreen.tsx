@@ -598,7 +598,15 @@ export default function NotaPedido() {
             if (selectedDate !== null) {
                 if (codProducto !== '' && codProducto !== null) {
                     if (cantidad !== 0 && cantidad !== null) {
-                        const response = await crearNotaPedido.postNotaPedido<ApiResponse<any>>(envioNP);
+                        // Determinar el endpoint según configuración de comercializadora
+                        let response;
+                        if (comercializadora?.generasolicitud) {
+                            response = await crearNotaPedido.crearSolicitud<ApiResponse<any>>(envioNP);
+                        } else if (comercializadora?.generapedidodirecto) {
+                            response = await crearNotaPedido.crearyenviar<ApiResponse<any>>(envioNP);
+                        } else {
+                            response = await crearNotaPedido.postNotaPedido<ApiResponse<any>>(envioNP);
+                        }
                         if (response !== undefined && response !== null) {
                             // Extraer el número de pedido del campo correcto según feedback previo
                             const resultNumber = response.retorno && response.retorno.length > 0 
@@ -667,9 +675,13 @@ export default function NotaPedido() {
                 {/* Content Scrollable Area */}
                 <ScrollView>
                     <Layout style={styles.contentContainer}>
-
-
-
+                        {/* Sección de Saludo */}
+                        <View style={styles.greetingSection}>
+                            <Text style={styles.greetingTitle}>
+                                Hola, {user?.nombre || 'Usuario'}
+                            </Text>
+                            <Text style={styles.greetingSubtitle}>Completa la información para generar tu nota de pedido.</Text>
+                        </View>
                         {missingComercializadora ? (
                             <View style={styles.missingComercializadoraContainer}>
                                 <View style={[styles.iconCircle, styles.missingComercializadoraIcon]}>
@@ -1021,15 +1033,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFFFFF',
     },
     header: {
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingHorizontal: 15,
+        paddingVertical: 0,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
         backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 80,
+        height: 80,
     },
     headerCenter: {
         alignItems: 'center',
@@ -1053,14 +1065,24 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#9CA3AF',
         textAlign: 'center',
-        marginTop: 4,
+        marginTop: -15,
         letterSpacing: 1,
         textTransform: 'uppercase',
     },
-
-
-
-
+    greetingSection: {
+        paddingTop: 25,
+        marginBottom: 25,
+    },
+    greetingTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1565C0',
+    },
+    greetingSubtitle: {
+        fontSize: 16,
+        color: '#6B7280',
+        marginTop: 8,
+    },
     contentContainer: {
         paddingHorizontal: 20,
         backgroundColor: '#FFFFFF',

@@ -471,7 +471,7 @@ export default function VolumenTotalScreen() {
                     {/* Welcome */}
                     <View style={styles.welcomeSection}>
                         <Text style={styles.welcomeTitle}>
-                            Hola, <Text style={styles.userName}>{user?.nombre || 'Usuario'}</Text>
+                            Hola, {user?.nombre || 'Usuario'}
                         </Text>
                         <Text style={styles.welcomeSub}>Miremos las ventas totales</Text>
                     </View>
@@ -613,15 +613,15 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     header: {
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingHorizontal: 15,
+        paddingVertical: 0,
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
         backgroundColor: '#FFFFFF',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 80,
+        height: 80,
     },
     headerCenter: {
         alignItems: 'center',
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#9CA3AF',
         textAlign: 'center',
-        marginTop: 4,
+        marginTop: -15,
         letterSpacing: 1,
         textTransform: 'uppercase',
     },
@@ -652,13 +652,9 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     welcomeTitle: {
-        fontSize: 28,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#111827',
-    },
-    userName: {
         color: '#1565C0',
-        fontWeight: 'bold',
     },
     welcomeSub: {
         fontSize: 16,

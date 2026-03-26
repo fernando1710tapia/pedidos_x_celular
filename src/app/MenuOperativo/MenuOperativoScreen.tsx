@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { RootStackParamList } from '../../types/navigation';
 import { useUser } from '../../hooks';
+import BrandLogo from '../../components/BrandLogo';
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'MenuOperativo'>;
 
@@ -40,12 +41,18 @@ export default function MenuOperativoScreen() {
 
     return (
         <ScreenWrapper>
+            <View style={styles.header}>
+                <View style={styles.headerCenter}>
+                    <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
+                </View>
+            </View>
+
             <Layout style={styles.container}>
 
                 {/* Sección de Saludo */}
                 <View style={styles.greetingSection}>
                     <Text style={styles.greetingTitle}>
-                        Hola, <Text style={styles.userName}>{user?.nombre || 'Usuario'}</Text>
+                        Hola, {user?.nombre || 'Usuario'}
                     </Text>
                     <Text style={styles.greetingSubtitle}>
                         Bienvenido a tu panel de gestión.
@@ -117,9 +124,30 @@ export default function MenuOperativoScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB', // Un fondo muy claro, casi blanco
+        backgroundColor: '#F9FAFB',
         paddingHorizontal: 24,
-        paddingTop: 10,
+        paddingTop: 20,
+    },
+    header: {
+        paddingHorizontal: 15,
+        paddingVertical: 0,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+        backgroundColor: '#FFFFFF',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 80,
+    },
+    headerCenter: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerButtonRight: {
+        position: 'absolute',
+        right: 15,
+        zIndex: 10,
+        padding: 6,
     },
     headerRow: {
         flexDirection: 'row',
@@ -140,8 +168,8 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     greetingTitle: {
-        fontSize: 28,
-        color: '#111827',
+        fontSize: 18,
+        color: '#1565C0',
         fontWeight: 'bold',
     },
     userName: {

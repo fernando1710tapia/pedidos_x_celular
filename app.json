@@ -4,7 +4,7 @@
     "slug": "InfinityMobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/remove-new-icon.png",
+    "icon": "./assets/app-icon-resized.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dsas97.InfinityMobile"
     },
     "android": {
       "permissions": [
@@ -21,7 +22,7 @@
         "ACCESS_NETWORK_STATE"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/remove-new-icon.png",
+        "foregroundImage": "./assets/app-icon-resized.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.dsas97.InfinityMobile"
