@@ -14,6 +14,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
 import { useNavigation } from '@react-navigation/native';
 import BrandLogo from '../../components/BrandLogo';
+import AppHeader from '../../components/AppHeader';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { volumenTotalService } from '../../services';
@@ -452,19 +453,11 @@ export default function VolumenTotalScreen() {
     return (
         <ScreenWrapper>
             <Layout style={styles.container}>
-                            <View style={styles.header}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <View style={styles.headerCenter}>
-                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
-                        <Text style={styles.headerTitle}>VOLUMEN TOTAL</Text>
-                    </View>
-                </View>
+                <AppHeader 
+                    codigoComercializadora={user?.codigocomercializadora || ''} 
+                    title="VOLUMEN TOTAL"
+                    onBackPress={() => navigation.goBack()}
+                />
 
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

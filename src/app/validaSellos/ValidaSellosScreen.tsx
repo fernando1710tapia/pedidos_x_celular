@@ -21,6 +21,7 @@ import { useUser } from '../../hooks';
 import { usoSelloService } from '../../services';
 import { ApiResponse, UsoSelloInterface } from '../../types';
 import BrandLogo from '../../components/BrandLogo';
+import AppHeader from '../../components/AppHeader';
 
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'ValidaSellos'>;
@@ -318,19 +319,11 @@ export default function ValidaSellosScreen() {
         <ScreenWrapper>
             <Layout style={styles.container}>
                 {/* Header Custom */}
-                <View style={styles.header}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <View style={styles.headerCenter}>
-                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
-                        <Text style={styles.headerTitle}>VALIDACIÓN DE SELLOS</Text>
-                    </View>
-                </View>
+                <AppHeader 
+                    codigoComercializadora={user?.codigocomercializadora || ''} 
+                    title="VALIDACIÓN DE SELLOS"
+                    onBackPress={() => navigation.goBack()}
+                />
 
 
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

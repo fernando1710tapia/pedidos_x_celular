@@ -8,6 +8,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import { RootStackParamList } from '../../types/navigation';
 import { useUser } from '../../hooks';
 import BrandLogo from '../../components/BrandLogo';
+import AppHeader from '../../components/AppHeader';
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'MenuOperativo'>;
 
@@ -41,11 +42,10 @@ export default function MenuOperativoScreen() {
 
     return (
         <ScreenWrapper>
-            <View style={styles.header}>
-                <View style={styles.headerCenter}>
-                    <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
-                </View>
-            </View>
+            <AppHeader
+                codigoComercializadora={user?.codigocomercializadora || ''}
+
+            />
 
             <Layout style={styles.container}>
 

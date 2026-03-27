@@ -18,6 +18,7 @@ import { ApiResponse, ClienteInterface, ComercializadoraInterface, DetalleNotaPe
 import { RootStackParamList } from '../../types/navigation';
 import { StyleSheet } from 'react-native';
 import BrandLogo from '../../components/BrandLogo';
+import AppHeader from '../../components/AppHeader';
 //import { Icon } from '@ui-kitten/components';
 
 
@@ -638,35 +639,27 @@ export default function NotaPedido() {
     return (
         <ScreenWrapper>
             <View style={styles.mainContainer}>
-                <View style={styles.header}>
-                    <TouchableOpacity
-                        style={styles.backButton}
-                        onPress={() => navigation.goBack()}
-                    >
-                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
-                    </TouchableOpacity>
-
-                    <View style={styles.headerCenter}>
-                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
-                        <Text style={styles.headerTitle}>GENERAR PEDIDO</Text>
-                    </View>
-
-                    <TouchableOpacity
-                        onPress={() => {
-                            if (isAdmin && selectedCliente) {
-                                navigation.navigate('ListaNotaPedido', {
-                                    codigocliente: selectedCliente.codigo,
-                                    nombreCliente: selectedCliente.nombrecomercial || selectedCliente.nombre
-                                });
-                            } else {
-                                navigation.navigate('ListaNotaPedido', {});
-                            }
-                        }}
-                        style={styles.headerButtonRight}
-                    >
-                        <Icon name="eye-outline" size={28} color="#9CA3AF" />
-                    </TouchableOpacity>
-                </View>
+                <AppHeader 
+                    codigoComercializadora={user?.codigocomercializadora || ''} 
+                    title="GENERAR PEDIDO"
+                    onBackPress={() => navigation.goBack()}
+                    rightElement={
+                        <TouchableOpacity
+                            onPress={() => {
+                                if (isAdmin && selectedCliente) {
+                                    navigation.navigate('ListaNotaPedido', {
+                                        codigocliente: selectedCliente.codigo,
+                                        nombreCliente: selectedCliente.nombrecomercial || selectedCliente.nombre
+                                    });
+                                } else {
+                                    navigation.navigate('ListaNotaPedido', {});
+                                }
+                            }}
+                        >
+                            <Icon name="eye-outline" size={28} color="#9CA3AF" />
+                        </TouchableOpacity>
+                    }
+                />
 
 
 
