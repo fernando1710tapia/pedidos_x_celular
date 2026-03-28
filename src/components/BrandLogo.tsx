@@ -16,14 +16,17 @@ const BrandLogo: React.FC<BrandLogoProps> = ({ codigoComercializadora, style }) 
 
   switch (codigoComercializadora) {
     case '0002':
-      logoSource = require('../../assets/logoPYS.png');
-      logoSize = { width: 220, height: 75 };
+      logoSource = require('../../assets/logo0002.png');
+      logoSize = { width: 220, height: 65 };
       break;
     case '0008':
-      logoSource = require('../../assets/logo.png');
+      logoSource = require('../../assets/logo0008.png');
       break;
     case '7011':
-      logoSource = require('../../assets/ecucomsa.jpeg');
+      logoSource = require('../../assets/logo7011.jpeg');
+      break;
+    case '0095':
+      logoSource = require('../../assets/logo0095.png');
       break;
     default:
       logoSource = require('../../assets/infinityOne.png');
@@ -33,7 +36,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({ codigoComercializadora, style }) 
   return (
     <Image
       source={logoSource}
-      style={[logoSize, style]}
+      style={[logoSize, style, { alignSelf: 'center' }]}
       resizeMode="contain"
     />
   );

@@ -29,9 +29,18 @@ const AppHeader: React.FC<AppHeaderProps> = ({
             )}
 
             <View style={styles.headerCenter}>
-                <BrandLogo codigoComercializadora={codigoComercializadora || ''} />
+                <BrandLogo
+                    codigoComercializadora={codigoComercializadora || ''}
+                    style={(!title && codigoComercializadora === '0002') ? { width: 280, height: 78 } : undefined}
+                />
                 {title && (
-                    <Text style={styles.headerTitle} numberOfLines={1}>
+                    <Text
+                        style={[
+                            styles.headerTitle,
+                            codigoComercializadora === '0002' && { marginTop: -6 }
+                        ]}
+                        numberOfLines={1}
+                    >
                         {title}
                     </Text>
                 )}
@@ -59,6 +68,7 @@ const styles = StyleSheet.create({
         height: 80,
     },
     headerCenter: {
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
     },
