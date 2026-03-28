@@ -26,7 +26,7 @@ const BrandLogo: React.FC<BrandLogoProps> = ({ codigoComercializadora, style }) 
       logoSource = require('../../assets/logo7011.jpeg');
       break;
     case '0095':
-      logoSource = require('../../assets/logo0095.png');
+      logoSource = require('../../assets/logo0095.jpeg');
       break;
     default:
       logoSource = require('../../assets/infinityOne.png');
