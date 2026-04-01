@@ -57,4 +57,8 @@ export interface BancoComerInterface {
 
 export interface CodigoComercializadoraNp {
   codigo: string
+  clavewsepp: string
+  establecimientofac: string
+  puntoventafac: string
+  codigoabastecedora: { codigo: string }
 }

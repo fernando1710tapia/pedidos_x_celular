@@ -50,6 +50,9 @@ export default function NotaPedido() {
     const [codCli, setCodCli] = useState<string>('');
     const [codBank, setCodBank] = useState<string>('');
     const [prefijo, setPrefijo] = useState<string>('');
+    const [claveWsepp, setClaveWsepp] = useState<string>('');
+    const [establecimientoFac, setEstablecimientoFac] = useState<string>('');
+    const [puntoVentaFac, setPuntoVentaFac] = useState<string>('');
     const [codProducto, setCodProducto] = useState<string>('');
     const [selectedDateDate, setSelectedDateDate] = useState<Date | null>(null);
     const [selectedDate, setSelectedDate] = useState<'hoy' | 'manana' | null>(null);
@@ -407,8 +410,8 @@ export default function NotaPedido() {
         }
 
         // Buscar el factor para (terminal, producto)
-        const factorObj = factores.find(f => 
-            f.factorcorreccionPK.codigoproducto === codProducto && 
+        const factorObj = factores.find(f =>
+            f.factorcorreccionPK.codigoproducto === codProducto &&
             f.factorcorreccionPK.codigoterminal === terminal.codigo
         );
 
@@ -428,6 +431,9 @@ export default function NotaPedido() {
             setCodComer(comercializadora.codigo);
             setCodAbas(comercializadora.codigoabastecedora.codigo);
             setPrefijo(comercializadora.prefijonpe);
+            setClaveWsepp(comercializadora.clavewsepp);
+            setEstablecimientoFac(comercializadora.establecimientofac);
+            setPuntoVentaFac(comercializadora.puntoventafac);
         }
     }, [comercializadora])
 
@@ -556,9 +562,16 @@ export default function NotaPedido() {
                 prefijo: prefijo,
                 //codigocliente: { codigo: codCli },
                 codigoclienteId: codCli,
+                codigocliente: { clientePK: { codigo: codCli, codigocomercializadora: codComer } },
                 codigoterminal: { codigo: terminal?.codigo || "" },
                 codigobanco: { codigo: codBank },
-                comercializadora: { codigo: codComer },
+                comercializadora: {
+                    codigo: codComer,
+                    clavewsepp: claveWsepp,
+                    establecimientofac: establecimientoFac,
+                    puntoventafac: puntoVentaFac,
+                    codigoabastecedora: { codigo: codAbas }
+                },
                 abastecedora: { codigo: codAbas }
             };
 
@@ -610,8 +623,8 @@ export default function NotaPedido() {
                         }
                         if (response !== undefined && response !== null) {
                             // Extraer el número de pedido del campo correcto según feedback previo
-                            const resultNumber = response.retorno && response.retorno.length > 0 
-                                ? response.retorno[0].notapedidoPK.numero 
+                            const resultNumber = response.retorno && response.retorno.length > 0
+                                ? response.retorno[0].notapedidoPK.numero
                                 : response.developerMessage;
                             setNpNumber(resultNumber);
                             setShowSuccessModal(true);
@@ -639,8 +652,8 @@ export default function NotaPedido() {
     return (
         <ScreenWrapper>
             <View style={styles.mainContainer}>
-                <AppHeader 
-                    codigoComercializadora={user?.codigocomercializadora || ''} 
+                <AppHeader
+                    codigoComercializadora={user?.codigocomercializadora || ''}
                     title="GENERAR PEDIDO"
                     onBackPress={() => navigation.goBack()}
                     rightElement={
@@ -1005,13 +1018,13 @@ export default function NotaPedido() {
                         </View>
                         <Text style={styles.modalTitle}>Pedido registrado</Text>
                         <Text style={styles.modalMessage}>El pedido generado: {npNumber}</Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.modalButton}
                             onPress={() => setShowSuccessModal(false)}
                         >
                             <Text style={styles.modalButtonText}>Entendido</Text>
                         </TouchableOpacity>
-                        
+
                     </View>
                 </View>
             )}

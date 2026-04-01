@@ -6,7 +6,7 @@ import { EnvioNotaPedidoInterface, GlobalServiceInterface } from "../../types"; 
 //     postNotaPedido: async <T>(body: EnvioNotaPedidoInterface ): Promise<any> => {
 //         try {
 //             const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.notapedido`; // URL correcta
-            
+
 //             //const queryString = new URLSearchParams(queryParams).toString();
 //             //const fullUrl = queryString ? `${url}?${queryString}` : url;
 
@@ -92,4 +92,4 @@ const getListasNotasPedido: GlobalServiceInterface = {
 };
 
 
-export {crearNotaPedido, getListasNotasPedido}
+export { crearNotaPedido, getListasNotasPedido }

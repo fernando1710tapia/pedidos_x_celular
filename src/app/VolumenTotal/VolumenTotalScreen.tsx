@@ -113,7 +113,7 @@ export default function VolumenTotalScreen() {
                 '',
                 {
                     pfecha,
-                    codigocomercializadora: user.codigocomercializadora || '0002',
+                    codigocomercializadora: user.codigocomercializadora,
                     codigocliente,
                     tipoconsulta
                 }
@@ -144,7 +144,16 @@ export default function VolumenTotalScreen() {
                 }
                 aggregated[name].total += vol;
             });
-            return Object.values(aggregated).map((data, index) => ({
+            const sorted = Object.values(aggregated).sort((a, b) => b.total - a.total);
+            const interleaved: any[] = [];
+            let i = 0;
+            let j = sorted.length - 1;
+            while (i <= j) {
+                interleaved.push(sorted[i++]);
+                if (i <= j) interleaved.push(sorted[j--]);
+            }
+
+            return interleaved.map((data, index) => ({
                 id: `prod-${index}`,
                 nombre: data.nombre,
                 total: data.total
@@ -174,7 +183,8 @@ export default function VolumenTotalScreen() {
     };
 
     const renderPieChart = () => {
-        const size = 380; // Aumentado para dar más margen a los nombres
+        // Restauración a tamaño grande e impactante
+        const size = width - 40; // Ancho máximo de la tarjeta
         const radius = 85;
         const centerX = size / 2;
         const centerY = size / 2;
@@ -236,10 +246,17 @@ export default function VolumenTotalScreen() {
                             const midAngle = currentAngle + angle / 2;
                             const midRad = (midAngle * Math.PI) / 180;
 
-                            // Coordenadas para la línea y el texto afuera
+                            // Coordenadas para la línea y el texto afuera (Escalonado Inteligente)
+                            const cosAngle = Math.abs(Math.cos(midRad));
+                            const isSide = cosAngle > 0.75; // Detectar etiquetas en los laterales
+
                             const lineStartDist = radius * 0.8;
                             const lineEndDist = radius * 1.25;
-                            const textDist = radius * 1.35;
+
+                            // Si es lateral, usar una distancia menor para no chocar con el borde
+                            const baseDist = isSide ? 1.3 : 1.45;
+                            const staggerDist = isSide ? 1.5 : 1.75;
+                            const textDist = index % 2 === 0 ? radius * baseDist : radius * staggerDist;
 
                             const lx1 = centerX + lineStartDist * Math.cos(midRad);
                             const ly1 = centerY + lineStartDist * Math.sin(midRad);
@@ -453,8 +470,8 @@ export default function VolumenTotalScreen() {
     return (
         <ScreenWrapper>
             <Layout style={styles.container}>
-                <AppHeader 
-                    codigoComercializadora={user?.codigocomercializadora || ''} 
+                <AppHeader
+                    codigoComercializadora={user?.codigocomercializadora || ''}
                     title="VOLUMEN TOTAL"
                     onBackPress={() => navigation.goBack()}
                 />
@@ -815,6 +832,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginVertical: 10,
+        marginHorizontal: -20, // Contrarresta el padding de la tarjeta
+        width: width - 40,
     },
     chartCenterText: {
         position: 'absolute',

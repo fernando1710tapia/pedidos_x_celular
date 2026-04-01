@@ -25,7 +25,7 @@ export interface NotaPedidoInterface {
     usuarioactual: string;
     prefijo: string;
     //codigocliente?: CodigoClienteNP;
-    codigocliente?: ClientePKInterface;
+    codigocliente?: { clientePK: ClientePKInterface };
     codigoclienteId: string;
     codigoterminal?: CodigoterminalNP;
     codigobanco?: CodigobancoNP;
