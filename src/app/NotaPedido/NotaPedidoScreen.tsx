@@ -420,6 +420,9 @@ export default function NotaPedido() {
             setVolumen60F(calculado);
         } else {
             setVolumen60F(cantidad);
+            if (codProducto && terminal?.codigo && cantidad > 0) {
+                Alert.alert("Aviso", "No existe factor de corrección para el producto y terminal seleccionados.");
+            }
         }
     }, [cantidad, codProducto, terminal?.codigo, factores, isAdmin]);
 
@@ -612,6 +615,18 @@ export default function NotaPedido() {
             if (selectedDate !== null) {
                 if (codProducto !== '' && codProducto !== null) {
                     if (cantidad !== 0 && cantidad !== null) {
+                        // Validar factor de corrección (excepto administradores)
+                        if (!isAdmin) {
+                            const factorObj = factores.find(f =>
+                                f.factorcorreccionPK.codigoproducto === codProducto &&
+                                f.factorcorreccionPK.codigoterminal === terminal?.codigo
+                            );
+                            if (!factorObj) {
+                                Alert.alert("Error", "No existe un factor de corrección vigente para el producto y terminal seleccionados. No se puede generar el pedido.");
+                                return;
+                            }
+                        }
+
                         // Determinar el endpoint según configuración de comercializadora
                         let response;
                         if (comercializadora?.generasolicitud) {

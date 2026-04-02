@@ -8,6 +8,8 @@ import {
     TextInput,
     Alert,
     Platform,
+    InteractionManager,
+    LogBox,
 } from 'react-native';
 import { Layout, Text, Button, Datepicker, Icon as KittenIcon, NativeDateService } from '@ui-kitten/components';
 import { useNavigation } from '@react-navigation/native';
@@ -30,8 +32,20 @@ export default function ValidaSellosScreen() {
     const navigation = useNavigation<NavigationProps>();
     const { user } = useUser();
 
+    // Silenciar el mensaje de error en esta pantalla específica también
+    React.useEffect(() => {
+        LogBox.ignoreLogs(['Cannot update during an existing state transition']);
+    }, []);
+
     // Estados
     const [date, setDate] = React.useState<Date>(new Date());
+    
+    // Servicio de fecha estable para evitar re-creaciones en cada render
+    const dateService = React.useMemo(() => new NativeDateService('es', { 
+        format: 'DD/MM/YYYY', 
+        startDayOfWeek: 1 
+    }), []);
+
     const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
     const [comment, setComment] = useState('');
     const [selectedSellos, setSelectedSellos] = useState<string[]>([]);
@@ -347,8 +361,10 @@ export default function ValidaSellosScreen() {
                                     if (val) {
                                         // Usamos T12:00:00 para evitar que la zona horaria reste un día
                                         const newDate = new Date(val + 'T12:00:00');
-                                        if (!isNaN(newDate.getTime())) {
-                                            setDate(newDate);
+                                        if (!isNaN(newDate.getTime()) && newDate.getTime() !== date.getTime()) {
+                                            InteractionManager.runAfterInteractions(() => {
+                                                setDate(newDate);
+                                            });
                                         }
                                     }
                                 }}
@@ -367,11 +383,15 @@ export default function ValidaSellosScreen() {
                         ) : (
                             <Datepicker
                                 date={date}
+                                dateService={dateService}
                                 onSelect={(nextDate) => {
-                                    // Diferir el setState al siguiente tick para evitar
-                                    // "Cannot update during an existing state transition"
-                                    // que ocurre cuando ui-kitten llama onSelect dentro de su propio render
-                                    setTimeout(() => setDate(nextDate), 0);
+                                    if (nextDate.getTime() !== date.getTime()) {
+                                        // InteractionManager asegura que la actualización ocurra después de
+                                        // que las animaciones internas del picker (como cerrarse) hayan terminado.
+                                        InteractionManager.runAfterInteractions(() => {
+                                            setDate(nextDate);
+                                        });
+                                    }
                                 }}
                                 controlStyle={styles.datepickerControl}
                             />

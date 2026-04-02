@@ -241,7 +241,11 @@ export default function VolumenTotalScreen() {
                             const y2 = centerY + radius * Math.sin(endRad);
 
                             const largeArcFlag = angle > 180 ? 1 : 0;
-                            const d = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+                            // Caso especial para 360 grados (un solo producto):
+                            const d = angle >= 360
+                                ? `M ${centerX} ${centerY - radius} A ${radius} ${radius} 0 1 1 ${centerX - 0.01} ${centerY - radius} Z`
+                                : `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
 
                             const midAngle = currentAngle + angle / 2;
                             const midRad = (midAngle * Math.PI) / 180;
