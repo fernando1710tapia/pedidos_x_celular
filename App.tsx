@@ -5,7 +5,11 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import React from 'react';
+import { LogBox } from 'react-native';
 import LoginScreen from './src/app/Login/LoginScreen';
+
+// Ignorar advertencias específicas de UI Kitten que son ruidosas pero no fatales
+LogBox.ignoreLogs(['Cannot update during an existing state transition']);
 import NotaPedidoScreen from './src/app/NotaPedido/NotaPedidoScreen';
 import { ThemeProvider } from './src/components/theme';
 import { UserProvider } from './src/context/UserContext';
