@@ -21,7 +21,6 @@ import {
     RootStackParamList,
 } from '../../types';
 import BrandLogo from '../../components/BrandLogo';
-import AppHeader from '../../components/AppHeader';
 
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -363,18 +362,28 @@ export const ListaNotaPedidoScreen = () => {
     return (
         <ScreenWrapper>
             <View style={styles.screen}>
-                <AppHeader 
-                    codigoComercializadora={user?.codigocomercializadora || ''} 
-                    title={isAdmin && paramNombreCliente ? `PEDIDOS: ${paramNombreCliente}` : 'TUS PEDIDOS'}
-                    onBackPress={() => navigation.goBack()}
-                    rightElement={
-                        <TouchableOpacity
-                            onPress={onLogout}
-                        >
-                            <Icon name="log-out-outline" size={26} color="#DC2626" />
-                        </TouchableOpacity>
-                    }
-                />
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        style={styles.headerButtonLeft}
+                        onPress={() => navigation.goBack()}
+                    >
+                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
+                    </TouchableOpacity>
+
+                    <View style={styles.headerCenter}>
+                        <BrandLogo codigoComercializadora={user?.codigocomercializadora || ''} />
+                        <Text style={styles.headerTitle} numberOfLines={1}>
+                            {isAdmin && paramNombreCliente ? `PEDIDOS: ${paramNombreCliente}` : 'TUS PEDIDOS'}
+                        </Text>
+                    </View>
+
+                    <TouchableOpacity
+                        style={styles.headerButtonRight}
+                        onPress={onLogout}
+                    >
+                        <Icon name="log-out-outline" size={26} color="#DC2626" />
+                    </TouchableOpacity>
+                </View>
 
 
                 <View style={styles.pagination}>
@@ -472,10 +481,10 @@ export const ListaNotaPedidoScreen = () => {
                                         <Text style={styles.cardLabel}>FACTURADA</Text>
                                         {renderStatusPill(np.numeroFactura, !!(np.numeroFactura && np.numeroFactura.trim()))}
                                     </View>
-                                    <View>
+                                   {/* <View>
                                         <Text style={[styles.cardLabel, styles.cardLabelRight]}>DESPACHADA</Text>
                                         {renderStatusPill(np.numeroGuia, !!(np.numeroGuia && np.numeroGuia.trim()))}
-                                    </View>
+                                    </View>*/}
                                 </View>
                             </View>
                         ))

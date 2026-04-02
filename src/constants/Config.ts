@@ -1,8 +1,8 @@
 export const API_CONFIG = {
-    BASE_URL: 'https://www.supertech.ec:8443/infinityone1/resources',
+   // BASE_URL: 'https://www.supertech.ec:8443/infinityone1/resources',
     //BASE_URL: 'https://200.93.248.121:8443/infinityone1/resources',
     //BASE_URL: 'https://infinity.petroleosyservicios.com:8443/infinityone1/resources',
-    //BASE_URL: 'https://infinity.petrolrios.ec:8443/infinityone1/resources',ESTA
+    BASE_URL: 'https://infinity.petrolrios.ec:8443/infinityone1/resources',
     // BASE_URL: 'http://www.supertech.ec:8080/infinityone1/resources',
     //BASE_URL: 'https://infinity.fenapet.com.ec:8443/infinityone1/resources',
 
