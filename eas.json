@@ -1,8 +1,8 @@
 {
-  "cli": {
-    "appVersionSource": "remote"
-  },
-  "build": {
+    "cli": {
+        "appVersionSource": "remote"
+    },
+    "build": {
         "development": {
             "distribution": "internal",
             "android": {
@@ -28,6 +28,14 @@
             },
             "ios": {
                 "simulator": false
+            }
+        }
+    },
+    "submit": {
+        "production": {
+            "ios": {
+                "appleId": "fernando1710tapia@gmail.com",
+                "appleTeamId": "T2NPZL7KX6"
             }
         }
     }
