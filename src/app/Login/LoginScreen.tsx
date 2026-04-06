@@ -2,7 +2,7 @@ import { Button, Input, Layout, Text, Icon } from '@ui-kitten/components';
 import CryptoJS from 'crypto-js';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform, StyleSheet } from 'react-native';
+import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform, StyleSheet, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -208,6 +208,11 @@ export default function LoginScreen() {
                             <TouchableOpacity onPress={() => navigation.navigate('RecuperarClave')}>
                                 <Text style={loginStyles.forgotPassword}>Olvidé mi contraseña</Text>
                             </TouchableOpacity>
+                            <TouchableOpacity onPress={() => Linking.openURL('https://infinity.petrolrios.ec:8443/infinityone/soporte.xhtml')}>
+                                <Text style={loginStyles.forgotPassword}>
+                                    ¿Eliminar tu usuario? Utiliza el formulario o la gestión del adm.
+                                </Text>
+                            </TouchableOpacity>
                         </Layout>
                     </Layout>
                 </ScrollView>
@@ -220,24 +225,24 @@ export default function LoginScreen() {
                             styles.iconCircle,
                             { backgroundColor: alertModal.type === 'success' ? '#10B981' : '#EF4444' }
                         ]}>
-                            <Icon 
-                                name={alertModal.type === 'success' ? 'checkmark' : 'close'} 
-                                fill="#FFFFFF" 
-                                style={{ width: 40, height: 40 }} 
+                            <Icon
+                                name={alertModal.type === 'success' ? 'checkmark' : 'close'}
+                                fill="#FFFFFF"
+                                style={{ width: 40, height: 40 }}
                             />
                         </View>
                         <Text style={styles.modalTitle}>{alertModal.title}</Text>
                         <Text style={styles.modalMessage}>{alertModal.message}</Text>
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={[
-                                styles.modalButton, 
+                                styles.modalButton,
                                 { backgroundColor: alertModal.type === 'success' ? '#10B981' : '#EF4444' }
                             ]}
                             onPress={() => setAlertModal({ ...alertModal, visible: false })}
                         >
                             <Text style={styles.modalButtonText}>Entendido</Text>
                         </TouchableOpacity>
-                        
+
                     </View>
                 </View>
             )}
