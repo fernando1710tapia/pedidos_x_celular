@@ -19,6 +19,8 @@ import { ListaNotaPedidoScreen } from './src/app/NotaPedido/ListaNotaPedidoScree
 import MenuOperativoScreen from './src/app/MenuOperativo/MenuOperativoScreen';
 import ValidaSellosScreen from './src/app/validaSellos/ValidaSellosScreen';
 import VolumenTotalScreen from './src/app/VolumenTotal/VolumenTotalScreen';
+import BorrarUsuarioScreen from './src/app/Login/BorrarUsuarioScreen';
+
 
 
 
@@ -39,6 +41,7 @@ export default function App() {
                 >
                   <Stack.Screen name="Login" component={LoginScreen} />
                   <Stack.Screen name="RecuperarClave" component={RecuperarClaveScreen} />
+                  <Stack.Screen name="BorrarUsuario" component={BorrarUsuarioScreen} />
                   <Stack.Screen name="NotaPedido" component={NotaPedidoScreen} />
                   <Stack.Screen name="ListaNotaPedido" component={ListaNotaPedidoScreen} />
                   <Stack.Screen name="MenuOperativo" component={MenuOperativoScreen} />

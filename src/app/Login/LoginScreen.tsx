@@ -208,11 +208,19 @@ export default function LoginScreen() {
                             <TouchableOpacity onPress={() => navigation.navigate('RecuperarClave')}>
                                 <Text style={loginStyles.forgotPassword}>Olvidé mi contraseña</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => Linking.openURL('https://infinity.petrolrios.ec:8443/infinityone/soporte.xhtml')}>
+
+                                <TouchableOpacity onPress={() => navigation.navigate('BorrarUsuario')}>
                                 <Text style={loginStyles.forgotPassword}>
-                                    ¿Eliminar tu usuario? Utiliza el formulario o la gestión del adm.
+                                    ¿Deseas eliminar tu usuario de InfinityMobile?
                                 </Text>
                             </TouchableOpacity>
+
+                            {/* <TouchableOpacity onPress={() => Linking.openURL('https://supertechsupport.onrender.com')}>
+                                <Text style={loginStyles.forgotPassword}>
+                                    ¿Eliminar tu usuario? Utiliza el formulario o, la gestión del Administrador.
+                                </Text>
+                            </TouchableOpacity> */}
+
                         </Layout>
                     </Layout>
                 </ScrollView>
