@@ -24,6 +24,7 @@ export interface NotaPedidoInterface {
     tramarecibidaaoe: string;
     usuarioactual: string;
     prefijo: string;
+    facturada: string;
     //codigocliente?: CodigoClienteNP;
     codigocliente?: { clientePK: ClientePKInterface };
     codigoclienteId: string;

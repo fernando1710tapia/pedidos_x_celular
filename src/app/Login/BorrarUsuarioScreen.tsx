@@ -3,7 +3,8 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Input, Layout, Text } from '@ui-kitten/components';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, TouchableOpacity } from 'react-native';
+import { Alert, TouchableOpacity, StyleSheet, View, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 import { loginServices } from '../../services/Login/loginServices';
 import { loginStyles } from '../../styles';
@@ -26,6 +27,13 @@ export default function BorrarUsuarioScreen() {
     const [datosCorrectos, setDatosCorrectos] = useState<boolean>(false);
     const [datosUsuario, setDatosUsuario] = useState<UserInterface | null>(null);
 
+    // Estados para Modales
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [modalTitle, setModalTitle] = useState('');
+    const [modalMessage, setModalMessage] = useState('');
+
     // 🔍 1. Verificar usuario
     const onVerifyUser = async (data: FormData) => {
         try {
@@ -45,11 +53,15 @@ export default function BorrarUsuarioScreen() {
                 setDatosCorrectos(true);
             } else {
                 setDatosCorrectos(false);
-                Alert.alert('Error', 'Datos incorrectos, contáctese con su administrador');
+                setModalTitle('Error de Validación');
+                setModalMessage('Datos incorrectos, contáctese con su administrador');
+                setShowErrorModal(true);
             }
 
         } catch (error: any) {
-            Alert.alert('Error', `No se pudo conectar: ${error.message}`);
+            setModalTitle('Error de Conexión');
+            setModalMessage(`No se pudo conectar: ${error.message}`);
+            setShowErrorModal(true);
         }
     };
 
@@ -59,42 +71,64 @@ export default function BorrarUsuarioScreen() {
             if (datosUsuario?.codigo) {
 
                 const response = await loginServices.getResource<ApiResponse<UserInterface>>(
-                'ec.com.infinity.modelo.usuario/borraroprid',
-                '',
-                {
-                    codigo: datosUsuario?.codigo
-                    
-                });
+                    'ec.com.infinity.modelo.usuario/borrarporid',
+                    '',
+                    {
+                        codigo: datosUsuario?.codigo
+
+                    });
 
                 if (response.statusCode === 200) {
-                    Alert.alert('Esperamos volverte a ver!', 'Has sido eliminado de InfinityMobile');
-                    navigation.navigate('Login');
+                    setModalTitle('¡Éxito!');
+                    setModalMessage('Has sido eliminado de InfinityMobile. Esperamos volverte a ver pronto.');
+                    setShowSuccessModal(true);
+                    
+                    // Navegar después de mostrar el éxito
+                    setTimeout(() => {
+                        setShowSuccessModal(false);
+                        navigation.navigate('Login');
+                    }, 3000);
                 } else {
-                    Alert.alert('Error', 'No se pudo eliminar el usuario');
+                    setModalTitle('Error');
+                    setModalMessage('No se pudo eliminar el usuario');
+                    setShowErrorModal(true);
                 }
             }
         } catch (error: any) {
-            Alert.alert('Error', `Error de red: ${error.message}`);
+            setModalTitle('Error de Red');
+            setModalMessage(`Error de red: ${error.message}`);
+            setShowErrorModal(true);
         }
     };
 
-    // ⚠️ 3. Confirmación
+    // ⚠️ 3. Confirmación mejorada
     const confirmDelete = () => {
-        Alert.alert(
-            'Confirmación',
-            '¿Está seguro de eliminarse como usuario de InfinityMobile?',
-            [
-                { text: 'NO', style: 'cancel' },
-                { text: 'SI', onPress: deleteUserConfirmed }
-            ]
-        );
+        setModalTitle('Confirmación');
+        setModalMessage('¿Está seguro de eliminarse como usuario de InfinityMobile? esta acción no se puede deshacer.');
+        setShowConfirmModal(true);
     };
 
     return (
         <SafeLayout>
-            <Layout style={loginStyles.container}>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+            >
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={true}
+                >
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={() => navigation.navigate('Login')}
+                    >
+                        <Icon name="chevron-back" size={32} color="#9CA3AF" />
+                    </TouchableOpacity>
+                    <Layout style={[loginStyles.container, { flex: 0, minHeight: '100%', justifyContent: 'flex-start', paddingTop: 60 }]}>
 
-                <Text style={loginStyles.title}>Eliminar Usuario</Text>
+                <Text style={[loginStyles.title, { color: '#f70f0fff' }]}>Eliminar Usuario</Text>
                 <Text style={loginStyles.SubtituloPequeno}>
                     Confirme sus datos para continuar
                 </Text>
@@ -179,30 +213,231 @@ export default function BorrarUsuarioScreen() {
                         </Button>
                     )}
 
-                    {/* Botón eliminar */}
+                    {/* Mensaje de usuario verificado mejorado */}
                     {datosCorrectos && (
-                        <>
-                            <Text style={{ marginVertical: 10 }}>
-                                Usuario verificado: {datosUsuario?.codigo}
+                        <View style={styles.verifiedContainer}>
+                            <View style={styles.verifiedHeader}>
+                                <Icon name="checkmark-circle" size={24} color="#10B981" />
+                                <Text style={styles.verifiedTitle}>Usuario Verificado</Text>
+                            </View>
+                            <Text style={styles.verifiedName}>Nombre Usuario: {datosUsuario?.nombrever}</Text>
+                            <Text style={styles.verifiedSubtitle}>
+                                Al continuar, se eliminará permanentemente esta cuenta.
                             </Text>
 
                             <Button
-                                style={loginStyles.button}
+                                style={[loginStyles.button, { marginTop: 10 }]}
                                 status="danger"
                                 onPress={confirmDelete}
                             >
                                 Eliminar Usuario
                             </Button>
-                        </>
+                        </View>
                     )}
 
-                    {/* Cancelar */}
                     <TouchableOpacity onPress={() => navigation.navigate('Login')}>
                         <Text style={loginStyles.forgotPassword}>Cancelar</Text>
                     </TouchableOpacity>
 
                 </Layout>
             </Layout>
+        </ScrollView>
+    </KeyboardAvoidingView>
+
+        {/* Modal de Éxito Personalizado */}
+            {showSuccessModal && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.successIconCircle}>
+                            <Icon name="checkmark" size={40} color="#FFFFFF" />
+                        </View>
+                        <Text style={styles.modalTitle}>{modalTitle}</Text>
+                        <Text style={styles.modalMessage}>{modalMessage}</Text>
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => setShowSuccessModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Entendido</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* Modal de Confirmación Personalizado */}
+            {showConfirmModal && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.confirmIconCircle}>
+                            <Icon name="alert-circle-outline" size={40} color="#FFFFFF" />
+                        </View>
+                        <Text style={styles.modalTitle}>{modalTitle}</Text>
+                        <Text style={styles.modalMessage}>{modalMessage}</Text>
+                        
+                        <View style={styles.modalButtonRow}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, { backgroundColor: '#E5E7EB', minWidth: 100 }]}
+                                onPress={() => setShowConfirmModal(false)}
+                            >
+                                <Text style={[styles.modalButtonText, { color: '#6B7280' }]}>NO</Text>
+                            </TouchableOpacity>
+                            
+                            <TouchableOpacity
+                                style={[styles.modalButton, { backgroundColor: '#FF3D71', minWidth: 100, marginLeft: 10 }]}
+                                onPress={() => {
+                                    setShowConfirmModal(false);
+                                    deleteUserConfirmed();
+                                }}
+                            >
+                                <Text style={styles.modalButtonText}>SÍ, BORRAR</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            )}
+
+            {/* Modal de Error Personalizado */}
+            {showErrorModal && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.errorIconCircle}>
+                            <Icon name="close-outline" size={40} color="#FFFFFF" />
+                        </View>
+                        <Text style={styles.modalTitle}>{modalTitle}</Text>
+                        <Text style={styles.modalMessage}>{modalMessage}</Text>
+                        <TouchableOpacity
+                            style={[styles.modalButton, { backgroundColor: '#FF3D71' }]}
+                            onPress={() => setShowErrorModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Cerrar</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </SafeLayout>
     );
 }
+
+const styles = StyleSheet.create({
+    backButton: {
+        position: 'absolute',
+        top: 10,
+        left: 15,
+        zIndex: 10,
+        padding: 5,
+    },
+    // Estilos del Modal (copiados de NotaPedidoScreen)
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1001,
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        width: '85%',
+        maxWidth: 400,
+        borderRadius: 24,
+        padding: 30,
+        alignItems: 'center',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+    },
+    successIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#10B981',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    errorIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#FF3D71',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    confirmIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#F59E0B', // Amber/Yellow for warning
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    modalMessage: {
+        fontSize: 16,
+        color: '#4B5563',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 25,
+    },
+    modalButton: {
+        backgroundColor: '#10B981',
+        paddingVertical: 12,
+        paddingHorizontal: 30,
+        borderRadius: 12,
+        minWidth: 150,
+        alignItems: 'center'
+    },
+    modalButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    modalButtonRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        width: '100%',
+    },
+    // Estilos para el contenedor de usuario verificado
+    verifiedContainer: {
+        backgroundColor: '#ECFDF5',
+        borderRadius: 16,
+        padding: 16,
+        marginVertical: 15,
+        borderWidth: 1,
+        borderColor: '#10B981',
+    },
+    verifiedHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    verifiedTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#065F46',
+        marginLeft: 8,
+    },
+    verifiedName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 4,
+    },
+    verifiedSubtitle: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginBottom: 10,
+    },
+});

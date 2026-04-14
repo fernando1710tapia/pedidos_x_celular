@@ -49,9 +49,21 @@ const crearNotaPedido = {
         const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.notapedido/crearyenviar`;
         return sendPostRequest<T>(url, body);
     },
+
+    enviarPetroecuador: async <T>(
+        payload: {
+            codigoabastecedora: string;
+            codigocomercializadora: string;
+            numero: string;
+            cadena: string;
+        }
+    ): Promise<T> => {
+        const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.notapedido/envio`;
+        return sendPostRequest<T>(url, payload);
+    },
 };
 
-const sendPostRequest = async <T>(url: string, body: EnvioNotaPedidoInterface): Promise<T> => {
+const sendPostRequest = async <T>(url: string, body: any): Promise<T> => {
     try {
         const response: AxiosResponse<T> = await axios.post(
             url,
@@ -63,11 +75,6 @@ const sendPostRequest = async <T>(url: string, body: EnvioNotaPedidoInterface): 
         );
         return response.data;
     } catch (error: any) {
-        console.error('FT-NotaPedidoService::ERROR URL =>', url);
-        if (error?.response) {
-            console.error('FT-NotaPedidoService::ERROR STATUS =>', error.response.status);
-            console.error('FT-NotaPedidoService::ERROR DATA =>', error.response.data);
-        }
         throw error;
     }
 };

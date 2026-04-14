@@ -117,7 +117,7 @@ export default function LoginScreen() {
                 });
             }
         } catch (error: any) {
-            console.error("Error de red:", error);
+            console.log("Error de red:", error);
             setAlertModal({
                 visible: true,
                 title: 'Error',

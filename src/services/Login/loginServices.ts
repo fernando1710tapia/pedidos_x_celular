@@ -21,7 +21,6 @@ const loginServices: GlobalServiceInterface = {
             // console.error('FT-loginServices: GlobalServiceInterface::RESPUESTA:', response.data);
             return response.data;
         } catch (error) {
-            console.error('Error-loginServices al buscar usuario:. ', error);
             throw error;
         }
     },

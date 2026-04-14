@@ -80,6 +80,14 @@ export default function NotaPedido() {
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+    // Estado para modal de Petroecuador
+    const [petroModal, setPetroModal] = useState({
+        visible: false,
+        type: 'success' as 'success' | 'error' | 'warning',
+        title: '',
+        message: ''
+    });
+
 
 
 
@@ -421,8 +429,8 @@ export default function NotaPedido() {
         } else {
             //FT DEBE SER ERROR setVolumen60F(cantidad);
             setVolumen60F(0);
-        if (codProducto && terminal?.codigo && cantidad > 0) {
-                 Alert.alert("Aviso", "No existe factor de corrección para el producto y terminal seleccionados.");
+            if (codProducto && terminal?.codigo && cantidad > 0) {
+                Alert.alert("Aviso", "No existe factor de corrección para el producto y terminal seleccionados.");
             }
 
         }
@@ -530,7 +538,6 @@ export default function NotaPedido() {
 
     const handleSubmit = async () => {
         try {
-
             // Validar que se haya seleccionado un cliente si es administrador
             if (isAdmin && !selectedCliente) {
                 Alert.alert("Error", "Debe seleccionar un cliente primero");
@@ -539,7 +546,7 @@ export default function NotaPedido() {
 
             const nowDate = formatDate(new Date());
             const formattedDate = selectedDateDate ? formatDate(selectedDateDate) : '';
-            // FTFT. solo es un ejercicio con dato fijo    const formattedDate = nowDate;
+
             const notaPedidoPk: NotaPedidoPKInterface = {
                 codigoabastecedora: codAbas,
                 codigocomercializadora: codComer,
@@ -548,8 +555,8 @@ export default function NotaPedido() {
 
             const notaPedido: NotaPedidoInterface = {
                 notapedidoPK: notaPedidoPk,
-                fechaventa: nowDate, // Fecha de hoy
-                fechadespacho: formattedDate, // Hoy o mañana
+                fechaventa: nowDate,
+                fechadespacho: formattedDate,
                 activa: true,
                 codigoautotanque: "",
                 cedulaconductor: "",
@@ -565,7 +572,7 @@ export default function NotaPedido() {
                 tramarecibidaaoe: "",
                 usuarioactual: user?.nombrever || "",
                 prefijo: prefijo,
-                //codigocliente: { codigo: codCli },
+                facturada: "NO",
                 codigoclienteId: codCli,
                 codigocliente: { clientePK: { codigo: codCli, codigocomercializadora: codComer } },
                 codigoterminal: { codigo: terminal?.codigo || "" },
@@ -585,7 +592,7 @@ export default function NotaPedido() {
                 codigocomercializadora: codComer,
                 numero: "",
                 codigoproducto: codProducto,
-                codigomedida: codProducto.startsWith("03") ? "03" : "01" // Validación medida
+                codigomedida: codProducto.startsWith("03") ? "03" : "01"
             };
 
             const detalleNotaPedido: DetalleNotaPedidoInterface = {
@@ -593,7 +600,6 @@ export default function NotaPedido() {
                 volumennaturalrequerido: volumen60F,
                 volumennaturalautorizado: volumen60F,
                 usuarioactual: user?.nombrever || "",
-
                 medida: { codigo: detalleNotaPedidoPk.codigomedida },
                 producto: { codigo: codProducto },
                 compartimento1: 0,
@@ -614,23 +620,22 @@ export default function NotaPedido() {
                 notapedido: notaPedido,
                 detalle: detalleNotaPedido
             };
+
             if (selectedDate !== null) {
                 if (codProducto !== '' && codProducto !== null) {
                     if (cantidad !== 0 && cantidad !== null) {
-                        // Validar factor de corrección (excepto administradores)
                         if (!isAdmin) {
                             const factorObj = factores.find(f =>
                                 f.factorcorreccionPK.codigoproducto === codProducto &&
                                 f.factorcorreccionPK.codigoterminal === terminal?.codigo
                             );
                             if (!factorObj) {
-                                Alert.alert("Error", "No existe un factor de corrección vigente para el producto y terminal seleccionados. No se puede generar el pedido.");
+                                Alert.alert("Error", "No existe un factor de corrección vigente para el producto y terminal seleccionados.");
                                 return;
                             }
                         }
 
-                        // Determinar el endpoint según configuración de comercializadora
-                        let response;
+                        let response: ApiResponse<any>;
                         if (comercializadora?.generasolicitud) {
                             response = await crearNotaPedido.crearSolicitud<ApiResponse<any>>(envioNP);
                         } else if (comercializadora?.generapedidodirecto) {
@@ -638,17 +643,66 @@ export default function NotaPedido() {
                         } else {
                             response = await crearNotaPedido.postNotaPedido<ApiResponse<any>>(envioNP);
                         }
+
                         if (response !== undefined && response !== null) {
-                            // Extraer el número de pedido del campo correcto según feedback previo
-                            const resultNumber = response.retorno && response.retorno.length > 0
+                            // Extraer solo el número de pedido (quitar la trama si viene en devMsg)
+                            let resultNumber = response.retorno && response.retorno.length > 0
                                 ? response.retorno[0].notapedidoPK.numero
-                                : response.developerMessage;
+                                : response.developerMessage || "";
+
+                            if (resultNumber.includes(';')) {
+                                resultNumber = resultNumber.split(';')[0];
+                            }
+
                             setNpNumber(resultNumber);
                             setShowSuccessModal(true);
-                            // Cierre automático después de 4 segundos
-                            setTimeout(() => {
-                                setShowSuccessModal(false);
-                            }, 4000);
+
+                            if (comercializadora?.generapedidodirecto && (user?.niveloperacion === 'ADMIN' || isAdmin)) {
+                                try {
+                                    const devMsg = response.developerMessage || "";
+
+                                    if (devMsg && devMsg.includes(';')) {
+                                        const [numero, trama] = devMsg.split(';');
+
+                                        const petroRes = await crearNotaPedido.enviarPetroecuador<any>({
+                                            codigoabastecedora: codAbas,
+                                            codigocomercializadora: codComer,
+                                            numero: numero,
+                                            cadena: trama
+                                        });
+
+                                        if (petroRes?.statusCode === "00" || petroRes?.statusCode === "20") {
+                                            setPetroModal({
+                                                visible: true,
+                                                type: 'success',
+                                                title: '¡Éxito Petroecuador!',
+                                                message: 'La orden fue transmitida correctamente.'
+                                            });
+                                        } else {
+                                            setPetroModal({
+                                                visible: true,
+                                                type: 'warning',
+                                                title: 'Aviso Petroecuador',
+                                                message: `Status: ${petroRes?.statusCode}. ${petroRes?.developerMessage || 'Sin mensaje'}`
+                                            });
+                                        }
+                                    } else {
+                                        setPetroModal({
+                                            visible: true,
+                                            type: 'warning',
+                                            title: 'Aviso Sistema',
+                                            message: 'El pedido se creó pero no se encontraron los datos para el envío a Petroecuador.'
+                                        });
+                                    }
+                                } catch (petroErr: any) {
+                                    setPetroModal({
+                                        visible: true,
+                                        type: 'error',
+                                        title: 'Error Petroecuador',
+                                        message: `Fallo de red o servicio externo: ${petroErr.message}`
+                                    });
+                                }
+                            }
                         }
                     } else {
                         Alert.alert("Error", "Ingrese una cantidad");
@@ -1026,6 +1080,7 @@ export default function NotaPedido() {
                     </Layout>
                 </ScrollView>
             </View>
+
             {/* Modal de Éxito Custom (más profesional) */}
             {showSuccessModal && (
                 <View style={styles.modalOverlay}>
@@ -1041,7 +1096,37 @@ export default function NotaPedido() {
                         >
                             <Text style={styles.modalButtonText}>Entendido</Text>
                         </TouchableOpacity>
+                    </View>
+                </View>
+            )}
 
+            {/* Modal de Estado de Petroecuador Custom */}
+            {petroModal.visible && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={[
+                            styles.successIconCircle, 
+                            petroModal.type === 'error' && { backgroundColor: '#EF4444' },
+                            petroModal.type === 'warning' && { backgroundColor: '#F59E0B' }
+                        ]}>
+                            <Icon 
+                                name={petroModal.type === 'success' ? "checkmark" : petroModal.type === 'error' ? "close" : "alert-triangle"} 
+                                size={40} 
+                                color="#FFFFFF" 
+                            />
+                        </View>
+                        <Text style={styles.modalTitle}>{petroModal.title}</Text>
+                        <Text style={styles.modalMessage}>{petroModal.message}</Text>
+                        <TouchableOpacity
+                            style={[
+                                styles.modalButton,
+                                petroModal.type === 'error' && { backgroundColor: '#EF4444' },
+                                petroModal.type === 'warning' && { backgroundColor: '#F59E0B' }
+                            ]}
+                            onPress={() => setPetroModal({ ...petroModal, visible: false })}
+                        >
+                            <Text style={styles.modalButtonText}>Entendido</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
             )}
