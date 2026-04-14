@@ -36,7 +36,7 @@ export const loginStyles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 8,
     },
-    SubtituloPequeno: {
+    subtitle: {
         fontSize: 15,
         color: '#9CA3AF',
         textAlign: 'center',

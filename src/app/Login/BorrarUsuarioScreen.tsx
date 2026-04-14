@@ -131,7 +131,7 @@ export default function BorrarUsuarioScreen() {
                     <Layout style={[loginStyles.container, { flex: 0, minHeight: '100%', justifyContent: 'flex-start', paddingTop: 60 }]}>
 
                 <Text style={[loginStyles.title, { color: '#f70f0fff' }]}>Eliminar Usuario</Text>
-                <Text style={loginStyles.SubtituloPequeno}>
+                <Text style={loginStyles.subtitle}>
                     Confirme sus datos para continuar
                 </Text>
 

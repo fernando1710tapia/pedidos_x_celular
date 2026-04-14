@@ -149,7 +149,7 @@ export default function LoginScreen() {
                         </View>
 
                         <Text style={loginStyles.title}>¡Bienvenido!</Text>
-                        <Text style={loginStyles.SubtituloPequeno}>INGRESA TUS CREDENCIALES</Text>
+                        <Text style={loginStyles.subtitle}>INGRESA TUS CREDENCIALES</Text>
 
                         <Layout style={loginStyles.formContainer}>
                             <Controller
