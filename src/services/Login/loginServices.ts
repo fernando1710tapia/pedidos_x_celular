@@ -7,18 +7,24 @@ const loginServices: GlobalServiceInterface = {
         try {
             const url = `${API_CONFIG.BASE_URL}/${resource}`;
       
-            // const queryString = new URLSearchParams(queryParams).toString();
-            // const fullUrl = queryString ? `${url}?${queryString}` : url;
-
-            // console.error('FT-loginServices: GlobalServiceInterface::URL FINAL LLAMADA:', fullUrl);
-            // console.error('FT-loginServices: GlobalServiceInterface::PARAMETROS:', queryParams);
-      
             const response: AxiosResponse<T> = await axios.get(url, {
                 params: queryParams,
                 timeout: API_CONFIG.TIMEOUT,
                 headers: API_CONFIG.HEADERS,
             });
-            // console.error('FT-loginServices: GlobalServiceInterface::RESPUESTA:', response.data);
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
+    putResource: async <T>(resource: string, body: any, queryParams: Record<string, any> = {}): Promise<T> => {
+        try {
+            const url = `${API_CONFIG.BASE_URL}/${resource}`;
+            const response: AxiosResponse<T> = await axios.put(url, body, {
+                params: queryParams,
+                timeout: API_CONFIG.TIMEOUT,
+                headers: API_CONFIG.HEADERS,
+            });
             return response.data;
         } catch (error) {
             throw error;
@@ -45,4 +51,3 @@ const updatePassword = {
 };
 
 export {loginServices, updatePassword};
-

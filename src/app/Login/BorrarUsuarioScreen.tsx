@@ -70,13 +70,15 @@ export default function BorrarUsuarioScreen() {
         try {
             if (datosUsuario?.codigo) {
 
-                const response = await loginServices.getResource<ApiResponse<UserInterface>>(
+                const response = await loginServices.putResource!<ApiResponse<UserInterface>>(
                     'ec.com.infinity.modelo.usuario/borrarporid',
-                    '',
+                    null,
                     {
                         codigo: datosUsuario?.codigo
+                    }
+                );
 
-                    });
+
 
                 if (response.statusCode === 200) {
                     setModalTitle('¡Éxito!');
