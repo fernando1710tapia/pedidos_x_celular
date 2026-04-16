@@ -657,6 +657,7 @@ export default function NotaPedido() {
                             setNpNumber(resultNumber);
                             setShowSuccessModal(true);
 
+
                             if (comercializadora?.generapedidodirecto && (user?.niveloperacion === 'ADMIN' || isAdmin)) {
                                 try {
                                     const devMsg = response.developerMessage || "";
@@ -671,30 +672,45 @@ export default function NotaPedido() {
                                             cadena: trama
                                         });
 
-                                        if (petroRes?.statusCode === "00" || petroRes?.statusCode === "20") {
+                                        const successCodes = ["00", "20"];
+                                        const rawMsg = Array.isArray(petroRes?.retorno) && petroRes.retorno.length > 0
+                                            ? petroRes.retorno[0]
+                                            : (typeof petroRes?.retorno === 'string' ? petroRes.retorno : '');
+
+                                        const msgCode = (typeof rawMsg === 'string') ? rawMsg.substring(0, 2) : "";
+
+                                        // Es éxito si el statusCode es 00/20 O si siendo 200 el mensaje de retorno empieza con 00/20
+                                        const isSuccessful = successCodes.includes(String(petroRes?.statusCode)) ||
+                                            ((petroRes?.statusCode === "200" || petroRes?.statusCode === 200) && successCodes.includes(msgCode));
+
+                                        if (isSuccessful) {
+                                            setShowSuccessModal(false);
                                             setPetroModal({
                                                 visible: true,
                                                 type: 'success',
                                                 title: '¡Éxito Petroecuador!',
-                                                message: 'La orden fue transmitida correctamente.'
+                                                message: msgCode + ' La orden fue transmitida correctamente.'
                                             });
                                         } else {
+                                            setShowSuccessModal(false);
                                             setPetroModal({
                                                 visible: true,
                                                 type: 'warning',
                                                 title: 'Aviso Petroecuador',
-                                                message: `Status: ${petroRes?.statusCode}. ${petroRes?.developerMessage || 'Sin mensaje'}`
+                                                message: msgCode || `Status: ${petroRes?.statusCode}. ${petroRes?.developerMessage || 'Sin mensaje'}`
                                             });
                                         }
                                     } else {
+                                        setShowSuccessModal(false);
                                         setPetroModal({
                                             visible: true,
-                                            type: 'warning',
-                                            title: 'Aviso Sistema',
-                                            message: 'El pedido se creó pero no se encontraron los datos para el envío a Petroecuador.'
+                                            type: 'error',
+                                            title: 'Error de Envío',
+                                            message: 'El pedido se creó localmente, pero no se pudo enviar a Petroecuador porque faltan datos de despacho.'
                                         });
                                     }
                                 } catch (petroErr: any) {
+                                    setShowSuccessModal(false);
                                     setPetroModal({
                                         visible: true,
                                         type: 'error',
@@ -1105,14 +1121,14 @@ export default function NotaPedido() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={[
-                            styles.successIconCircle, 
+                            styles.successIconCircle,
                             petroModal.type === 'error' && { backgroundColor: '#EF4444' },
                             petroModal.type === 'warning' && { backgroundColor: '#F59E0B' }
                         ]}>
-                            <Icon 
-                                name={petroModal.type === 'success' ? "checkmark" : petroModal.type === 'error' ? "close" : "alert-triangle"} 
-                                size={40} 
-                                color="#FFFFFF" 
+                            <Icon
+                                name={petroModal.type === 'success' ? "checkmark" : petroModal.type === 'error' ? "close" : "alert-triangle"}
+                                size={40}
+                                color="#FFFFFF"
                             />
                         </View>
                         <Text style={styles.modalTitle}>{petroModal.title}</Text>

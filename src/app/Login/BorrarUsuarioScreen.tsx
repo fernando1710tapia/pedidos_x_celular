@@ -84,7 +84,7 @@ export default function BorrarUsuarioScreen() {
                     setModalTitle('¡Éxito!');
                     setModalMessage('Has sido eliminado de InfinityMobile. Esperamos volverte a ver pronto.');
                     setShowSuccessModal(true);
-                    
+
                     // Navegar después de mostrar el éxito
                     setTimeout(() => {
                         setShowSuccessModal(false);
@@ -130,123 +130,123 @@ export default function BorrarUsuarioScreen() {
                     </TouchableOpacity>
                     <Layout style={[loginStyles.container, { flex: 0, minHeight: '100%', justifyContent: 'flex-start', paddingTop: 60 }]}>
 
-                <Text style={[loginStyles.title, { color: '#f70f0fff' }]}>Eliminar Usuario</Text>
-                <Text style={loginStyles.subtitle}>
-                    Confirme sus datos para continuar
-                </Text>
+                        <Text style={[loginStyles.title, { color: '#f70f0fff' }]}>Eliminar Usuario</Text>
+                        <Text style={loginStyles.subtitle}>
+                            Confirme sus datos para continuar
+                        </Text>
 
-                <Layout style={loginStyles.formContainer}>
+                        <Layout style={loginStyles.formContainer}>
 
-                    {/* Usuario */}
-                    <Controller
-                        control={control}
-                        name="codigo"
-                        rules={{ required: 'El usuario es obligatorio' }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <Input
-                                style={loginStyles.input}
-                                label="Usuario"
-                                placeholder="Ingrese su usuario"
-                                value={value}
-                                onChangeText={onChange}
-                                onBlur={onBlur}
-                                status={errors.codigo ? 'danger' : 'basic'}
+                            {/* Usuario */}
+                            <Controller
+                                control={control}
+                                name="codigo"
+                                rules={{ required: 'El usuario es obligatorio' }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <Input
+                                        style={loginStyles.input}
+                                        label="Usuario"
+                                        placeholder="Ingrese su usuario"
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        status={errors.codigo ? 'danger' : 'basic'}
+                                    />
+                                )}
                             />
-                        )}
-                    />
-                    {errors.codigo && <Text style={loginStyles.error}>{errors.codigo.message}</Text>}
+                            {errors.codigo && <Text style={loginStyles.error}>{errors.codigo.message}</Text>}
 
-                    {/* Correo */}
-                    <Controller
-                        control={control}
-                        name="correo"
-                        rules={{
-                            required: 'El correo es obligatorio',
-                            pattern: {
-                                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                                message: 'Formato de correo no válido',
-                            },
-                        }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <Input
-                                style={loginStyles.input}
-                                label="Correo"
-                                placeholder="Ingrese su correo"
-                                value={value}
-                                onChangeText={onChange}
-                                onBlur={onBlur}
-                                status={errors.correo ? 'danger' : 'basic'}
+                            {/* Correo */}
+                            <Controller
+                                control={control}
+                                name="correo"
+                                rules={{
+                                    required: 'El correo es obligatorio',
+                                    pattern: {
+                                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                        message: 'Formato de correo no válido',
+                                    },
+                                }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <Input
+                                        style={loginStyles.input}
+                                        label="Correo"
+                                        placeholder="Ingrese su correo"
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        status={errors.correo ? 'danger' : 'basic'}
+                                    />
+                                )}
                             />
-                        )}
-                    />
-                    {errors.correo && <Text style={loginStyles.error}>{errors.correo.message}</Text>}
+                            {errors.correo && <Text style={loginStyles.error}>{errors.correo.message}</Text>}
 
-                    {/* Cédula */}
-                    <Controller
-                        control={control}
-                        name="cedula"
-                        rules={{
-                            required: 'La cédula es obligatoria',
-                            pattern: {
-                                value: /^[0-9]{1,10}$/,
-                                message: 'Solo números (máx 10 dígitos)',
-                            },
-                        }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <Input
-                                style={loginStyles.input}
-                                label="Cédula"
-                                placeholder="Ingrese su cédula"
-                                value={value}
-                                onChangeText={onChange}
-                                onBlur={onBlur}
-                                keyboardType="numeric"
-                                maxLength={10}
-                                status={errors.cedula ? 'danger' : 'basic'}
+                            {/* Cédula */}
+                            <Controller
+                                control={control}
+                                name="cedula"
+                                rules={{
+                                    required: 'La cédula es obligatoria',
+                                    pattern: {
+                                        value: /^[0-9]{1,10}$/,
+                                        message: 'Solo números (máx 10 dígitos)',
+                                    },
+                                }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <Input
+                                        style={loginStyles.input}
+                                        label="Cédula"
+                                        placeholder="Ingrese su cédula"
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        keyboardType="numeric"
+                                        maxLength={10}
+                                        status={errors.cedula ? 'danger' : 'basic'}
+                                    />
+                                )}
                             />
-                        )}
-                    />
-                    {errors.cedula && <Text style={loginStyles.error}>{errors.cedula.message}</Text>}
+                            {errors.cedula && <Text style={loginStyles.error}>{errors.cedula.message}</Text>}
 
-                    {/* Botón verificar */}
-                    {!datosCorrectos && (
-                        <Button style={loginStyles.button} onPress={handleSubmit(onVerifyUser)}>
-                            Verificar Usuario
-                        </Button>
-                    )}
+                            {/* Botón verificar */}
+                            {!datosCorrectos && (
+                                <Button style={loginStyles.button} onPress={handleSubmit(onVerifyUser)}>
+                                    Verificar Usuario
+                                </Button>
+                            )}
 
-                    {/* Mensaje de usuario verificado mejorado */}
-                    {datosCorrectos && (
-                        <View style={styles.verifiedContainer}>
-                            <View style={styles.verifiedHeader}>
-                                <Icon name="checkmark-circle" size={24} color="#10B981" />
-                                <Text style={styles.verifiedTitle}>Usuario Verificado</Text>
-                            </View>
-                            <Text style={styles.verifiedName}>Nombre Usuario: {datosUsuario?.nombrever}</Text>
-                            <Text style={styles.verifiedSubtitle}>
-                                Al continuar, se eliminará permanentemente esta cuenta.
-                            </Text>
+                            {/* Mensaje de usuario verificado mejorado */}
+                            {datosCorrectos && (
+                                <View style={styles.verifiedContainer}>
+                                    <View style={styles.verifiedHeader}>
+                                        <Icon name="checkmark-circle" size={24} color="#10B981" />
+                                        <Text style={styles.verifiedTitle}>Usuario Verificado</Text>
+                                    </View>
+                                    <Text style={styles.verifiedName}>Nombre Usuario: {datosUsuario?.nombrever}</Text>
+                                    <Text style={styles.verifiedSubtitle}>
+                                        Al continuar, se eliminará permanentemente esta cuenta.
+                                    </Text>
 
-                            <Button
-                                style={[loginStyles.button, { marginTop: 10 }]}
-                                status="danger"
-                                onPress={confirmDelete}
-                            >
-                                Eliminar Usuario
-                            </Button>
-                        </View>
-                    )}
+                                    <Button
+                                        style={[loginStyles.button, { marginTop: 10 }]}
+                                        status="danger"
+                                        onPress={confirmDelete}
+                                    >
+                                        Eliminar Usuario
+                                    </Button>
+                                </View>
+                            )}
 
-                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                        <Text style={loginStyles.forgotPassword}>Cancelar</Text>
-                    </TouchableOpacity>
+                            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                                <Text style={loginStyles.forgotPassword}>Cancelar</Text>
+                            </TouchableOpacity>
 
-                </Layout>
-            </Layout>
-        </ScrollView>
-    </KeyboardAvoidingView>
+                        </Layout>
+                    </Layout>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
-        {/* Modal de Éxito Personalizado */}
+            {/* Modal de Éxito Personalizado */}
             {showSuccessModal && (
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -274,7 +274,7 @@ export default function BorrarUsuarioScreen() {
                         </View>
                         <Text style={styles.modalTitle}>{modalTitle}</Text>
                         <Text style={styles.modalMessage}>{modalMessage}</Text>
-                        
+
                         <View style={styles.modalButtonRow}>
                             <TouchableOpacity
                                 style={[styles.modalButton, { backgroundColor: '#E5E7EB', minWidth: 100 }]}
@@ -282,7 +282,7 @@ export default function BorrarUsuarioScreen() {
                             >
                                 <Text style={[styles.modalButtonText, { color: '#6B7280' }]}>NO</Text>
                             </TouchableOpacity>
-                            
+
                             <TouchableOpacity
                                 style={[styles.modalButton, { backgroundColor: '#FF3D71', minWidth: 100, marginLeft: 10 }]}
                                 onPress={() => {
