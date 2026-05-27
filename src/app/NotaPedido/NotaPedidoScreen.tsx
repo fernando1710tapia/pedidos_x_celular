@@ -198,6 +198,26 @@ export default function NotaPedido() {
 
     // Método para manejar la selección de cliente
     const handleSelectCliente = async (cliente: TerminalClienteInterface) => {
+    // FT:: 20260511 CONTROL PARA COMER=0002 CLIENTE.FORMAPAGO=03(GD) FECHAAUTORIZACION >= FECHAACTUAL(NP.FECHAVENTA) 
+       // VALIDACIÓN
+    const pysGDValido =
+        cliente != null &&
+        codComer?.toUpperCase() === '0002' &&
+        cliente.codigoformapago != null &&
+        cliente.codigoformapago.codigo?.toUpperCase() === '03' &&
+        cliente.fehavencimientocontrato != null &&
+        new Date() < new Date(cliente.fehavencimientocontrato);
+
+    // SI NO CUMPLE -> ERROR Y SALIR
+    if (!pysGDValido) {
+        Alert.alert(
+            'Error',
+            'Este cliente NO puede realizar pedidos!'
+        );
+        return;
+    }       
+        
+        // SOLO CONTINUA SI PYSGDVALIDO==TRUE
         setSelectedCliente(cliente);
         setShowClienteDropdown(false);
         setClienteSearchText('');
