@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     StyleSheet,
     View,
@@ -7,7 +7,7 @@ import {
     Dimensions,
     Platform,
 } from 'react-native';
-import { Layout, Text, Icon as KittenIcon, Calendar, Card, NativeDateService } from '@ui-kitten/components';
+import { Layout, Text, Icon as KittenIcon, Calendar, Card, NativeDateService, Input } from '@ui-kitten/components';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Svg, Circle, G, Path, Text as SvgText, TSpan } from 'react-native-svg';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -15,10 +15,11 @@ import { useUser } from '../../hooks';
 import { useNavigation } from '@react-navigation/native';
 import BrandLogo from '../../components/BrandLogo';
 import AppHeader from '../../components/AppHeader';
-import { format } from 'date-fns';
+import { format, subMonths, subYears } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { volumenTotalService } from '../../services';
-import { ApiResponse } from '../../types';
+import obtenerTerminalCliente from '../../services/Terminal/teminalService';
+import { ApiResponse, TerminalClienteInterface } from '../../types';
 
 interface VentaTotalData {
     nombreTerminal: string;
@@ -79,22 +80,73 @@ export default function VolumenTotalScreen() {
     const { user, logout } = useUser();
     const navigation = useNavigation<any>();
     const [activeTab, setActiveTab] = useState('Nacional');
-    const [date, setDate] = useState(new Date());
-    const [showPicker, setShowPicker] = useState(false);
+    const [startDate, setStartDate] = useState(new Date());
+    const [endDate, setEndDate] = useState(new Date());
+    const [pickerType, setPickerType] = useState<'start' | 'end' | 'single' | 'compare_start' | 'compare_end' | null>(null);
+    const [isComparing, setIsComparing] = useState(false);
+    const [compareViewType, setCompareViewType] = useState<'bars' | 'radial'>('bars');
+    const [compareMode, setCompareMode] = useState<'prev_month' | 'prev_year' | 'custom'>('prev_month');
+    const [compareStartDate, setCompareStartDate] = useState(() => subMonths(new Date(), 1));
+    const [compareEndDate, setCompareEndDate] = useState(() => subMonths(new Date(), 1));
+    const [compareData, setCompareData] = useState<VentaTotalData[]>([]);
     const [loading, setLoading] = useState(false);
     const [ventasData, setVentasData] = useState<VentaTotalData[]>([]);
     const [selectedTerminal, setSelectedTerminal] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
 
+    const isAdmin = user?.codigo ? !/^\d{8}$/.test(user.codigo) : true;
+    const [allClientes, setAllClientes] = useState<TerminalClienteInterface[]>([]);
+    const [selectedCliente, setSelectedCliente] = useState<TerminalClienteInterface | null>(null);
+    const [showClienteDropdown, setShowClienteDropdown] = useState<boolean>(false);
+    const [clienteSearchText, setClienteSearchText] = useState<string>('');
+
+    const normalizeCliente = (c: TerminalClienteInterface & { clientePK?: { codigo?: string }; nombre?: string }): TerminalClienteInterface => ({
+        ...c,
+        codigo: c.codigo ?? c.clientePK?.codigo ?? '',
+        nombrecomercial: c.nombrecomercial ?? c.nombre ?? '',
+    });
+
+    const handleGetAllClientes = async () => {
+        try {
+            const response = await obtenerTerminalCliente.getResource<ApiResponse<TerminalClienteInterface>>(
+                'porComercializadora',
+                '',
+                { codigocomercializadora: user?.codigocomercializadora }
+            );
+            if (response.retorno !== null && response.retorno !== undefined) {
+                const normalized = response.retorno.map((c: any) => normalizeCliente(c));
+                setAllClientes(normalized);
+            }
+        } catch (error) {
+            console.error('Error obteniendo clientes:', error);
+        }
+    };
+
+    const filteredClientes = useMemo(() => {
+        const q = (clienteSearchText ?? '').trim().toLowerCase();
+        if (!q) return allClientes;
+        return allClientes.filter((c) => {
+            const cod = (c.codigo ?? '').toLowerCase();
+            const nom = (c.nombrecomercial ?? '').toLowerCase();
+            return cod.includes(q) || nom.includes(q);
+        });
+    }, [allClientes, clienteSearchText]);
+
+    useEffect(() => {
+        if (user && isAdmin) {
+            handleGetAllClientes();
+        }
+    }, [user, isAdmin]);
+
     useEffect(() => {
         // Resetear selección al cambiar de fecha o de pestaña
         setSelectedTerminal(null);
-    }, [date, activeTab]);
+    }, [startDate, endDate, activeTab, selectedCliente, isComparing, compareMode, compareStartDate, compareEndDate]);
 
     useEffect(() => {
         fetchData();
-    }, [date, activeTab]);
+    }, [startDate, endDate, activeTab, selectedCliente, isComparing, compareMode, compareStartDate, compareEndDate]);
 
     const fetchData = async () => {
         if (!user) return;
@@ -102,33 +154,99 @@ export default function VolumenTotalScreen() {
         setLoading(true);
         setError(null);
         try {
-            const isAdmin = user?.codigo ? !/^\d{8}$/.test(user.codigo) : true;
-
-            const codigocliente = isAdmin ? "" : (user.codigo ?? "");
-            const pfecha = format(date, "yyyy/MM/dd");
+            const codigocliente = isAdmin ? (selectedCliente?.codigo || "") : (user.codigo ?? "");
+            const pfechai = format(startDate, "yyyy/MM/dd");
+            const pfechaf = format(endDate, "yyyy/MM/dd");
             const tipoconsulta = activeTab === 'Nacional' ? 'n' : 't';
 
-            const response = await volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
-                'ec.com.infinity.modelo.factura/ventatotal1app',
-                '',
-                {
-                    pfecha,
-                    codigocomercializadora: user.codigocomercializadora,
-                    codigocliente,
-                    tipoconsulta
-                }
-            );
+            // Comprobar si debemos comparar periodos
+            const checkCompare = isAdmin && activeTab === 'Nacional' && isComparing;
 
-            if (response && response.retorno) {
-                setVentasData(response.retorno);
+            if (checkCompare) {
+                // Calcular Rango B
+                let apiCompareStartDate: Date;
+                let apiCompareEndDate: Date;
+
+                if (compareMode === 'prev_month') {
+                    apiCompareStartDate = subMonths(startDate, 1);
+                    apiCompareEndDate = subMonths(endDate, 1);
+                } else if (compareMode === 'prev_year') {
+                    apiCompareStartDate = subYears(startDate, 1);
+                    apiCompareEndDate = subYears(endDate, 1);
+                } else { // 'custom'
+                    apiCompareStartDate = compareStartDate;
+                    apiCompareEndDate = compareEndDate;
+                }
+
+                const pfechaiB = format(apiCompareStartDate, "yyyy/MM/dd");
+                const pfechafB = format(apiCompareEndDate, "yyyy/MM/dd");
+
+                console.log('FT-volumenTotalService::COMPARTIVA RANGO A:', pfechai, '-', pfechaf);
+                console.log('FT-volumenTotalService::COMPARTIVA RANGO B:', pfechaiB, '-', pfechafB);
+
+                const [resA, resB] = await Promise.all([
+                    volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
+                        'ec.com.infinity.modelo.factura/ventatotal2app',
+                        '',
+                        {
+                            pfechai,
+                            pfechaf,
+                            codigocomercializadora: user.codigocomercializadora,
+                            codigocliente,
+                            tipoconsulta
+                        }
+                    ),
+                    volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
+                        'ec.com.infinity.modelo.factura/ventatotal2app',
+                        '',
+                        {
+                            pfechai: pfechaiB,
+                            pfechaf: pfechafB,
+                            codigocomercializadora: user.codigocomercializadora,
+                            codigocliente,
+                            tipoconsulta
+                        }
+                    )
+                ]);
+
+                if (resA && resA.retorno) {
+                    setVentasData(resA.retorno);
+                } else {
+                    setVentasData([]);
+                }
+
+                if (resB && resB.retorno) {
+                    setCompareData(resB.retorno);
+                } else {
+                    setCompareData([]);
+                }
+
             } else {
-                setVentasData([]);
+                // Consulta normal sin comparativa
+                const response = await volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
+                    'ec.com.infinity.modelo.factura/ventatotal2app',
+                    '',
+                    {
+                        pfechai,
+                        pfechaf,
+                        codigocomercializadora: user.codigocomercializadora,
+                        codigocliente,
+                        tipoconsulta
+                    }
+                );
+
+                if (response && response.retorno) {
+                    setVentasData(response.retorno);
+                } else {
+                    setVentasData([]);
+                }
+                setCompareData([]);
             }
         } catch (error: any) {
             setError(error?.message || "Error de conexión");
             setVentasData([]);
+            setCompareData([]);
         } finally {
-
             setLoading(false);
         }
     };
@@ -309,6 +427,17 @@ export default function VolumenTotalScreen() {
 
                 {/* Leyenda Nacional Unificada */}
                 <View style={[styles.legendContainer, { marginTop: 10 }]}>
+                    {/* Elemento TOTAL */}
+                    <View style={[styles.legendItem, { borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 15, marginBottom: 15 }]}>
+                        <View style={styles.legendLeft}>
+                            <View style={[styles.colorDot, { backgroundColor: COLORS.dark }]} />
+                            <Text style={[styles.legendLabel, { fontWeight: 'bold', fontSize: 14 }]}>TOTAL</Text>
+                        </View>
+                        <Text style={[styles.legendValue, { fontSize: 14, color: COLORS.primary }]}>
+                            {`${totalVolume.toLocaleString()} gls`}
+                        </Text>
+                    </View>
+
                     {aggData.map((prod, idx) => {
                         const color = CHART_COLORS[idx % CHART_COLORS.length];
                         const label = formatFullProductName(prod.nombre);
@@ -329,6 +458,192 @@ export default function VolumenTotalScreen() {
         </View>
     );
 
+
+    const renderComparisonView = () => {
+        const aggDataCurrent = getAggregatedData(); // Current Period A (sorted)
+        
+        // Calculate aggregated data for Period B (Compare Period)
+        const compareAgg: Record<string, number> = {};
+        compareData.forEach(item => {
+            const name = item.nombreProducto;
+            const vol = typeof item.volumenTotal === 'number' ? item.volumenTotal : parseFloat(String(item.volumenTotal || "0"));
+            compareAgg[name] = (compareAgg[name] || 0) + vol;
+        });
+
+        const totalCurrent = aggDataCurrent.reduce((sum, item) => sum + item.total, 0);
+        const totalCompare = Object.values(compareAgg).reduce((sum, val) => sum + val, 0);
+
+        if (totalCurrent === 0 && totalCompare === 0) {
+            return <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}><Text>No hay datos disponibles para comparar</Text></View>;
+        }
+
+        // Calculate general change percent
+        const diffTotal = totalCurrent - totalCompare;
+        const pctTotal = totalCompare > 0 ? (diffTotal / totalCompare) * 100 : 0;
+        const trendColor = diffTotal >= 0 ? '#10B981' : '#EF4444'; // Emerald Green vs Crimson Red
+        const trendIcon = diffTotal >= 0 ? 'arrow-up-circle' : 'arrow-down-circle';
+        const trendSymbol = diffTotal >= 0 ? '+' : '';
+
+        return (
+            <View style={styles.comparisonContainer}>
+                {/* KPI Resumen Card */}
+                <View style={styles.kpiContainer}>
+                    <View style={styles.kpiCard}>
+                        <Text style={styles.kpiTitle}>PERIODO ACTUAL</Text>
+                        <Text style={[styles.kpiValue, { color: COLORS.primary }]}>
+                            {totalCurrent.toLocaleString()} <Text style={styles.kpiUnit}>gls</Text>
+                        </Text>
+                    </View>
+                    
+                    <View style={styles.kpiCard}>
+                        <Text style={styles.kpiTitle}>PERIODO COMPARADO</Text>
+                        <Text style={[styles.kpiValue, { color: COLORS.gray }]}>
+                            {totalCompare.toLocaleString()} <Text style={styles.kpiUnit}>gls</Text>
+                        </Text>
+                    </View>
+                </View>
+
+                {/* Gran Variación General */}
+                <View style={[styles.trendBanner, { backgroundColor: diffTotal >= 0 ? '#ECFDF5' : '#FEF2F2', borderColor: diffTotal >= 0 ? '#A7F3D0' : '#FCA5A5' }]}>
+                    <Icon name={trendIcon} size={22} color={trendColor} style={{ marginRight: 8 }} />
+                    <Text style={[styles.trendBannerText, { color: trendColor }]}>
+                        {`Ventas totales variaron un `}
+                        <Text style={{ fontWeight: 'bold' }}>
+                            {`${trendSymbol}${pctTotal.toFixed(1)}%`}
+                        </Text>
+                        {` respecto al periodo anterior.`}
+                    </Text>
+                </View>
+
+                {/* Variación por Producto (Bars or Radial) */}
+                <Text style={styles.compListTitle}>VARIACIÓN POR PRODUCTO</Text>
+                
+                {compareViewType === 'bars' ? (
+                    <View style={styles.compList}>
+                        {aggDataCurrent.map((prod, idx) => {
+                            const color = CHART_COLORS[idx % CHART_COLORS.length];
+                            const label = formatFullProductName(prod.nombre);
+                            
+                            const volCurrent = prod.total;
+                            const volCompare = compareAgg[prod.nombre] || 0;
+                            
+                            // Calculate change percent per product
+                            const diffProd = volCurrent - volCompare;
+                            const pctProd = volCompare > 0 ? (diffProd / volCompare) * 100 : 0;
+                            const prodTrendColor = diffProd >= 0 ? '#10B981' : '#EF4444';
+                            const prodTrendSymbol = diffProd >= 0 ? '+' : '';
+
+                            // Max volume to calculate width percentages
+                            const maxVal = Math.max(volCurrent, volCompare, 1);
+                            const widthCurrentPct = `${(volCurrent / maxVal) * 100}%` as any;
+                            const widthComparePct = `${(volCompare / maxVal) * 100}%` as any;
+
+                            return (
+                                <View key={prod.id} style={styles.compProdItem}>
+                                    <View style={styles.compProdHeader}>
+                                        <Text style={styles.compProdName}>{label}</Text>
+                                        <Text style={[styles.compProdBadge, { color: prodTrendColor, backgroundColor: diffProd >= 0 ? '#E6F9F0' : '#FEECEE' }]}>
+                                            {`${prodTrendSymbol}${pctProd.toFixed(1)}%`}
+                                        </Text>
+                                    </View>
+
+                                    {/* Current Bar */}
+                                    <View style={styles.progressBarWrapper}>
+                                        <View style={[styles.progressBarFilled, { width: widthCurrentPct, backgroundColor: COLORS.primary }]} />
+                                        <Text style={styles.progressBarValue}>{`${volCurrent.toLocaleString()} gls`}</Text>
+                                    </View>
+
+                                    {/* Compare Bar */}
+                                    <View style={styles.progressBarWrapper}>
+                                        <View style={[styles.progressBarFilled, { width: widthComparePct, backgroundColor: '#D1D5DB' }]} />
+                                        <Text style={[styles.progressBarValue, { color: COLORS.gray }]}>{`${volCompare.toLocaleString()} gls (Comp)`}</Text>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                ) : (
+                    <View style={styles.radialList}>
+                        {aggDataCurrent.map((prod, idx) => {
+                            const color = CHART_COLORS[idx % CHART_COLORS.length];
+                            const label = formatFullProductName(prod.nombre);
+                            const volCurrent = prod.total;
+                            const volCompare = compareAgg[prod.nombre] || 0;
+                            const diffProd = volCurrent - volCompare;
+                            const pctProd = volCompare > 0 ? (diffProd / volCompare) * 100 : 0;
+                            const prodTrendColor = diffProd >= 0 ? '#10B981' : '#EF4444';
+                            const prodTrendSymbol = diffProd >= 0 ? '+' : '';
+                            const maxVal = Math.max(volCurrent, volCompare, 1);
+
+                            // Radial SVG math
+                            const size = 120;
+                            const center = size / 2;
+                            const strokeWidth = 10;
+                            const rCurrent = (size - strokeWidth) / 2;
+                            const rCompare = rCurrent - strokeWidth - 4; // inner ring
+
+                            const circCurrent = 2 * Math.PI * rCurrent;
+                            const circCompare = 2 * Math.PI * rCompare;
+
+                            const fillCurrent = (volCurrent / maxVal) * circCurrent;
+                            const fillCompare = (volCompare / maxVal) * circCompare;
+
+                            return (
+                                <View key={prod.id} style={styles.radialCard}>
+                                    <Text style={styles.radialProdName}>{label}</Text>
+                                    <View style={styles.radialSvgContainer}>
+                                        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                                            <G rotation="-90" origin={`${center}, ${center}`}>
+                                                {/* Progress tracks */}
+                                                <Circle 
+                                                    cx={center} cy={center} r={rCompare} 
+                                                    stroke="#9CA3AF" strokeWidth={strokeWidth} fill="none" 
+                                                    strokeDasharray={`${fillCompare} ${circCompare}`} 
+                                                    strokeLinecap="round"
+                                                />
+                                                <Circle 
+                                                    cx={center} cy={center} r={rCurrent} 
+                                                    stroke={color} strokeWidth={strokeWidth} fill="none" 
+                                                    strokeDasharray={`${fillCurrent} ${circCurrent}`} 
+                                                    strokeLinecap="round"
+                                                />
+                                            </G>
+                                        </Svg>
+                                        <View style={styles.radialCenterTextContainer}>
+                                            <Text style={[styles.radialCenterText, { color: prodTrendColor }]}>
+                                                {`${prodTrendSymbol}${Math.abs(pctProd).toFixed(0)}%`}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.radialLegend}>
+                                        <View style={styles.radialLegendRow}>
+                                            <View style={[styles.colorDot, { backgroundColor: color, width: 10, height: 10, borderRadius: 5 }]} />
+                                            <Text style={styles.radialLegendText}>{volCurrent.toLocaleString()} gls</Text>
+                                        </View>
+                                        <View style={styles.radialLegendRow}>
+                                            <View style={[styles.colorDot, { backgroundColor: '#9CA3AF', width: 10, height: 10, borderRadius: 5 }]} />
+                                            <Text style={styles.radialLegendText}>{volCompare.toLocaleString()} gls</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                )}
+
+                {/* Botón de alternancia */}
+                <TouchableOpacity 
+                    style={styles.toggleViewBtn} 
+                    onPress={() => setCompareViewType(prev => prev === 'bars' ? 'radial' : 'bars')}
+                >
+                    <Icon name={compareViewType === 'bars' ? 'pie-chart-outline' : 'bar-chart-outline'} size={18} color={COLORS.primary} />
+                    <Text style={styles.toggleViewBtnText}>
+                        {compareViewType === 'bars' ? 'Cambiar a Gráfico Radial' : 'Cambiar a Barras'}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
 
     const renderBarChart = () => {
         const barData = getBarChartData();
@@ -444,6 +759,30 @@ export default function VolumenTotalScreen() {
 
                 {/* Leyenda de Terminal Dinámica */}
                 <View style={styles.legendContainer}>
+                    {(() => {
+                        let totalDisplay = 0;
+                        if (selectedTerminal) {
+                            const termData = barData.find(b => b.fullName === selectedTerminal);
+                            totalDisplay = uniqueProducts.reduce((sum, prod) => sum + (termData?.values[prod] || 0), 0);
+                        } else {
+                            totalDisplay = uniqueProducts.reduce((sum, prod) => sum + barData.reduce((s, bar) => s + (bar.values[prod] || 0), 0), 0);
+                        }
+
+                        // Solo mostrar el Total si hay productos (aunque siempre debería haber si hay data)
+                        if (totalDisplay <= 0 && selectedTerminal) return null;
+
+                        return (
+                            <View style={[styles.legendItem, { borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 15, marginBottom: 15 }]}>
+                                <View style={styles.legendLeft}>
+                                    <View style={[styles.colorDot, { backgroundColor: COLORS.dark }]} />
+                                    <Text style={[styles.legendLabel, { fontWeight: 'bold', fontSize: 14 }]}>TOTAL</Text>
+                                </View>
+                                <Text style={[styles.legendValue, { fontSize: 14, color: COLORS.primary }]}>
+                                    {`${totalDisplay.toLocaleString()} gls`}
+                                </Text>
+                            </View>
+                        );
+                    })()}
                     {uniqueProducts.map((prod) => {
                         const color = productColors[prod];
                         const label = formatFullProductName(prod);
@@ -491,27 +830,166 @@ export default function VolumenTotalScreen() {
                     </View>
 
 
+                    {/* Selector de Cliente (Solo para administradores) */}
+                    {isAdmin && (
+                        <>
+                            <Text style={styles.sectionTitle}>FILTRAR POR CLIENTE</Text>
+                            <TouchableOpacity
+                                style={styles.clienteSelectorButton}
+                                onPress={() => {
+                                    if (!showClienteDropdown) setClienteSearchText('');
+                                    setShowClienteDropdown(!showClienteDropdown);
+                                }}
+                            >
+                                <View style={styles.clienteSelectorContent}>
+                                    <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                        <Icon name="person" size={20} color="#3B82F6" />
+                                    </View>
+                                    <View style={styles.clienteSelectorText}>
+                                        <Text style={styles.infoLabel}>CLIENTE</Text>
+                                        <Text style={styles.infoValue}>
+                                            {selectedCliente
+                                                ? `${selectedCliente.codigo ?? ''} - ${selectedCliente.nombrecomercial ?? ''}`
+                                                : 'Todos los clientes (Consolidado)'}
+                                        </Text>
+                                    </View>
+                                    {selectedCliente && (
+                                        <TouchableOpacity
+                                            onPress={() => setSelectedCliente(null)}
+                                            style={{ marginRight: 10, padding: 5 }}
+                                        >
+                                            <Icon name="close-circle" size={24} color={COLORS.gray} />
+                                        </TouchableOpacity>
+                                    )}
+                                    <Icon
+                                        name={showClienteDropdown ? "chevron-up" : "chevron-down"}
+                                        size={24}
+                                        color="#9CA3AF"
+                                    />
+                                </View>
+                            </TouchableOpacity>
+
+                            {showClienteDropdown && (
+                                <View style={styles.clienteDropdown}>
+                                    <View style={styles.clienteSearchWrapper}>
+                                        <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
+                                        <Input
+                                            style={styles.clienteSearchInput}
+                                            placeholder="Buscar por código o nombre..."
+                                            value={clienteSearchText}
+                                            onChangeText={setClienteSearchText}
+                                            autoCapitalize="none"
+                                            autoCorrect={false}
+                                        />
+                                    </View>
+                                    <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.clienteDropdownItem,
+                                                !selectedCliente && styles.clienteDropdownItemSelected
+                                            ]}
+                                            onPress={() => {
+                                                setSelectedCliente(null);
+                                                setShowClienteDropdown(false);
+                                            }}
+                                        >
+                                            <Text style={styles.clienteDropdownItemText}>
+                                                Todos los clientes (Consolidado)
+                                            </Text>
+                                        </TouchableOpacity>
+                                        {filteredClientes.length === 0 ? (
+                                            <View style={styles.clienteDropdownLoading}>
+                                                <Text style={styles.clienteDropdownLoadingText}>
+                                                    {clienteSearchText.trim() ? 'No hay clientes que coincidan' : 'No hay clientes'}
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            filteredClientes.map((cliente, index) => (
+                                                <TouchableOpacity
+                                                    key={cliente.codigo ?? index}
+                                                    style={[
+                                                        styles.clienteDropdownItem,
+                                                        selectedCliente?.codigo === cliente.codigo && styles.clienteDropdownItemSelected
+                                                    ]}
+                                                    onPress={() => {
+                                                        setSelectedCliente(cliente);
+                                                        setShowClienteDropdown(false);
+                                                    }}
+                                                >
+                                                    <Text style={styles.clienteDropdownItemText}>
+                                                        {cliente.codigo ?? ''} - {cliente.nombrecomercial ?? ''}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))
+                                        )}
+                                    </ScrollView>
+                                </View>
+                            )}
+                        </>
+                    )}
+
                     {/* Date Selector */}
-                    <TouchableOpacity
-                        style={styles.dateCard}
-                        onPress={() => setShowPicker(true)}
-                    >
-                        <View style={styles.dateLeft}>
-                            <View style={styles.calendarIconBox}>
-                                <Icon name="calendar-outline" size={20} color={COLORS.primary} />
-                            </View>
-                            <View>
-                                <Text style={styles.dateInfoLabel}>INFORMACIÓN DE</Text>
-                                <Text style={styles.dateText}>
-                                    {(() => {
-                                        const str = format(date, "EEEE, d 'de' MMMM", { locale: es });
-                                        return str.charAt(0).toUpperCase() + str.slice(1);
-                                    })()}
-                                </Text>
-                            </View>
+                    {/* Date Selector */}
+                    {isAdmin ? (
+                        <View style={styles.dateRangeContainer}>
+                            <TouchableOpacity
+                                style={[styles.dateCardHalf, { marginRight: 6 }]}
+                                onPress={() => setPickerType('start')}
+                            >
+                                <View style={styles.dateLeft}>
+                                    <View style={styles.calendarIconBoxSmall}>
+                                        <Icon name="calendar-outline" size={16} color={COLORS.primary} />
+                                    </View>
+                                    <View style={styles.dateTextContainer}>
+                                        <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>FECHA DESDE</Text>
+                                        <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                            {format(startDate, "dd/MM/yyyy")}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Icon name="chevron-forward" size={14} color={COLORS.gray} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.dateCardHalf, { marginLeft: 6 }]}
+                                onPress={() => setPickerType('end')}
+                            >
+                                <View style={styles.dateLeft}>
+                                    <View style={styles.calendarIconBoxSmall}>
+                                        <Icon name="calendar-outline" size={16} color={COLORS.primary} />
+                                    </View>
+                                    <View style={styles.dateTextContainer}>
+                                        <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>FECHA HASTA</Text>
+                                        <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                            {format(endDate, "dd/MM/yyyy")}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <Icon name="chevron-forward" size={14} color={COLORS.gray} />
+                            </TouchableOpacity>
                         </View>
-                        <Icon name="chevron-forward" size={20} color={COLORS.gray} />
-                    </TouchableOpacity>
+                    ) : (
+                        <TouchableOpacity
+                            style={styles.dateCard}
+                            onPress={() => setPickerType('single')}
+                        >
+                            <View style={styles.dateLeft}>
+                                <View style={styles.calendarIconBox}>
+                                    <Icon name="calendar-outline" size={20} color={COLORS.primary} />
+                                </View>
+                                <View style={styles.dateTextContainer}>
+                                    <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>INFORMACIÓN DE</Text>
+                                    <Text style={styles.dateText} numberOfLines={1} adjustsFontSizeToFit>
+                                        {(() => {
+                                            const str = format(startDate, "EEEE, d 'de' MMMM", { locale: es });
+                                            return str.charAt(0).toUpperCase() + str.slice(1);
+                                        })()}
+                                    </Text>
+                                </View>
+                            </View>
+                            <Icon name="chevron-forward" size={20} color={COLORS.gray} />
+                        </TouchableOpacity>
+                    )}
 
 
 
@@ -539,6 +1017,94 @@ export default function VolumenTotalScreen() {
                                 <Icon name="information-circle-outline" size={20} color="#D1D5DB" />
                             </View>
 
+                            {/* Compare controls (Only for admins) */}
+                            {isAdmin && (
+                                <View style={styles.compareContainer}>
+                                    <View style={styles.compareHeader}>
+                                        <Icon name="git-compare-outline" size={18} color={isComparing ? COLORS.primary : COLORS.gray} />
+                                        <Text style={styles.compareLabel}>Comparar períodos de ventas</Text>
+                                        <TouchableOpacity 
+                                            activeOpacity={0.7}
+                                            onPress={() => setIsComparing(!isComparing)}
+                                            style={[styles.compareSwitch, isComparing && styles.compareSwitchActive]}
+                                        >
+                                            <View style={[styles.compareSwitchCircle, isComparing && styles.compareSwitchCircleActive]} />
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    {isComparing && (
+                                        <>
+                                            <View style={styles.compareModesRow}>
+                                                <TouchableOpacity
+                                                    style={[styles.compareModeBtn, compareMode === 'prev_month' && styles.compareModeBtnActive]}
+                                                    onPress={() => setCompareMode('prev_month')}
+                                                >
+                                                    <Text style={[styles.compareModeBtnText, compareMode === 'prev_month' && styles.compareModeBtnTextActive]}>
+                                                        Mes Ant.
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.compareModeBtn, compareMode === 'prev_year' && styles.compareModeBtnActive]}
+                                                    onPress={() => setCompareMode('prev_year')}
+                                                >
+                                                    <Text style={[styles.compareModeBtnText, compareMode === 'prev_year' && styles.compareModeBtnTextActive]}>
+                                                        Año Ant.
+                                                    </Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.compareModeBtn, compareMode === 'custom' && styles.compareModeBtnActive]}
+                                                    onPress={() => setCompareMode('custom')}
+                                                >
+                                                    <Text style={[styles.compareModeBtnText, compareMode === 'custom' && styles.compareModeBtnTextActive]}>
+                                                        Personalizado
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            </View>
+
+                                            {compareMode === 'custom' && (
+                                                <View style={[styles.dateRangeContainer, { marginTop: 12, marginBottom: 0 }]}>
+                                                    <TouchableOpacity
+                                                        style={[styles.dateCardHalf, { marginRight: 6 }]}
+                                                        onPress={() => setPickerType('compare_start')}
+                                                    >
+                                                        <View style={styles.dateLeft}>
+                                                            <View style={styles.calendarIconBoxSmall}>
+                                                                <Icon name="calendar-outline" size={16} color={COLORS.primary} />
+                                                            </View>
+                                                            <View style={styles.dateTextContainer}>
+                                                                <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>COMP. DESDE</Text>
+                                                                <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                                                    {format(compareStartDate, "dd/MM/yyyy")}
+                                                                </Text>
+                                                            </View>
+                                                        </View>
+                                                        <Icon name="chevron-forward" size={14} color={COLORS.gray} />
+                                                    </TouchableOpacity>
+
+                                                    <TouchableOpacity
+                                                        style={[styles.dateCardHalf, { marginLeft: 6 }]}
+                                                        onPress={() => setPickerType('compare_end')}
+                                                    >
+                                                        <View style={styles.dateLeft}>
+                                                            <View style={styles.calendarIconBoxSmall}>
+                                                                <Icon name="calendar-outline" size={16} color={COLORS.primary} />
+                                                            </View>
+                                                            <View style={styles.dateTextContainer}>
+                                                                <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>COMP. HASTA</Text>
+                                                                <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                                                    {format(compareEndDate, "dd/MM/yyyy")}
+                                                                </Text>
+                                                            </View>
+                                                        </View>
+                                                        <Icon name="chevron-forward" size={14} color={COLORS.gray} />
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
+                                        </>
+                                    )}
+                                </View>
+                            )}
+
                             {loading ? (
                                 <View style={styles.loadingContainer}><Text>Cargando datos...</Text></View>
                             ) : error ? (
@@ -551,7 +1117,7 @@ export default function VolumenTotalScreen() {
                                 </View>
                             ) : (
                                 <>
-                                    {renderPieChart()}
+                                    {isComparing ? renderComparisonView() : renderPieChart()}
                                 </>
                             )}
 
@@ -585,29 +1151,72 @@ export default function VolumenTotalScreen() {
 
                 </ScrollView>
 
-                {showPicker && (
+                {pickerType && (
                     <View style={styles.customOverlay}>
                         <TouchableOpacity
                             style={styles.customBackdrop}
-                            onPress={() => setShowPicker(false)}
+                            onPress={() => setPickerType(null)}
                             activeOpacity={1}
                         />
                         <Card disabled={true} style={styles.modalCard}>
-                            <Text category='h6' style={styles.modalTitle}>Seleccione una fecha</Text>
+                            <Text category='h6' style={styles.modalTitle}>
+                                {pickerType === 'start'
+                                    ? 'Seleccione Fecha Desde'
+                                    : pickerType === 'end'
+                                    ? 'Seleccione Fecha Hasta'
+                                    : pickerType === 'compare_start'
+                                    ? 'Seleccione Comp. Desde'
+                                    : pickerType === 'compare_end'
+                                    ? 'Seleccione Comp. Hasta'
+                                    : 'Seleccione una fecha'}
+                            </Text>
                             <Calendar
-                                date={date}
+                                date={
+                                    pickerType === 'start'
+                                        ? startDate
+                                        : pickerType === 'end'
+                                        ? endDate
+                                        : pickerType === 'compare_start'
+                                        ? compareStartDate
+                                        : pickerType === 'compare_end'
+                                        ? compareEndDate
+                                        : startDate
+                                }
                                 dateService={dateService}
                                 min={new Date(2025, 0, 1)}
                                 onSelect={(nextDate) => {
-                                    setDate(nextDate);
+                                    if (pickerType === 'start') {
+                                        setStartDate(nextDate);
+                                        if (nextDate > endDate) {
+                                            setEndDate(nextDate);
+                                        }
+                                    } else if (pickerType === 'end') {
+                                        setEndDate(nextDate);
+                                        if (nextDate < startDate) {
+                                            setStartDate(nextDate);
+                                        }
+                                    } else if (pickerType === 'single') {
+                                        setStartDate(nextDate);
+                                        setEndDate(nextDate);
+                                    } else if (pickerType === 'compare_start') {
+                                        setCompareStartDate(nextDate);
+                                        if (nextDate > compareEndDate) {
+                                            setCompareEndDate(nextDate);
+                                        }
+                                    } else if (pickerType === 'compare_end') {
+                                        setCompareEndDate(nextDate);
+                                        if (nextDate < compareStartDate) {
+                                            setCompareStartDate(nextDate);
+                                        }
+                                    }
                                     setActiveTab('Nacional');
-                                    setShowPicker(false);
+                                    setPickerType(null);
                                 }}
                                 style={styles.calendarComponent}
                             />
                             <TouchableOpacity
                                 style={styles.closeModalBtn}
-                                onPress={() => setShowPicker(false)}
+                                onPress={() => setPickerType(null)}
                             >
                                 <Text style={styles.closeModalText}>Cerrar</Text>
                             </TouchableOpacity>
@@ -687,10 +1296,6 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#F3F4F6',
     },
-    dateLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
     calendarIconBox: {
         width: 40,
         height: 40,
@@ -700,15 +1305,374 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginRight: 12,
     },
+    dateText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: COLORS.dark,
+    },
+    compareContainer: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    compareHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    compareLabel: {
+        flex: 1,
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.dark,
+        marginLeft: 8,
+    },
+    compareSwitch: {
+        width: 44,
+        height: 24,
+        borderRadius: 12,
+        backgroundColor: '#E5E7EB',
+        padding: 2,
+        justifyContent: 'center',
+    },
+    compareSwitchActive: {
+        backgroundColor: COLORS.primary,
+    },
+    compareSwitchCircle: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 1.5,
+        elevation: 2,
+    },
+    compareSwitchCircleActive: {
+        alignSelf: 'flex-end',
+    },
+    compareModesRow: {
+        flexDirection: 'row',
+        marginTop: 10,
+        backgroundColor: '#E5E7EB',
+        borderRadius: 8,
+        padding: 2,
+    },
+    compareModeBtn: {
+        flex: 1,
+        paddingVertical: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 6,
+    },
+    compareModeBtnActive: {
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1.5,
+        elevation: 1,
+    },
+    compareModeBtnText: {
+        fontSize: 11,
+        fontWeight: '500',
+        color: '#6B7280',
+    },
+    compareModeBtnTextActive: {
+        color: COLORS.primary,
+        fontWeight: 'bold',
+    },
+    comparisonContainer: {
+        marginTop: 10,
+    },
+    kpiContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    kpiCard: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        marginHorizontal: 4,
+    },
+    kpiTitle: {
+        fontSize: 9,
+        fontWeight: 'bold',
+        color: '#9CA3AF',
+        letterSpacing: 0.5,
+        marginBottom: 4,
+    },
+    kpiValue: {
+        fontSize: 15,
+        fontWeight: 'bold',
+    },
+    kpiUnit: {
+        fontSize: 10,
+        fontWeight: 'normal',
+    },
+    trendBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        marginBottom: 20,
+    },
+    trendBannerText: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 16,
+    },
+    compListTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: COLORS.primary,
+        marginBottom: 12,
+        letterSpacing: 0.5,
+    },
+    compList: {
+        backgroundColor: '#FFFFFF',
+    },
+    compProdItem: {
+        marginBottom: 16,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    compProdHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    compProdName: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.dark,
+    },
+    compProdBadge: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    progressBarWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 16,
+        marginBottom: 6,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 4,
+        overflow: 'hidden',
+        position: 'relative',
+    },
+    progressBarFilled: {
+        height: '100%',
+        borderRadius: 4,
+    },
+    progressBarValue: {
+        position: 'absolute',
+        left: 8,
+        fontSize: 9,
+        fontWeight: '600',
+        color: COLORS.white,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0.5, height: 0.5 },
+        textShadowRadius: 1,
+    },
+    radialList: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
+    radialCard: {
+        width: '48%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 12,
+        marginBottom: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    radialProdName: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: COLORS.dark,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    radialSvgContainer: {
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    radialCenterTextContainer: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    radialCenterText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    radialLegend: {
+        marginTop: 12,
+        width: '100%',
+        paddingHorizontal: 5,
+    },
+    radialLegendRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    radialLegendText: {
+        fontSize: 10,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    toggleViewBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#EFF6FF',
+        paddingVertical: 12,
+        borderRadius: 12,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+    },
+    toggleViewBtnText: {
+        fontSize: 13,
+        fontWeight: 'bold',
+        color: COLORS.primary,
+        marginLeft: 8,
+    },
+    radialList: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        marginTop: 10,
+    },
+    radialCard: {
+        width: '48%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 12,
+        marginBottom: 16,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    radialProdName: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: COLORS.dark,
+        marginBottom: 8,
+        textAlign: 'center',
+    },
+    radialSvgContainer: {
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    radialCenterTextContainer: {
+        position: 'absolute',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    radialCenterText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    radialLegend: {
+        marginTop: 12,
+        width: '100%',
+        paddingHorizontal: 5,
+    },
+    radialLegendRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    radialLegendText: {
+        fontSize: 10,
+        color: '#6B7280',
+        fontWeight: '500',
+    },
+    dateRangeContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    dateCardHalf: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,
+        paddingVertical: 12,
+        paddingHorizontal: 8,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    dateLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    dateTextContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        paddingRight: 4,
+    },
+    calendarIconBoxSmall: {
+        width: 32,
+        height: 32,
+        backgroundColor: '#EFF6FF',
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 8,
+    },
     dateInfoLabel: {
         fontSize: 10,
         color: '#9CA3AF',
         fontWeight: 'bold',
     },
-    dateText: {
-        fontSize: 15,
+    dateTextSmall: {
+        fontSize: 13,
         fontWeight: '600',
         color: COLORS.dark,
+        marginTop: 2,
     },
     customOverlay: {
         ...StyleSheet.absoluteFillObject,
@@ -1001,4 +1965,99 @@ const styles = StyleSheet.create({
     closeButtonContainer: {
         padding: 4,
     },
+    sectionTitle: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#6B7280',
+        marginBottom: 10,
+        letterSpacing: 0.5,
+    },
+    clienteSelectorButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,
+        padding: 15,
+        borderRadius: 16,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+    },
+    clienteSelectorContent: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    iconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    clienteSelectorText: {
+        flex: 1,
+    },
+    infoLabel: {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontWeight: 'bold',
+    },
+    infoValue: {
+        fontSize: 14,
+        color: COLORS.dark,
+        fontWeight: '600',
+    },
+    clienteDropdown: {
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        padding: 10,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        maxHeight: 300,
+    },
+    clienteSearchWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        borderRadius: 10,
+        paddingHorizontal: 10,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    clienteSearchIcon: {
+        marginRight: 8,
+    },
+    clienteSearchInput: {
+        flex: 1,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+    },
+    clienteDropdownScroll: {
+        maxHeight: 220,
+    },
+    clienteDropdownItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    clienteDropdownItemSelected: {
+        backgroundColor: '#EFF6FF',
+        borderRadius: 8,
+    },
+    clienteDropdownItemText: {
+        fontSize: 14,
+        color: COLORS.dark,
+    },
+    clienteDropdownLoading: {
+        padding: 20,
+        alignItems: 'center',
+    },
+    clienteDropdownLoadingText: {
+        color: '#6B7280',
+        fontSize: 14,
+    }
 });
