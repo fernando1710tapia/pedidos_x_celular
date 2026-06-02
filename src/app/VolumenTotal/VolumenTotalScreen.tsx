@@ -170,23 +170,9 @@ export default function VolumenTotalScreen() {
             const checkCompare = isAdmin && activeTab === 'Nacional' && isComparing;
 
             if (checkCompare) {
-                // Calcular Rango B
-                let apiCompareStartDate: Date;
-                let apiCompareEndDate: Date;
-
-                if (compareMode === 'prev_month') {
-                    apiCompareStartDate = subMonths(startDate, 1);
-                    apiCompareEndDate = subMonths(endDate, 1);
-                } else if (compareMode === 'prev_year') {
-                    apiCompareStartDate = subYears(startDate, 1);
-                    apiCompareEndDate = subYears(endDate, 1);
-                } else { // 'custom'
-                    apiCompareStartDate = compareStartDate;
-                    apiCompareEndDate = compareEndDate;
-                }
-
-                const pfechaiB = format(apiCompareStartDate, "yyyy/MM/dd");
-                const pfechafB = format(apiCompareEndDate, "yyyy/MM/dd");
+                // Calcular Rango B (siempre es custom ahora)
+                const pfechaiB = format(compareStartDate, "yyyy/MM/dd");
+                const pfechafB = format(compareEndDate, "yyyy/MM/dd");
 
                 console.log('FT-volumenTotalService::COMPARTIVA RANGO A:', pfechai, '-', pfechaf);
                 console.log('FT-volumenTotalService::COMPARTIVA RANGO B:', pfechaiB, '-', pfechafB);
@@ -1627,63 +1613,7 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
         marginLeft: 8,
     },
-    radialList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginTop: 10,
-    },
-    radialCard: {
-        width: '48%',
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 12,
-        marginBottom: 16,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#F3F4F6',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    radialProdName: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: COLORS.dark,
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    radialSvgContainer: {
-        position: 'relative',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radialCenterTextContainer: {
-        position: 'absolute',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    radialCenterText: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    radialLegend: {
-        marginTop: 12,
-        width: '100%',
-        paddingHorizontal: 5,
-    },
-    radialLegendRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    radialLegendText: {
-        fontSize: 10,
-        color: '#6B7280',
-        fontWeight: '500',
-    },
+
     dateRangeContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
