@@ -9,6 +9,7 @@ import { RootStackParamList } from '../../types/navigation';
 import { useUser } from '../../hooks';
 import BrandLogo from '../../components/BrandLogo';
 import AppHeader from '../../components/AppHeader';
+import { PRE_PEDIDO_MODULE_NAME } from '../../config/constants';
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'MenuOperativo'>;
 
@@ -96,6 +97,11 @@ export default function MenuOperativoScreen() {
                             onPress={() => navigation.navigate('ListaNotaPedido')}
                         />
                         */}
+                        <MenuButton
+                            title={PRE_PEDIDO_MODULE_NAME}
+                            iconName="clipboard-outline"
+                            onPress={() => navigation.navigate('PrePedido')}
+                        />
                     </View>
                 </View>
 

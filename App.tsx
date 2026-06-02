@@ -11,6 +11,7 @@ import LoginScreen from './src/app/Login/LoginScreen';
 // Ignorar advertencias específicas de UI Kitten que son ruidosas pero no fatales
 LogBox.ignoreLogs(['Cannot update during an existing state transition']);
 import NotaPedidoScreen from './src/app/NotaPedido/NotaPedidoScreen';
+import PrePedidoScreen from './src/app/PrePedido/PrePedidoScreen';
 import { ThemeProvider } from './src/components/theme';
 import { UserProvider } from './src/context/UserContext';
 import { RootStackParamList } from './src/types/navigation'; // Importa los tipos
@@ -43,6 +44,7 @@ export default function App() {
                   <Stack.Screen name="RecuperarClave" component={RecuperarClaveScreen} />
                   <Stack.Screen name="BorrarUsuario" component={BorrarUsuarioScreen} />
                   <Stack.Screen name="NotaPedido" component={NotaPedidoScreen} />
+                  <Stack.Screen name="PrePedido" component={PrePedidoScreen} />
                   <Stack.Screen name="ListaNotaPedido" component={ListaNotaPedidoScreen} />
                   <Stack.Screen name="MenuOperativo" component={MenuOperativoScreen} />
                   <Stack.Screen name="ValidaSellos" component={ValidaSellosScreen} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
     StyleSheet,
     View,
@@ -57,7 +57,8 @@ const CHART_COLORS = [
 ];
 
 const cleanProductName = (name: string) => {
-    return name
+    if (!name) return 'Desconocido';
+    return String(name)
         .replace(/^DES\s+/i, '')
         .replace(/^[\s\d\-]+-\s*/, '')
         .replace(/\./g, ' ')
@@ -65,9 +66,10 @@ const cleanProductName = (name: string) => {
 };
 
 const formatFullProductName = (name: string) => {
+    if (!name) return 'Desconocido VOL';
     // DES  - 0101-GAS.EXTRA -> 0101-GAS EXTRA VOL
     // Si no hay código, solo devuelve el nombre limpio + VOL
-    const codeMatch = name.match(/(\d+)-/);
+    const codeMatch = String(name).match(/(\d+)-/);
     const code = codeMatch ? codeMatch[1] : '';
     const cleanName = cleanProductName(name);
     const label = code ? `${code}-${cleanName}` : cleanName;
@@ -85,7 +87,7 @@ export default function VolumenTotalScreen() {
     const [pickerType, setPickerType] = useState<'start' | 'end' | 'single' | 'compare_start' | 'compare_end' | null>(null);
     const [isComparing, setIsComparing] = useState(false);
     const [compareViewType, setCompareViewType] = useState<'bars' | 'radial'>('bars');
-    const [compareMode, setCompareMode] = useState<'prev_month' | 'prev_year' | 'custom'>('prev_month');
+    const [compareMode, setCompareMode] = useState<'custom'>('custom');
     const [compareStartDate, setCompareStartDate] = useState(() => subMonths(new Date(), 1));
     const [compareEndDate, setCompareEndDate] = useState(() => subMonths(new Date(), 1));
     const [compareData, setCompareData] = useState<VentaTotalData[]>([]);
@@ -100,6 +102,8 @@ export default function VolumenTotalScreen() {
     const [selectedCliente, setSelectedCliente] = useState<TerminalClienteInterface | null>(null);
     const [showClienteDropdown, setShowClienteDropdown] = useState<boolean>(false);
     const [clienteSearchText, setClienteSearchText] = useState<string>('');
+    const fetchIdRef = useRef(0);
+    const lastFetchParams = useRef<{ pfechai: string, pfechaf: string, tipoconsulta: string, codigocliente: string } | null>(null);
 
     const normalizeCliente = (c: TerminalClienteInterface & { clientePK?: { codigo?: string }; nombre?: string }): TerminalClienteInterface => ({
         ...c,
@@ -151,6 +155,9 @@ export default function VolumenTotalScreen() {
     const fetchData = async () => {
         if (!user) return;
 
+        fetchIdRef.current += 1;
+        const currentFetchId = fetchIdRef.current;
+
         setLoading(true);
         setError(null);
         try {
@@ -184,8 +191,21 @@ export default function VolumenTotalScreen() {
                 console.log('FT-volumenTotalService::COMPARTIVA RANGO A:', pfechai, '-', pfechaf);
                 console.log('FT-volumenTotalService::COMPARTIVA RANGO B:', pfechaiB, '-', pfechafB);
 
-                const [resA, resB] = await Promise.all([
-                    volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
+                // Revisar si ya tenemos los datos de resA cacheados en memoria
+                let skipResA = false;
+                if (
+                    lastFetchParams.current &&
+                    lastFetchParams.current.pfechai === pfechai &&
+                    lastFetchParams.current.pfechaf === pfechaf &&
+                    lastFetchParams.current.tipoconsulta === tipoconsulta &&
+                    lastFetchParams.current.codigocliente === codigocliente &&
+                    ventasData.length > 0
+                ) {
+                    skipResA = true;
+                }
+
+                if (!skipResA) {
+                    const resA = await volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
                         'ec.com.infinity.modelo.factura/ventatotal2app',
                         '',
                         {
@@ -195,8 +215,25 @@ export default function VolumenTotalScreen() {
                             codigocliente,
                             tipoconsulta
                         }
-                    ),
-                    volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
+                    );
+                    if (currentFetchId !== fetchIdRef.current) return;
+
+                    if (resA && resA.retorno) {
+                        setVentasData(resA.retorno);
+                        lastFetchParams.current = { pfechai, pfechaf, tipoconsulta, codigocliente };
+                    } else {
+                        setVentasData([]);
+                        lastFetchParams.current = null;
+                    }
+                }
+
+                // Si las fechas son exactamente iguales, reusamos ventasData para evitar problemas 
+                // con backends que bloquean o retornan vacío en consultas duplicadas.
+                if (pfechai === pfechaiB && pfechaf === pfechafB) {
+                    // Usar la función de setCompareData pasándole el estado más reciente de ventasData
+                    setCompareData(ventasData);
+                } else {
+                    const resB = await volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
                         'ec.com.infinity.modelo.factura/ventatotal2app',
                         '',
                         {
@@ -206,39 +243,53 @@ export default function VolumenTotalScreen() {
                             codigocliente,
                             tipoconsulta
                         }
-                    )
-                ]);
+                    );
 
-                if (resA && resA.retorno) {
-                    setVentasData(resA.retorno);
-                } else {
-                    setVentasData([]);
-                }
+                    if (currentFetchId !== fetchIdRef.current) return;
 
-                if (resB && resB.retorno) {
-                    setCompareData(resB.retorno);
-                } else {
-                    setCompareData([]);
+                    if (resB && resB.retorno) {
+                        setCompareData(resB.retorno);
+                    } else {
+                        setCompareData([]);
+                    }
                 }
 
             } else {
                 // Consulta normal sin comparativa
-                const response = await volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
-                    'ec.com.infinity.modelo.factura/ventatotal2app',
-                    '',
-                    {
-                        pfechai,
-                        pfechaf,
-                        codigocomercializadora: user.codigocomercializadora,
-                        codigocliente,
-                        tipoconsulta
-                    }
-                );
+                // Revisar si ya tenemos los datos cacheados
+                let skipRes = false;
+                if (
+                    lastFetchParams.current &&
+                    lastFetchParams.current.pfechai === pfechai &&
+                    lastFetchParams.current.pfechaf === pfechaf &&
+                    lastFetchParams.current.tipoconsulta === tipoconsulta &&
+                    lastFetchParams.current.codigocliente === codigocliente &&
+                    ventasData.length > 0
+                ) {
+                    skipRes = true;
+                }
 
-                if (response && response.retorno) {
-                    setVentasData(response.retorno);
-                } else {
-                    setVentasData([]);
+                if (!skipRes) {
+                    const response = await volumenTotalService.getResource<ApiResponse<VentaTotalData>>(
+                        'ec.com.infinity.modelo.factura/ventatotal2app',
+                        '',
+                        {
+                            pfechai,
+                            pfechaf,
+                            codigocomercializadora: user.codigocomercializadora,
+                            codigocliente,
+                            tipoconsulta
+                        }
+                    );
+                    if (currentFetchId !== fetchIdRef.current) return;
+
+                    if (response && response.retorno) {
+                        setVentasData(response.retorno);
+                        lastFetchParams.current = { pfechai, pfechaf, tipoconsulta, codigocliente };
+                    } else {
+                        setVentasData([]);
+                        lastFetchParams.current = null;
+                    }
                 }
                 setCompareData([]);
             }
@@ -251,12 +302,26 @@ export default function VolumenTotalScreen() {
         }
     };
 
+    const getSafeVol = (item: any) => {
+        const raw = item.volumenTotal !== undefined ? item.volumenTotal : item.volumentotal !== undefined ? item.volumentotal : item.volumenTotalD !== undefined ? item.volumenTotalD : item.volumen !== undefined ? item.volumen : 0;
+        if (typeof raw === 'number') return raw;
+        return parseFloat(String(raw || "0").replace(/,/g, '')) || 0;
+    };
+
+    const getSafeProdName = (item: any) => {
+        return item.nombreProducto || item.producto || item.nombreproducto || 'Desconocido';
+    };
+
+    const getSafeTermName = (item: any) => {
+        return item.nombreTerminal || item.terminal || item.nombreterminal || 'Desconocido';
+    };
+
     const getAggregatedData = () => {
         if (activeTab === 'Nacional') {
             const aggregated: Record<string, { nombre: string, total: number }> = {};
             ventasData.forEach(item => {
-                const name = item.nombreProducto;
-                const vol = typeof item.volumenTotal === 'number' ? item.volumenTotal : parseFloat(String(item.volumenTotal || "0"));
+                const name = getSafeProdName(item);
+                const vol = getSafeVol(item);
                 if (!aggregated[name]) {
                     aggregated[name] = { nombre: name, total: 0 };
                 }
@@ -284,12 +349,12 @@ export default function VolumenTotalScreen() {
         if (activeTab === 'Terminal') {
             const terminals: Record<string, { nombre: string, productos: Record<string, number> }> = {};
             ventasData.forEach(item => {
-                const termName = item.nombreTerminal;
+                const termName = getSafeTermName(item);
                 if (!terminals[termName]) {
                     terminals[termName] = { nombre: termName, productos: {} };
                 }
-                const vol = typeof item.volumenTotal === 'number' ? item.volumenTotal : parseFloat(String(item.volumenTotal || "0"));
-                terminals[termName].productos[item.nombreProducto] = vol;
+                const vol = getSafeVol(item);
+                terminals[termName].productos[getSafeProdName(item)] = vol;
             });
             return Object.entries(terminals).map(([name, data]) => ({
                 label: data.nombre.split('-').pop()?.trim().substring(0, 5).toUpperCase() || data.nombre.substring(0, 5).toUpperCase(),
@@ -301,9 +366,11 @@ export default function VolumenTotalScreen() {
     };
 
     const renderPieChart = () => {
-        // Restauración a tamaño grande e impactante
-        const size = width - 40; // Ancho máximo de la tarjeta
-        const radius = 85;
+        const { width: currentWidth } = Dimensions.get('window');
+        // Tamaño máximo del SVG de 340 para que en tablets no se vea diminuto en un cuadro gigante
+        const size = Math.min(currentWidth - 40, 340);
+        // Radio estrictamente proporcional al tamaño
+        const radius = size / 3.6;
         const centerX = size / 2;
         const centerY = size / 2;
 
@@ -431,7 +498,7 @@ export default function VolumenTotalScreen() {
                     <View style={[styles.legendItem, { borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 15, marginBottom: 15 }]}>
                         <View style={styles.legendLeft}>
                             <View style={[styles.colorDot, { backgroundColor: COLORS.dark }]} />
-                            <Text style={[styles.legendLabel, { fontWeight: 'bold', fontSize: 14 }]}>TOTAL</Text>
+                            <Text style={[styles.legendLabel, { fontWeight: 'bold', fontSize: 14 }]}>DESPACHO TOTAL</Text>
                         </View>
                         <Text style={[styles.legendValue, { fontSize: 14, color: COLORS.primary }]}>
                             {`${totalVolume.toLocaleString()} gls`}
@@ -452,7 +519,7 @@ export default function VolumenTotalScreen() {
         <View key={key} style={styles.legendItem}>
             <View style={styles.legendLeft}>
                 <View style={[styles.colorDot, { backgroundColor: color }]} />
-                <Text style={styles.legendLabel}>{label}</Text>
+                <Text style={styles.legendLabel} numberOfLines={2}>{label}</Text>
             </View>
             <Text style={styles.legendValue}>{value}</Text>
         </View>
@@ -461,12 +528,12 @@ export default function VolumenTotalScreen() {
 
     const renderComparisonView = () => {
         const aggDataCurrent = getAggregatedData(); // Current Period A (sorted)
-        
+
         // Calculate aggregated data for Period B (Compare Period)
         const compareAgg: Record<string, number> = {};
         compareData.forEach(item => {
-            const name = item.nombreProducto;
-            const vol = typeof item.volumenTotal === 'number' ? item.volumenTotal : parseFloat(String(item.volumenTotal || "0"));
+            const name = getSafeProdName(item);
+            const vol = getSafeVol(item);
             compareAgg[name] = (compareAgg[name] || 0) + vol;
         });
 
@@ -476,6 +543,23 @@ export default function VolumenTotalScreen() {
         if (totalCurrent === 0 && totalCompare === 0) {
             return <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}><Text>No hay datos disponibles para comparar</Text></View>;
         }
+
+        // Compute unified list of products
+        const unifiedProductsMap: Record<string, { id: string, nombre: string, current: number, compare: number }> = {};
+
+        aggDataCurrent.forEach((prod) => {
+            unifiedProductsMap[prod.nombre] = { id: prod.id, nombre: prod.nombre, current: prod.total, compare: 0 };
+        });
+
+        Object.entries(compareAgg).forEach(([nombre, vol], i) => {
+            if (unifiedProductsMap[nombre]) {
+                unifiedProductsMap[nombre].compare = vol;
+            } else {
+                unifiedProductsMap[nombre] = { id: `comp-only-${i}`, nombre, current: 0, compare: vol };
+            }
+        });
+
+        const unifiedData = Object.values(unifiedProductsMap).sort((a, b) => (b.current + b.compare) - (a.current + a.compare));
 
         // Calculate general change percent
         const diffTotal = totalCurrent - totalCompare;
@@ -494,7 +578,7 @@ export default function VolumenTotalScreen() {
                             {totalCurrent.toLocaleString()} <Text style={styles.kpiUnit}>gls</Text>
                         </Text>
                     </View>
-                    
+
                     <View style={styles.kpiCard}>
                         <Text style={styles.kpiTitle}>PERIODO COMPARADO</Text>
                         <Text style={[styles.kpiValue, { color: COLORS.gray }]}>
@@ -517,16 +601,16 @@ export default function VolumenTotalScreen() {
 
                 {/* Variación por Producto (Bars or Radial) */}
                 <Text style={styles.compListTitle}>VARIACIÓN POR PRODUCTO</Text>
-                
+
                 {compareViewType === 'bars' ? (
                     <View style={styles.compList}>
-                        {aggDataCurrent.map((prod, idx) => {
+                        {unifiedData.map((prod, idx) => {
                             const color = CHART_COLORS[idx % CHART_COLORS.length];
                             const label = formatFullProductName(prod.nombre);
-                            
-                            const volCurrent = prod.total;
-                            const volCompare = compareAgg[prod.nombre] || 0;
-                            
+
+                            const volCurrent = prod.current;
+                            const volCompare = prod.compare;
+
                             // Calculate change percent per product
                             const diffProd = volCurrent - volCompare;
                             const pctProd = volCompare > 0 ? (diffProd / volCompare) * 100 : 0;
@@ -564,11 +648,11 @@ export default function VolumenTotalScreen() {
                     </View>
                 ) : (
                     <View style={styles.radialList}>
-                        {aggDataCurrent.map((prod, idx) => {
+                        {unifiedData.map((prod, idx) => {
                             const color = CHART_COLORS[idx % CHART_COLORS.length];
                             const label = formatFullProductName(prod.nombre);
-                            const volCurrent = prod.total;
-                            const volCompare = compareAgg[prod.nombre] || 0;
+                            const volCurrent = prod.current;
+                            const volCompare = prod.compare;
                             const diffProd = volCurrent - volCompare;
                             const pctProd = volCompare > 0 ? (diffProd / volCompare) * 100 : 0;
                             const prodTrendColor = diffProd >= 0 ? '#10B981' : '#EF4444';
@@ -595,16 +679,16 @@ export default function VolumenTotalScreen() {
                                         <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
                                             <G rotation="-90" origin={`${center}, ${center}`}>
                                                 {/* Progress tracks */}
-                                                <Circle 
-                                                    cx={center} cy={center} r={rCompare} 
-                                                    stroke="#9CA3AF" strokeWidth={strokeWidth} fill="none" 
-                                                    strokeDasharray={`${fillCompare} ${circCompare}`} 
+                                                <Circle
+                                                    cx={center} cy={center} r={rCompare}
+                                                    stroke="#9CA3AF" strokeWidth={strokeWidth} fill="none"
+                                                    strokeDasharray={`${fillCompare} ${circCompare}`}
                                                     strokeLinecap="round"
                                                 />
-                                                <Circle 
-                                                    cx={center} cy={center} r={rCurrent} 
-                                                    stroke={color} strokeWidth={strokeWidth} fill="none" 
-                                                    strokeDasharray={`${fillCurrent} ${circCurrent}`} 
+                                                <Circle
+                                                    cx={center} cy={center} r={rCurrent}
+                                                    stroke={color} strokeWidth={strokeWidth} fill="none"
+                                                    strokeDasharray={`${fillCurrent} ${circCurrent}`}
                                                     strokeLinecap="round"
                                                 />
                                             </G>
@@ -632,8 +716,8 @@ export default function VolumenTotalScreen() {
                 )}
 
                 {/* Botón de alternancia */}
-                <TouchableOpacity 
-                    style={styles.toggleViewBtn} 
+                <TouchableOpacity
+                    style={styles.toggleViewBtn}
                     onPress={() => setCompareViewType(prev => prev === 'bars' ? 'radial' : 'bars')}
                 >
                     <Icon name={compareViewType === 'bars' ? 'pie-chart-outline' : 'bar-chart-outline'} size={18} color={COLORS.primary} />
@@ -714,16 +798,20 @@ export default function VolumenTotalScreen() {
                                                             ]}
                                                         >
                                                             {flexValue > 0.12 && (
-                                                                <Text style={[
-                                                                    styles.innerBarLabel,
-                                                                    {
-                                                                        fontSize: 8,
-                                                                        color: COLORS.white,
-                                                                        textShadowColor: 'rgba(0,0,0,0.6)',
-                                                                        textShadowOffset: { width: 0.5, height: 0.5 },
-                                                                        textShadowRadius: 1
-                                                                    }
-                                                                ]}>
+                                                                <Text
+                                                                    numberOfLines={2}
+                                                                    adjustsFontSizeToFit
+                                                                    style={[
+                                                                        styles.innerBarLabel,
+                                                                        {
+                                                                            fontSize: 8,
+                                                                            color: COLORS.white,
+                                                                            textShadowColor: 'rgba(0,0,0,0.6)',
+                                                                            textShadowOffset: { width: 0.5, height: 0.5 },
+                                                                            textShadowRadius: 1,
+                                                                            paddingHorizontal: 2
+                                                                        }
+                                                                    ]}>
                                                                     {cleanName}
                                                                 </Text>
                                                             )}
@@ -733,7 +821,11 @@ export default function VolumenTotalScreen() {
                                             })}
                                         </View>
                                     </View>
-                                    <Text style={[styles.barLabel, isSelected && { color: COLORS.primary }]}>
+                                    <Text
+                                        numberOfLines={2}
+                                        adjustsFontSizeToFit
+                                        style={[styles.barLabel, isSelected && { color: COLORS.primary }]}
+                                    >
                                         {bar.fullName}
                                     </Text>
                                 </TouchableOpacity>
@@ -775,7 +867,7 @@ export default function VolumenTotalScreen() {
                             <View style={[styles.legendItem, { borderBottomWidth: 1, borderBottomColor: '#E5E7EB', paddingBottom: 15, marginBottom: 15 }]}>
                                 <View style={styles.legendLeft}>
                                     <View style={[styles.colorDot, { backgroundColor: COLORS.dark }]} />
-                                    <Text style={[styles.legendLabel, { fontWeight: 'bold', fontSize: 14 }]}>TOTAL</Text>
+                                    <Text style={[styles.legendLabel, { fontWeight: 'bold', fontSize: 14 }]}>DESPACHO TOTAL</Text>
                                 </View>
                                 <Text style={[styles.legendValue, { fontSize: 14, color: COLORS.primary }]}>
                                     {`${totalDisplay.toLocaleString()} gls`}
@@ -1023,7 +1115,7 @@ export default function VolumenTotalScreen() {
                                     <View style={styles.compareHeader}>
                                         <Icon name="git-compare-outline" size={18} color={isComparing ? COLORS.primary : COLORS.gray} />
                                         <Text style={styles.compareLabel}>Comparar períodos de ventas</Text>
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             activeOpacity={0.7}
                                             onPress={() => setIsComparing(!isComparing)}
                                             style={[styles.compareSwitch, isComparing && styles.compareSwitchActive]}
@@ -1034,72 +1126,43 @@ export default function VolumenTotalScreen() {
 
                                     {isComparing && (
                                         <>
-                                            <View style={styles.compareModesRow}>
+                                            <View style={[styles.dateRangeContainer, { marginTop: 12, marginBottom: 0 }]}>
                                                 <TouchableOpacity
-                                                    style={[styles.compareModeBtn, compareMode === 'prev_month' && styles.compareModeBtnActive]}
-                                                    onPress={() => setCompareMode('prev_month')}
+                                                    style={[styles.dateCardHalf, { marginRight: 6 }]}
+                                                    onPress={() => setPickerType('compare_start')}
                                                 >
-                                                    <Text style={[styles.compareModeBtnText, compareMode === 'prev_month' && styles.compareModeBtnTextActive]}>
-                                                        Mes Ant.
-                                                    </Text>
+                                                    <View style={styles.dateLeft}>
+                                                        <View style={styles.calendarIconBoxSmall}>
+                                                            <Icon name="calendar-outline" size={16} color={COLORS.primary} />
+                                                        </View>
+                                                        <View style={styles.dateTextContainer}>
+                                                            <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>COMP. DESDE</Text>
+                                                            <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                                                {format(compareStartDate, "dd/MM/yyyy")}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                    <Icon name="chevron-forward" size={14} color={COLORS.gray} />
                                                 </TouchableOpacity>
+
                                                 <TouchableOpacity
-                                                    style={[styles.compareModeBtn, compareMode === 'prev_year' && styles.compareModeBtnActive]}
-                                                    onPress={() => setCompareMode('prev_year')}
+                                                    style={[styles.dateCardHalf, { marginLeft: 6 }]}
+                                                    onPress={() => setPickerType('compare_end')}
                                                 >
-                                                    <Text style={[styles.compareModeBtnText, compareMode === 'prev_year' && styles.compareModeBtnTextActive]}>
-                                                        Año Ant.
-                                                    </Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.compareModeBtn, compareMode === 'custom' && styles.compareModeBtnActive]}
-                                                    onPress={() => setCompareMode('custom')}
-                                                >
-                                                    <Text style={[styles.compareModeBtnText, compareMode === 'custom' && styles.compareModeBtnTextActive]}>
-                                                        Personalizado
-                                                    </Text>
+                                                    <View style={styles.dateLeft}>
+                                                        <View style={styles.calendarIconBoxSmall}>
+                                                            <Icon name="calendar-outline" size={16} color={COLORS.primary} />
+                                                        </View>
+                                                        <View style={styles.dateTextContainer}>
+                                                            <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>COMP. HASTA</Text>
+                                                            <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                                                {format(compareEndDate, "dd/MM/yyyy")}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                    <Icon name="chevron-forward" size={14} color={COLORS.gray} />
                                                 </TouchableOpacity>
                                             </View>
-
-                                            {compareMode === 'custom' && (
-                                                <View style={[styles.dateRangeContainer, { marginTop: 12, marginBottom: 0 }]}>
-                                                    <TouchableOpacity
-                                                        style={[styles.dateCardHalf, { marginRight: 6 }]}
-                                                        onPress={() => setPickerType('compare_start')}
-                                                    >
-                                                        <View style={styles.dateLeft}>
-                                                            <View style={styles.calendarIconBoxSmall}>
-                                                                <Icon name="calendar-outline" size={16} color={COLORS.primary} />
-                                                            </View>
-                                                            <View style={styles.dateTextContainer}>
-                                                                <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>COMP. DESDE</Text>
-                                                                <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
-                                                                    {format(compareStartDate, "dd/MM/yyyy")}
-                                                                </Text>
-                                                            </View>
-                                                        </View>
-                                                        <Icon name="chevron-forward" size={14} color={COLORS.gray} />
-                                                    </TouchableOpacity>
-
-                                                    <TouchableOpacity
-                                                        style={[styles.dateCardHalf, { marginLeft: 6 }]}
-                                                        onPress={() => setPickerType('compare_end')}
-                                                    >
-                                                        <View style={styles.dateLeft}>
-                                                            <View style={styles.calendarIconBoxSmall}>
-                                                                <Icon name="calendar-outline" size={16} color={COLORS.primary} />
-                                                            </View>
-                                                            <View style={styles.dateTextContainer}>
-                                                                <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>COMP. HASTA</Text>
-                                                                <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
-                                                                    {format(compareEndDate, "dd/MM/yyyy")}
-                                                                </Text>
-                                                            </View>
-                                                        </View>
-                                                        <Icon name="chevron-forward" size={14} color={COLORS.gray} />
-                                                    </TouchableOpacity>
-                                                </View>
-                                            )}
                                         </>
                                     )}
                                 </View>
@@ -1163,24 +1226,24 @@ export default function VolumenTotalScreen() {
                                 {pickerType === 'start'
                                     ? 'Seleccione Fecha Desde'
                                     : pickerType === 'end'
-                                    ? 'Seleccione Fecha Hasta'
-                                    : pickerType === 'compare_start'
-                                    ? 'Seleccione Comp. Desde'
-                                    : pickerType === 'compare_end'
-                                    ? 'Seleccione Comp. Hasta'
-                                    : 'Seleccione una fecha'}
+                                        ? 'Seleccione Fecha Hasta'
+                                        : pickerType === 'compare_start'
+                                            ? 'Seleccione Comp. Desde'
+                                            : pickerType === 'compare_end'
+                                                ? 'Seleccione Comp. Hasta'
+                                                : 'Seleccione una fecha'}
                             </Text>
                             <Calendar
                                 date={
                                     pickerType === 'start'
                                         ? startDate
                                         : pickerType === 'end'
-                                        ? endDate
-                                        : pickerType === 'compare_start'
-                                        ? compareStartDate
-                                        : pickerType === 'compare_end'
-                                        ? compareEndDate
-                                        : startDate
+                                            ? endDate
+                                            : pickerType === 'compare_start'
+                                                ? compareStartDate
+                                                : pickerType === 'compare_end'
+                                                    ? compareEndDate
+                                                    : startDate
                                 }
                                 dateService={dateService}
                                 min={new Date(2025, 0, 1)}
@@ -1800,8 +1863,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginVertical: 10,
-        marginHorizontal: -20, // Contrarresta el padding de la tarjeta
-        width: width - 40,
+        width: '100%',
     },
     chartCenterText: {
         position: 'absolute',
@@ -1820,6 +1882,7 @@ const styles = StyleSheet.create({
     },
     legendContainer: {
         marginTop: 20,
+        width: '100%',
     },
     legendItem: {
         flexDirection: 'row',
@@ -1829,6 +1892,7 @@ const styles = StyleSheet.create({
         padding: 12,
         borderRadius: 12,
         marginBottom: 10,
+        width: '100%',
     },
     loadingContainer: {
         height: 200,
@@ -1863,22 +1927,27 @@ const styles = StyleSheet.create({
     legendLeft: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+        paddingRight: 10,
     },
     colorDot: {
         width: 12,
         height: 12,
         borderRadius: 6,
         marginRight: 10,
+        flexShrink: 0,
     },
     legendLabel: {
         fontSize: 12,
         color: '#1F2937',
         fontWeight: '500',
+        flexShrink: 1,
     },
     legendValue: {
         fontSize: 12,
         fontWeight: 'bold',
         color: COLORS.dark,
+        flexShrink: 0,
     },
     terminalCount: {
         fontSize: 12,

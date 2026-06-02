@@ -2,6 +2,7 @@
 export type RootStackParamList = {
     Login: undefined;
     NotaPedido: undefined;
+    PrePedido: undefined;
     RecuperarClave: undefined;
     BorrarUsuario: undefined;
     ListaNotaPedido: {

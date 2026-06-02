@@ -20,12 +20,10 @@ import { StyleSheet } from 'react-native';
 import BrandLogo from '../../components/BrandLogo';
 import AppHeader from '../../components/AppHeader';
 //import { Icon } from '@ui-kitten/components';
-
-
-
+import { PRE_PEDIDO_MODULE_NAME } from '../../config/constants';
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 
-export default function NotaPedido() {
+export default function PrePedidoScreen() {
     const [cantidad, setCantidad] = useState<number>(0);
     const { user, logout } = useUser();
     const CheckIcon = (props: any) => (
@@ -763,7 +761,7 @@ export default function NotaPedido() {
             <View style={styles.mainContainer}>
                 <AppHeader
                     codigoComercializadora={user?.codigocomercializadora || ''}
-                    title="GENERAR PEDIDO"
+                    title={PRE_PEDIDO_MODULE_NAME.toUpperCase()}
                     onBackPress={() => navigation.goBack()}
                     rightElement={
                         <TouchableOpacity
@@ -795,7 +793,7 @@ export default function NotaPedido() {
                             <Text style={styles.greetingTitle}>
                                 Hola, {user?.nombre || 'Usuario'}
                             </Text>
-                            <Text style={styles.greetingSubtitle}>Completa la información para generar tu nota de pedido.</Text>
+                            <Text style={styles.greetingSubtitle}>Completa la información para generar tu {PRE_PEDIDO_MODULE_NAME.toLowerCase()}.</Text>
                         </View>
                         {missingComercializadora ? (
                             <View style={styles.missingComercializadoraContainer}>
@@ -1104,7 +1102,7 @@ export default function NotaPedido() {
                                     size='giant'
                                     onPress={handleSubmit}
                                 >
-                                    {(evaProps: any) => <Text {...evaProps} style={styles.mainButtonText}>Generar Pedido</Text>}
+                                    {(evaProps: any) => <Text {...evaProps} style={styles.mainButtonText}>{PRE_PEDIDO_MODULE_NAME}</Text>}
                                 </Button>
 
                                 <TouchableOpacity onPress={() => console.log("Cancelar Nota de Pedido")} style={styles.cancelButton}>
