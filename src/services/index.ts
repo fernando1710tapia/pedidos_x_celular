@@ -6,4 +6,4 @@ export * from './Terminal';
 export { default as usoSelloService } from './ValidaSellos/validaSellosServices';
 export * from './VolumenTotal/volumenTotalService';
 export { default as factorCorreccionService } from './FactorCorreccion/factorCorreccionService';
-
+export * from './PrePedido';

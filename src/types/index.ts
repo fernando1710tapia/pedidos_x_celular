@@ -20,4 +20,4 @@ export * from './terminalInterface';
 export * from './userInterface';
 export * from './usoSelloInterface';
 export * from './factorCorreccionInterface';
-
+export * from './envioPrePedidoInterface';

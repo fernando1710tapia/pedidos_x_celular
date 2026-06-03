@@ -767,12 +767,12 @@ export default function PrePedidoScreen() {
                         <TouchableOpacity
                             onPress={() => {
                                 if (isAdmin && selectedCliente) {
-                                    navigation.navigate('ListaNotaPedido', {
+                                    navigation.navigate('ListaPrePedido', {
                                         codigocliente: selectedCliente.codigo,
                                         nombreCliente: selectedCliente.nombrecomercial || selectedCliente.nombre
                                     });
                                 } else {
-                                    navigation.navigate('ListaNotaPedido', {});
+                                    navigation.navigate('ListaPrePedido', {});
                                 }
                             }}
                         >

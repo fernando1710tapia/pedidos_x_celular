@@ -86,7 +86,7 @@ export default function VolumenTotalScreen() {
     const [endDate, setEndDate] = useState(new Date());
     const [pickerType, setPickerType] = useState<'start' | 'end' | 'single' | 'compare_start' | 'compare_end' | null>(null);
     const [isComparing, setIsComparing] = useState(false);
-    const [compareViewType, setCompareViewType] = useState<'bars' | 'radial'>('bars');
+
     const [compareMode, setCompareMode] = useState<'custom'>('custom');
     const [compareStartDate, setCompareStartDate] = useState(() => subMonths(new Date(), 1));
     const [compareEndDate, setCompareEndDate] = useState(() => subMonths(new Date(), 1));
@@ -552,14 +552,14 @@ export default function VolumenTotalScreen() {
         const pctTotal = totalCompare > 0 ? (diffTotal / totalCompare) * 100 : 0;
         const trendColor = diffTotal >= 0 ? '#10B981' : '#EF4444'; // Emerald Green vs Crimson Red
         const trendIcon = diffTotal >= 0 ? 'arrow-up-circle' : 'arrow-down-circle';
-        const trendSymbol = diffTotal >= 0 ? '+' : '';
+        const trendSymbol = diffTotal > 0 ? '+' : diffTotal < 0 ? '-' : '';
 
         return (
             <View style={styles.comparisonContainer}>
                 {/* KPI Resumen Card */}
                 <View style={styles.kpiContainer}>
                     <View style={styles.kpiCard}>
-                        <Text style={styles.kpiTitle}>PERIODO ACTUAL</Text>
+                        <Text style={[styles.kpiTitle, { color: COLORS.primary }]}>PERIODO ACTUAL</Text>
                         <Text style={[styles.kpiValue, { color: COLORS.primary }]}>
                             {totalCurrent.toLocaleString()} <Text style={styles.kpiUnit}>gls</Text>
                         </Text>
@@ -577,140 +577,64 @@ export default function VolumenTotalScreen() {
                 <View style={[styles.trendBanner, { backgroundColor: diffTotal >= 0 ? '#ECFDF5' : '#FEF2F2', borderColor: diffTotal >= 0 ? '#A7F3D0' : '#FCA5A5' }]}>
                     <Icon name={trendIcon} size={22} color={trendColor} style={{ marginRight: 8 }} />
                     <Text style={[styles.trendBannerText, { color: trendColor }]}>
-                        {`Ventas totales variaron un `}
-                        <Text style={{ fontWeight: 'bold' }}>
-                            {`${trendSymbol}${pctTotal.toFixed(1)}%`}
+                        {`Venta del periodo actual varía en `}
+                        <Text style={{ fontWeight: 'bold', fontSize: 12 }}>
+                            {`${trendSymbol}${Math.abs(diffTotal).toLocaleString()} gls `}
                         </Text>
-                        {` respecto al periodo anterior.`}
+                        {`, representando un `}
+                        <Text style={{ fontWeight: 'bold', fontSize: 12 }}>
+                            {`${trendSymbol}${Math.abs(pctTotal).toFixed(1)}% `}
+                        </Text>
+                        {`respecto del periodo anterior seleccionado.`}
                     </Text>
                 </View>
 
                 {/* Variación por Producto (Bars or Radial) */}
                 <Text style={styles.compListTitle}>VARIACIÓN POR PRODUCTO</Text>
 
-                {compareViewType === 'bars' ? (
-                    <View style={styles.compList}>
-                        {unifiedData.map((prod, idx) => {
-                            const color = CHART_COLORS[idx % CHART_COLORS.length];
-                            const label = formatFullProductName(prod.nombre);
+                <View style={styles.compList}>
+                    {unifiedData.map((prod, idx) => {
+                        const color = CHART_COLORS[idx % CHART_COLORS.length];
+                        const label = formatFullProductName(prod.nombre);
 
-                            const volCurrent = prod.current;
-                            const volCompare = prod.compare;
+                        const volCurrent = prod.current;
+                        const volCompare = prod.compare;
 
-                            // Calculate change percent per product
-                            const diffProd = volCurrent - volCompare;
-                            const pctProd = volCompare > 0 ? (diffProd / volCompare) * 100 : 0;
-                            const prodTrendColor = diffProd >= 0 ? '#10B981' : '#EF4444';
-                            const prodTrendSymbol = diffProd >= 0 ? '+' : '';
+                        // Calculate change percent per product
+                        const diffProd = volCurrent - volCompare;
+                        const pctProd = volCompare > 0 ? (diffProd / volCompare) * 100 : 0;
+                        const prodTrendColor = diffProd >= 0 ? '#10B981' : '#EF4444';
+                        const prodTrendSymbol = diffProd >= 0 ? '+' : '';
 
-                            // Max volume to calculate width percentages
-                            const maxVal = Math.max(volCurrent, volCompare, 1);
-                            const widthCurrentPct = `${(volCurrent / maxVal) * 100}%` as any;
-                            const widthComparePct = `${(volCompare / maxVal) * 100}%` as any;
+                        // Max volume to calculate width percentages
+                        const maxVal = Math.max(volCurrent, volCompare, 1);
+                        const widthCurrentPct = `${(volCurrent / maxVal) * 100}%` as any;
+                        const widthComparePct = `${(volCompare / maxVal) * 100}%` as any;
 
-                            return (
-                                <View key={prod.id} style={styles.compProdItem}>
-                                    <View style={styles.compProdHeader}>
-                                        <Text style={styles.compProdName}>{label}</Text>
-                                        <Text style={[styles.compProdBadge, { color: prodTrendColor, backgroundColor: diffProd >= 0 ? '#E6F9F0' : '#FEECEE' }]}>
-                                            {`${prodTrendSymbol}${pctProd.toFixed(1)}%`}
-                                        </Text>
-                                    </View>
-
-                                    {/* Current Bar */}
-                                    <View style={styles.progressBarWrapper}>
-                                        <View style={[styles.progressBarFilled, { width: widthCurrentPct, backgroundColor: COLORS.primary }]} />
-                                        <Text style={styles.progressBarValue}>{`${volCurrent.toLocaleString()} gls`}</Text>
-                                    </View>
-
-                                    {/* Compare Bar */}
-                                    <View style={styles.progressBarWrapper}>
-                                        <View style={[styles.progressBarFilled, { width: widthComparePct, backgroundColor: '#D1D5DB' }]} />
-                                        <Text style={[styles.progressBarValue, { color: COLORS.gray }]}>{`${volCompare.toLocaleString()} gls (Comp)`}</Text>
-                                    </View>
+                        return (
+                            <View key={prod.id} style={styles.compProdItem}>
+                                <View style={styles.compProdHeader}>
+                                    <Text style={styles.compProdName}>{label}</Text>
+                                    <Text style={[styles.compProdBadge, { color: prodTrendColor, backgroundColor: diffProd >= 0 ? '#E6F9F0' : '#FEECEE' }]}>
+                                        {`${prodTrendSymbol}${pctProd.toFixed(1)}%`}
+                                    </Text>
                                 </View>
-                            );
-                        })}
-                    </View>
-                ) : (
-                    <View style={styles.radialList}>
-                        {unifiedData.map((prod, idx) => {
-                            const color = CHART_COLORS[idx % CHART_COLORS.length];
-                            const label = formatFullProductName(prod.nombre);
-                            const volCurrent = prod.current;
-                            const volCompare = prod.compare;
-                            const diffProd = volCurrent - volCompare;
-                            const pctProd = volCompare > 0 ? (diffProd / volCompare) * 100 : 0;
-                            const prodTrendColor = diffProd >= 0 ? '#10B981' : '#EF4444';
-                            const prodTrendSymbol = diffProd >= 0 ? '+' : '';
-                            const maxVal = Math.max(volCurrent, volCompare, 1);
 
-                            // Radial SVG math
-                            const size = 120;
-                            const center = size / 2;
-                            const strokeWidth = 10;
-                            const rCurrent = (size - strokeWidth) / 2;
-                            const rCompare = rCurrent - strokeWidth - 4; // inner ring
-
-                            const circCurrent = 2 * Math.PI * rCurrent;
-                            const circCompare = 2 * Math.PI * rCompare;
-
-                            const fillCurrent = (volCurrent / maxVal) * circCurrent;
-                            const fillCompare = (volCompare / maxVal) * circCompare;
-
-                            return (
-                                <View key={prod.id} style={styles.radialCard}>
-                                    <Text style={styles.radialProdName}>{label}</Text>
-                                    <View style={styles.radialSvgContainer}>
-                                        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                                            <G rotation="-90" origin={`${center}, ${center}`}>
-                                                {/* Progress tracks */}
-                                                <Circle
-                                                    cx={center} cy={center} r={rCompare}
-                                                    stroke="#9CA3AF" strokeWidth={strokeWidth} fill="none"
-                                                    strokeDasharray={`${fillCompare} ${circCompare}`}
-                                                    strokeLinecap="round"
-                                                />
-                                                <Circle
-                                                    cx={center} cy={center} r={rCurrent}
-                                                    stroke={color} strokeWidth={strokeWidth} fill="none"
-                                                    strokeDasharray={`${fillCurrent} ${circCurrent}`}
-                                                    strokeLinecap="round"
-                                                />
-                                            </G>
-                                        </Svg>
-                                        <View style={styles.radialCenterTextContainer}>
-                                            <Text style={[styles.radialCenterText, { color: prodTrendColor }]}>
-                                                {`${prodTrendSymbol}${Math.abs(pctProd).toFixed(0)}%`}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                    <View style={styles.radialLegend}>
-                                        <View style={styles.radialLegendRow}>
-                                            <View style={[styles.colorDot, { backgroundColor: color, width: 10, height: 10, borderRadius: 5 }]} />
-                                            <Text style={styles.radialLegendText}>{volCurrent.toLocaleString()} gls</Text>
-                                        </View>
-                                        <View style={styles.radialLegendRow}>
-                                            <View style={[styles.colorDot, { backgroundColor: '#9CA3AF', width: 10, height: 10, borderRadius: 5 }]} />
-                                            <Text style={styles.radialLegendText}>{volCompare.toLocaleString()} gls</Text>
-                                        </View>
-                                    </View>
+                                {/* Current Bar */}
+                                <View style={styles.progressBarWrapper}>
+                                    <View style={[styles.progressBarFilled, { width: widthCurrentPct, backgroundColor: COLORS.primary }]} />
+                                    <Text style={styles.progressBarValue}>{`${volCurrent.toLocaleString()} gls`}</Text>
                                 </View>
-                            );
-                        })}
-                    </View>
-                )}
 
-                {/* Botón de alternancia */}
-                <TouchableOpacity
-                    style={styles.toggleViewBtn}
-                    onPress={() => setCompareViewType(prev => prev === 'bars' ? 'radial' : 'bars')}
-                >
-                    <Icon name={compareViewType === 'bars' ? 'pie-chart-outline' : 'bar-chart-outline'} size={18} color={COLORS.primary} />
-                    <Text style={styles.toggleViewBtnText}>
-                        {compareViewType === 'bars' ? 'Cambiar a Gráfico Radial' : 'Cambiar a Barras'}
-                    </Text>
-                </TouchableOpacity>
+                                {/* Compare Bar */}
+                                <View style={styles.progressBarWrapper}>
+                                    <View style={[styles.progressBarFilled, { width: widthComparePct, backgroundColor: '#D1D5DB' }]} />
+                                    <Text style={[styles.progressBarValue, { color: COLORS.gray }]}>{`${volCompare.toLocaleString()} gls (Comp)`}</Text>
+                                </View>
+                            </View>
+                        );
+                    })}
+                </View>
             </View>
         );
     };
@@ -1096,7 +1020,7 @@ export default function VolumenTotalScreen() {
                             </View>
 
                             {/* Compare controls (Only for admins) */}
-                            {isAdmin && (
+                            {isAdmin && user?.codigocomercializadora === '0008' && (
                                 <View style={styles.compareContainer}>
                                     <View style={styles.compareHeader}>
                                         <Icon name="git-compare-outline" size={18} color={isComparing ? COLORS.primary : COLORS.gray} />

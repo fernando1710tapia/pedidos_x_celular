@@ -9,6 +9,10 @@ export type RootStackParamList = {
         codigocliente?: string;
         nombreCliente?: string;
     };
+    ListaPrePedido: {
+        codigocliente?: string;
+        nombreCliente?: string;
+    };
     MenuOperativo: undefined;
     ValidaSellos: undefined;
     VolumenTotal: undefined;
