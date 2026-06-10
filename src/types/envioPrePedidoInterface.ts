@@ -6,7 +6,7 @@ export interface EnvioPrePedidoInterface {
         prepedidoPK: {
             codigoabastecedora: string;
             codigocomercializadora: string;
-            numero: string;
+            numero?: string;
         };
         fechaventa: string;
         fechadespacho: string;
@@ -44,13 +44,16 @@ export interface EnvioPrePedidoInterface {
         detalleprepedidoPK: {
             codigoabastecedora: string;
             codigocomercializadora: string;
-            numero: string;
+            numero?: string;
             codigoproducto: string;
             codigomedida: string;
         };
         volumennaturalrequerido: number;
         volumennaturalautorizado: number;
         usuarioactual: string;
+        activo: boolean;
+        autorizado: string;
+        numeronp: string;
         medida: {
             codigo: string;
         };
@@ -70,5 +73,5 @@ export interface EnvioPrePedidoInterface {
         compartimento10: number;
         selloinicial: number;
         sellofinal: number;
-    };
+    }[];
 }

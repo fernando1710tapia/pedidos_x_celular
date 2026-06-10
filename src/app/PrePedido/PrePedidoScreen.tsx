@@ -2,18 +2,19 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Input, Layout, Text, useTheme } from '@ui-kitten/components';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, TouchableOpacity, View, Image, ScrollView } from 'react-native';
+import { Alert, TouchableOpacity, View, Image, ScrollView, TextInput } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
 import obtenerComercializadoraCliente from '../../services/Comercializadora/comercializadoraServices';
 import { crearNotaPedido } from '../../services/NotaPedido/notaPedidoServices';
+import { crearPrePedido } from '../../services/PrePedido/prePedidoServices';
 import ProductoServices from '../../services/Producto/productoServices';
 import obtenerTerminalCliente from '../../services/Terminal/teminalService';
 import terminalService from '../../services/Terminal/terminalService';
 import { factorCorreccionService } from '../../services';
 
-import { ApiResponse, ClienteInterface, ComercializadoraInterface, DetalleNotaPedidoInterface, DetalleNotaPedidoPKInterface, EnvioNotaPedidoInterface, FactorCorreccionInterface, NotaPedidoInterface, NotaPedidoPKInterface, ProductoInterface, ProductoResponseInterface, TerminalClienteInterface, TerminalInterface } from '../../types';
+import { ApiResponse, ClienteInterface, ComercializadoraInterface, DetalleNotaPedidoInterface, DetalleNotaPedidoPKInterface, EnvioNotaPedidoInterface, EnvioPrePedidoInterface, FactorCorreccionInterface, NotaPedidoInterface, NotaPedidoPKInterface, ProductoInterface, ProductoResponseInterface, TerminalClienteInterface, TerminalInterface } from '../../types';
 
 import { RootStackParamList } from '../../types/navigation';
 import { StyleSheet } from 'react-native';
@@ -24,7 +25,9 @@ import { PRE_PEDIDO_MODULE_NAME } from '../../config/constants';
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function PrePedidoScreen() {
-    const [cantidad, setCantidad] = useState<number>(0);
+    const [cantidadExtra, setCantidadExtra] = useState<number>(0);
+    const [cantidadSuper, setCantidadSuper] = useState<number>(0);
+    const [cantidadDiesel, setCantidadDiesel] = useState<number>(0);
     const { user, logout } = useUser();
     const CheckIcon = (props: any) => (
         <Icon
@@ -51,7 +54,6 @@ export default function PrePedidoScreen() {
     const [claveWsepp, setClaveWsepp] = useState<string>('');
     const [establecimientoFac, setEstablecimientoFac] = useState<string>('');
     const [puntoVentaFac, setPuntoVentaFac] = useState<string>('');
-    const [codProducto, setCodProducto] = useState<string>('');
     const [selectedDateDate, setSelectedDateDate] = useState<Date | null>(null);
     const [selectedDate, setSelectedDate] = useState<'hoy' | 'manana' | null>(null);
 
@@ -72,7 +74,14 @@ export default function PrePedidoScreen() {
 
     // Factor de corrección
     const [factores, setFactores] = useState<FactorCorreccionInterface[]>([]);
-    const [volumen60F, setVolumen60F] = useState<number>(0);
+
+    const productExtra = { codigo: "9901", nombre: "EXTRA" };
+    const productSuper = { codigo: "9903", nombre: "SUPER" };
+    const productDiesel = { codigo: "9904", nombre: "DIESEL" };
+
+    const extraLabel = productExtra.nombre;
+    const superLabel = productSuper.nombre;
+    const dieselLabel = productDiesel.nombre;
 
     // Sin comercializadora asignada: no se hacen llamadas al API
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
@@ -92,7 +101,7 @@ export default function PrePedidoScreen() {
 
     // Función para obtener la fecha en formato "YYYY-MM-DDTHH:mm:ssZ"
     const formatDate = (date: Date): string => {
-        return date.toISOString(); // Devuelve el formato ISO con "Z"
+        return date.toISOString().split('.')[0] + 'Z'; // Devuelve el formato ISO con "Z" sin milisegundos
     };
 
     // Función para establecer la fecha actual
@@ -332,9 +341,7 @@ export default function PrePedidoScreen() {
         }
     };
 
-    const handleSelectProduct = (product: ProductoInterface) => {
-        setCodProducto(product.codigo);
-    }
+    // handleSelectProduct removed since selection is input-based
 
     // Lista de clientes filtrada por búsqueda (código o nombre)
     const filteredClientes = useMemo(() => {
@@ -425,36 +432,28 @@ export default function PrePedidoScreen() {
         fetchFactores();
     }, [user?.codigocomercializadora]);
 
-    // Calcular Volumen a 60F
-    useEffect(() => {
+    const getVolumen60F = (productCode: string, qty: number) => {
         if (isAdmin) {
-            setVolumen60F(cantidad);
-            return;
+            return qty;
         }
-
-        if (!codProducto || !terminal?.codigo || cantidad === 0) {
-            setVolumen60F(cantidad);
-            return;
+        if (!productCode || !terminal?.codigo || qty === 0) {
+            return qty;
         }
-
-        // Buscar el factor para (terminal, producto)
         const factorObj = factores.find(f =>
-            f.factorcorreccionPK.codigoproducto === codProducto &&
+            f.factorcorreccionPK.codigoproducto === productCode &&
             f.factorcorreccionPK.codigoterminal === terminal.codigo
         );
-
         if (factorObj) {
-            const calculado = Number((cantidad * factorObj.factor).toFixed(2));
-            setVolumen60F(calculado);
-        } else {
-            //FT DEBE SER ERROR setVolumen60F(cantidad);
-            setVolumen60F(0);
-            if (codProducto && terminal?.codigo && cantidad > 0) {
-                Alert.alert("Aviso", "No existe factor de corrección para el producto y terminal seleccionados.");
-            }
-
+            return Number((qty * factorObj.factor).toFixed(2));
         }
-    }, [cantidad, codProducto, terminal?.codigo, factores, isAdmin]);
+        return 0;
+    };
+
+    const volumen60FExtra = useMemo(() => getVolumen60F(productExtra?.codigo || '', cantidadExtra), [cantidadExtra, productExtra, terminal, factores, isAdmin]);
+    const volumen60FSuper = useMemo(() => getVolumen60F(productSuper?.codigo || '', cantidadSuper), [cantidadSuper, productSuper, terminal, factores, isAdmin]);
+    const volumen60FDiesel = useMemo(() => getVolumen60F(productDiesel?.codigo || '', cantidadDiesel), [cantidadDiesel, productDiesel, terminal, factores, isAdmin]);
+
+    const totalVolumen60F = useMemo(() => Number((volumen60FExtra + volumen60FSuper + volumen60FDiesel).toFixed(2)), [volumen60FExtra, volumen60FSuper, volumen60FDiesel]);
 
 
     //
@@ -538,6 +537,9 @@ export default function PrePedidoScreen() {
 
 
     useEffect(() => {
+        setCantidadExtra(0);
+        setCantidadSuper(0);
+        setCantidadDiesel(0);
 
         if (products !== undefined && products !== null && products.length > 0) {
             //    console.error('FT::USEEFFECT-products[0]:. '+products[0].clienteproductoPK.codigo+' -cliente:. '+products[0].cliente.clientePK.codigo);
@@ -564,17 +566,57 @@ export default function PrePedidoScreen() {
                 return;
             }
 
+            if (selectedDate === null) {
+                Alert.alert("Error", "Seleccione el día de despacho, por favor");
+                return;
+            }
+
+            const activeItems = [];
+            if (cantidadExtra > 0) {
+                activeItems.push({ product: productExtra, qty: cantidadExtra });
+            }
+            if (cantidadSuper > 0) {
+                activeItems.push({ product: productSuper, qty: cantidadSuper });
+            }
+            if (cantidadDiesel > 0) {
+                activeItems.push({ product: productDiesel, qty: cantidadDiesel });
+            }
+
+            if (activeItems.length === 0) {
+                Alert.alert("Error", "Ingrese una cantidad para al menos un producto.");
+                return;
+            }
+
+            if (!isAdmin) {
+                for (const item of activeItems) {
+                    const factorObj = factores.find(f =>
+                        f.factorcorreccionPK.codigoproducto === item.product.codigo &&
+                        f.factorcorreccionPK.codigoterminal === terminal?.codigo
+                    );
+                    if (!factorObj) {
+                        Alert.alert("Error", `No existe un factor de corrección vigente para el producto ${item.product.nombre} y terminal seleccionados.`);
+                        return;
+                    }
+                }
+            }
+
+            const generatedNumbers: string[] = [];
+            let petroModalData: {
+                type: 'success' | 'error' | 'warning';
+                title: string;
+                message: string;
+            } | null = null;
+
             const nowDate = formatDate(new Date());
             const formattedDate = selectedDateDate ? formatDate(selectedDateDate) : '';
-
-            const notaPedidoPk: NotaPedidoPKInterface = {
+            const prepedidoPK = {
                 codigoabastecedora: codAbas,
                 codigocomercializadora: codComer,
                 numero: ""
             };
 
-            const notaPedido: NotaPedidoInterface = {
-                notapedidoPK: notaPedidoPk,
+            const prepedido = {
+                prepedidoPK: prepedidoPK,
                 fechaventa: nowDate,
                 fechadespacho: formattedDate,
                 activa: true,
@@ -594,10 +636,26 @@ export default function PrePedidoScreen() {
                 prefijo: prefijo,
                 facturada: "NO",
                 codigoclienteId: codCli,
-                codigocliente: { clientePK: { codigo: codCli, codigocomercializadora: codComer } },
-                codigoterminal: { codigo: terminal?.codigo || "" },
+                codigocliente: (() => {
+                    if (terminalCli) {
+                        const { codigo, codigocomercializadora, ...rest } = terminalCli as any;
+                        return {
+                            ...rest,
+                            clientePK: { codigo: codCli, codigocomercializadora: codComer }
+                        };
+                    }
+                    return { clientePK: { codigo: codCli, codigocomercializadora: codComer } };
+                })(),
+                codigoterminal: { codigo: terminal?.codigo || "", nombre: terminal?.nombre || "" },
                 codigobanco: { codigo: codBank },
-                comercializadora: {
+                comercializadora: comercializadora ? {
+                    ...comercializadora,
+                    codigo: codComer,
+                    clavewsepp: claveWsepp,
+                    establecimientofac: establecimientoFac,
+                    puntoventafac: puntoVentaFac,
+                    codigoabastecedora: { codigo: codAbas }
+                } : {
                     codigo: codComer,
                     clavewsepp: claveWsepp,
                     establecimientofac: establecimientoFac,
@@ -607,151 +665,141 @@ export default function PrePedidoScreen() {
                 abastecedora: { codigo: codAbas }
             };
 
-            const detalleNotaPedidoPk: DetalleNotaPedidoPKInterface = {
-                codigoabastecedora: codAbas,
-                codigocomercializadora: codComer,
-                numero: "",
-                codigoproducto: codProducto,
-                codigomedida: codProducto.startsWith("03") ? "03" : "01"
+            const detalleList = activeItems.map(item => {
+                const currentCodProducto = item.product.codigo;
+                const currentVolumen60F = getVolumen60F(currentCodProducto, item.qty);
+
+                return {
+                    detalleprepedidoPK: {
+                        codigoabastecedora: codAbas,
+                        codigocomercializadora: codComer,
+                        numero: "",
+                        codigoproducto: currentCodProducto,
+                        codigomedida: currentCodProducto === "9904" ? "03" : "01"
+                    },
+                    volumennaturalrequerido: currentVolumen60F,
+                    volumennaturalautorizado: currentVolumen60F,
+                    usuarioactual: user?.nombrever || "",
+                    activo: true,
+                    autorizado: "NO",
+                    numeronp: "0",
+                    medida: { codigo: currentCodProducto === "9904" ? "03" : "01" },
+                    producto: { codigo: currentCodProducto },
+                    compartimento1: 0,
+                    compartimento2: 0,
+                    compartimento3: 0,
+                    compartimento4: 0,
+                    compartimento5: 0,
+                    compartimento6: 0,
+                    compartimento7: 0,
+                    compartimento8: 0,
+                    compartimento9: 0,
+                    compartimento10: 0,
+                    selloinicial: 0,
+                    sellofinal: 0
+                };
+            });
+
+            const envioPrePedido: EnvioPrePedidoInterface = {
+                prepedido: prepedido,
+                detalle: detalleList
             };
 
-            const detalleNotaPedido: DetalleNotaPedidoInterface = {
-                detallenotapedidoPK: detalleNotaPedidoPk,
-                volumennaturalrequerido: volumen60F,
-                volumennaturalautorizado: volumen60F,
-                usuarioactual: user?.nombrever || "",
-                medida: { codigo: detalleNotaPedidoPk.codigomedida },
-                producto: { codigo: codProducto },
-                compartimento1: 0,
-                compartimento2: 0,
-                compartimento3: 0,
-                compartimento4: 0,
-                compartimento5: 0,
-                compartimento6: 0,
-                compartimento7: 0,
-                compartimento8: 0,
-                compartimento9: 0,
-                compartimento10: 0,
-                selloinicial: 0,
-                sellofinal: 0
-            };
+            console.log("PAYLOAD ENVIADO AL BACKEND:", JSON.stringify(envioPrePedido, null, 2));
 
-            const envioNP: EnvioNotaPedidoInterface = {
-                notapedido: notaPedido,
-                detalle: detalleNotaPedido
-            };
+            let response: ApiResponse<any>;
+            // Siempre utilizamos postPrePedido ya que el JSON proporcionado por el usuario
+            // especifica la URL base /ec.com.infinity.modelo.prepedido y no crearyenviar.
+            response = await crearPrePedido.postPrePedido<ApiResponse<any>>(envioPrePedido);
 
-            if (selectedDate !== null) {
-                if (codProducto !== '' && codProducto !== null) {
-                    if (cantidad !== 0 && cantidad !== null) {
-                        if (!isAdmin) {
-                            const factorObj = factores.find(f =>
-                                f.factorcorreccionPK.codigoproducto === codProducto &&
-                                f.factorcorreccionPK.codigoterminal === terminal?.codigo
-                            );
-                            if (!factorObj) {
-                                Alert.alert("Error", "No existe un factor de corrección vigente para el producto y terminal seleccionados.");
-                                return;
-                            }
-                        }
+            if (response !== undefined && response !== null) {
+                let resultNumber = response.retorno && response.retorno.length > 0
+                    ? response.retorno[0].prepedidoPK.numero
+                    : response.developerMessage || "";
 
-                        let response: ApiResponse<any>;
-                        if (comercializadora?.generasolicitud) {
-                            response = await crearNotaPedido.crearSolicitud<ApiResponse<any>>(envioNP);
-                        } else if (comercializadora?.generapedidodirecto) {
-                            response = await crearNotaPedido.crearyenviar<ApiResponse<any>>(envioNP);
-                        } else {
-                            response = await crearNotaPedido.postNotaPedido<ApiResponse<any>>(envioNP);
-                        }
-
-                        if (response !== undefined && response !== null) {
-                            // Extraer solo el número de pedido (quitar la trama si viene en devMsg)
-                            let resultNumber = response.retorno && response.retorno.length > 0
-                                ? response.retorno[0].notapedidoPK.numero
-                                : response.developerMessage || "";
-
-                            if (resultNumber.includes(';')) {
-                                resultNumber = resultNumber.split(';')[0];
-                            }
-
-                            setNpNumber(resultNumber);
-                            setShowSuccessModal(true);
-
-
-                            if (comercializadora?.generapedidodirecto && (user?.niveloperacion === 'ADMIN' || isAdmin)) {
-                                try {
-                                    const devMsg = response.developerMessage || "";
-
-                                    if (devMsg && devMsg.includes(';')) {
-                                        const [numero, trama] = devMsg.split(';');
-
-                                        const petroRes = await crearNotaPedido.enviarPetroecuador<any>({
-                                            codigoabastecedora: codAbas,
-                                            codigocomercializadora: codComer,
-                                            numero: numero,
-                                            cadena: trama
-                                        });
-
-                                        const successCodes = ["00", "20"];
-                                        const rawMsg = Array.isArray(petroRes?.retorno) && petroRes.retorno.length > 0
-                                            ? petroRes.retorno[0]
-                                            : (typeof petroRes?.retorno === 'string' ? petroRes.retorno : '');
-
-                                        const msgCode = (typeof rawMsg === 'string') ? rawMsg.substring(0, 2) : "";
-
-                                        // Es éxito si el statusCode es 00/20 O si siendo 200 el mensaje de retorno empieza con 00/20
-                                        const isSuccessful = successCodes.includes(String(petroRes?.statusCode)) ||
-                                            ((petroRes?.statusCode === "200" || petroRes?.statusCode === 200) && successCodes.includes(msgCode));
-
-                                        if (isSuccessful) {
-                                            setShowSuccessModal(false);
-                                            setPetroModal({
-                                                visible: true,
-                                                type: 'success',
-                                                title: '¡Éxito Petroecuador!',
-                                                message: msgCode + ' La orden fue transmitida correctamente.'
-                                            });
-                                        } else {
-                                            setShowSuccessModal(false);
-                                            setPetroModal({
-                                                visible: true,
-                                                type: 'warning',
-                                                title: 'Aviso Petroecuador',
-                                                message: msgCode || `Status: ${petroRes?.statusCode}. ${petroRes?.developerMessage || 'Sin mensaje'}`
-                                            });
-                                        }
-                                    } else {
-                                        setShowSuccessModal(false);
-                                        setPetroModal({
-                                            visible: true,
-                                            type: 'error',
-                                            title: 'Error de Envío',
-                                            message: 'El pedido se creó localmente, pero no se pudo enviar a Petroecuador porque faltan datos de despacho.'
-                                        });
-                                    }
-                                } catch (petroErr: any) {
-                                    setShowSuccessModal(false);
-                                    setPetroModal({
-                                        visible: true,
-                                        type: 'error',
-                                        title: 'Error Petroecuador',
-                                        message: `Fallo de red o servicio externo: ${petroErr.message}`
-                                    });
-                                }
-                            }
-                        }
-                    } else {
-                        Alert.alert("Error", "Ingrese una cantidad");
-                    }
-                } else {
-                    Alert.alert("Error", "Seleccione un producto, por favor");
+                if (resultNumber.includes(';')) {
+                    resultNumber = resultNumber.split(';')[0];
                 }
-            } else {
-                Alert.alert("Error", "Seleccione el día de despacho, por favor");
+
+                generatedNumbers.push(resultNumber);
+
+                if (comercializadora?.generapedidodirecto && (user?.niveloperacion === 'ADMIN' || isAdmin)) {
+                    try {
+                        const devMsg = response.developerMessage || "";
+
+                        if (devMsg && devMsg.includes(';')) {
+                            const [numero, trama] = devMsg.split(';');
+
+                            const petroRes = await crearPrePedido.enviarPetroecuador<any>({
+                                codigoabastecedora: codAbas,
+                                codigocomercializadora: codComer,
+                                numero: numero,
+                                cadena: trama
+                            });
+
+                            const successCodes = ["00", "20"];
+                            const rawMsg = Array.isArray(petroRes?.retorno) && petroRes.retorno.length > 0
+                                ? petroRes.retorno[0]
+                                : (typeof petroRes?.retorno === 'string' ? petroRes.retorno : '');
+
+                            const msgCode = (typeof rawMsg === 'string') ? rawMsg.substring(0, 2) : "";
+                            const isSuccessful = successCodes.includes(String(petroRes?.statusCode)) ||
+                                ((petroRes?.statusCode === "200" || petroRes?.statusCode === 200) && successCodes.includes(msgCode));
+
+                            if (isSuccessful) {
+                                petroModalData = {
+                                    type: 'success',
+                                    title: '¡Éxito Petroecuador!',
+                                    message: msgCode + ' La orden fue transmitida correctamente.'
+                                };
+                            } else {
+                                petroModalData = {
+                                    type: 'warning',
+                                    title: 'Aviso Petroecuador',
+                                    message: msgCode || `Status: ${petroRes?.statusCode}. ${petroRes?.developerMessage || 'Sin mensaje'}`
+                                };
+                            }
+                        } else {
+                            petroModalData = {
+                                type: 'error',
+                                title: 'Error de Envío',
+                                message: 'El pedido se creó localmente, pero no se pudo enviar a Petroecuador porque faltan datos de despacho.'
+                            };
+                        }
+                    } catch (petroErr: any) {
+                        petroModalData = {
+                            type: 'error',
+                            title: 'Error Petroecuador',
+                            message: `Fallo de red o servicio externo: ${petroErr.message}`
+                        };
+                    }
+                }
             }
-        } catch (error) {
+
+            if (generatedNumbers.length > 0) {
+                const numbersStr = generatedNumbers.join(', ');
+                setNpNumber(numbersStr);
+
+                // Clear inputs
+                setCantidadExtra(0);
+                setCantidadSuper(0);
+                setCantidadDiesel(0);
+
+                if (petroModalData) {
+                    setPetroModal({
+                        visible: true,
+                        type: petroModalData.type,
+                        title: petroModalData.title,
+                        message: `prepedido creado exitosamente y el numero de prepedido: ${numbersStr}.\n${petroModalData.message}`
+                    });
+                } else {
+                    setShowSuccessModal(true);
+                }
+            }
+        } catch (error: any) {
             console.error("Error al enviar la solicitud:", error);
-            Alert.alert("Error", "No se pudo conectar con el servidor:. " + error);
+            const errBody = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+            Alert.alert("Error del Backend (400/500)", errBody);
         }
     };
 
@@ -1040,60 +1088,78 @@ export default function PrePedidoScreen() {
                                     <Icon name="bus-outline" size={20} color="#9CA3AF" />
                                 </View>
 
-                                {/* Product Selection */}
-                                <Text style={styles.sectionTitle}>SELECCIONE UN PRODUCTO</Text>
-                                <View style={styles.productsContainer}>
-                                    {products && products.length > 0 ? (
-                                        products.map((product, index) => {
-                                            const isSelected = codProducto === product.producto.codigo;
-                                            return (
-                                                <TouchableOpacity
-                                                    key={index}
-                                                    style={[styles.productChip, isSelected && styles.productChipActive]}
-                                                    onPress={() => handleSelectProduct(product.producto)}
-                                                >
-                                                    <Text style={[styles.productChipText, isSelected && styles.productChipTextActive]}>
-                                                        {product.producto.nombre}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            );
-                                        })
-                                    ) : (
-                                        <Text style={styles.placeholderText}>Cargando productos...</Text>
-                                    )}
+                                {/* Ingresar Cantidad de Producto (3 inputs) */}
+                                <Text style={styles.sectionTitle}>INGRESAR CANTIDAD DE PRODUCTO</Text>
+
+                                <View style={styles.productInputCard}>
+                                    <Text style={styles.productInputLabel}>{extraLabel}</Text>
+                                    <View style={styles.productTextInputWrapper}>
+                                        <TextInput
+                                            style={styles.productTextInput}
+                                            keyboardType="numeric"
+                                            value={cantidadExtra.toString()}
+                                            onChangeText={(text) => {
+                                                const cleaned = text.replace(/[^0-9]/g, "");
+                                                setCantidadExtra(cleaned === '' ? 0 : Number(cleaned));
+                                            }}
+                                            selectTextOnFocus={true}
+                                        />
+                                    </View>
                                 </View>
 
-                                {/* Volume Input */}
-                                <Text style={styles.sectionTitle}>
-                                    {isAdmin ? 'VOLUMEN REQUERIDO (GALONES A 60 °F)' : 'VOLUMEN REQUERIDO (GALONES AL NATURAL)'}
-                                </Text>
-
-                                <View style={styles.volumeInputWrapper}>
-                                    <View style={styles.volumeIconContainer}>
-                                        <Icon name="remove-outline" size={24} color="#374151" />
+                                <View style={styles.productInputCard}>
+                                    <Text style={styles.productInputLabel}>{superLabel}</Text>
+                                    <View style={styles.productTextInputWrapper}>
+                                        <TextInput
+                                            style={styles.productTextInput}
+                                            keyboardType="numeric"
+                                            value={cantidadSuper.toString()}
+                                            onChangeText={(text) => {
+                                                const cleaned = text.replace(/[^0-9]/g, "");
+                                                setCantidadSuper(cleaned === '' ? 0 : Number(cleaned));
+                                            }}
+                                            selectTextOnFocus={true}
+                                        />
                                     </View>
-                                    <Input
-                                        style={styles.volumeInput}
-                                        textStyle={styles.volumeInputText}
-                                        placeholder="0"
-                                        placeholderTextColor="#9CA3AF"
-                                        keyboardType="numeric"
-                                        value={cantidad === 0 ? '' : cantidad.toString()}
-                                        onChangeText={(text) => setCantidad(Number(text.replace(/[^0-9]/g, "")))}
-                                        status='basic'
-                                    />
+                                </View>
+
+                                <View style={styles.productInputCard}>
+                                    <Text style={styles.productInputLabel}>{dieselLabel}</Text>
+                                    <View style={styles.productTextInputWrapper}>
+                                        <TextInput
+                                            style={styles.productTextInput}
+                                            keyboardType="numeric"
+                                            value={cantidadDiesel.toString()}
+                                            onChangeText={(text) => {
+                                                const cleaned = text.replace(/[^0-9]/g, "");
+                                                setCantidadDiesel(cleaned === '' ? 0 : Number(cleaned));
+                                            }}
+                                            selectTextOnFocus={true}
+                                        />
+                                    </View>
                                 </View>
 
                                 {/* Summary Section */}
                                 <View style={styles.summaryContainer}>
                                     <Text style={styles.summaryLabel}>RESUMEN DE PEDIDO</Text>
                                     <Text style={styles.summaryVolume}>
-                                        {volumen60F} <Text style={styles.summaryUnit}>Galones a 60°F</Text>
+                                        {totalVolumen60F} <Text style={styles.summaryUnit}>Galones a 60°F</Text>
                                     </Text>
-
-                                    <Text style={styles.summaryProduct}>
-                                        {products?.find(p => p.producto.codigo === codProducto)?.producto.nombre || 'Seleccione producto'}
-                                    </Text>
+                                    {cantidadExtra > 0 && (
+                                        <Text style={styles.summaryProduct}>
+                                            {extraLabel}: {volumen60FExtra} Gal.
+                                        </Text>
+                                    )}
+                                    {cantidadSuper > 0 && (
+                                        <Text style={styles.summaryProduct}>
+                                            {superLabel}: {volumen60FSuper} Gal.
+                                        </Text>
+                                    )}
+                                    {cantidadDiesel > 0 && (
+                                        <Text style={styles.summaryProduct}>
+                                            {dieselLabel}: {volumen60FDiesel} Gal.
+                                        </Text>
+                                    )}
                                 </View>
 
                                 {/* Action Buttons */}
@@ -1125,7 +1191,7 @@ export default function PrePedidoScreen() {
                             <Icon name="checkmark" size={40} color="#FFFFFF" />
                         </View>
                         <Text style={styles.modalTitle}>Pedido registrado</Text>
-                        <Text style={styles.modalMessage}>El pedido generado: {npNumber}</Text>
+                        <Text style={styles.modalMessage}>prepedido creado exitosamente y el numero de prepedido: {npNumber}</Text>
                         <TouchableOpacity
                             style={styles.modalButton}
                             onPress={() => setShowSuccessModal(false)}
@@ -1592,6 +1658,44 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#374151',
         fontWeight: '500',
+    },
+    productInputCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        marginBottom: 12,
+        height: 80,
+    },
+    productInputLabel: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#374151',
+        flex: 1,
+        marginRight: 10,
+        textTransform: 'uppercase',
+    },
+    productTextInputWrapper: {
+        width: 100,
+        height: 48,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    productTextInput: {
+        width: '100%',
+        height: '100%',
+        textAlign: 'center',
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#1565C0',
+        padding: 0,
     },
     // Estilos para el Modal de Éxito Custom
     modalOverlay: {

@@ -9,6 +9,7 @@ import {
     Image,
     ScrollView,
     Text,
+    TextInput,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { format, parseISO, isToday, isYesterday, addDays, isSameDay } from 'date-fns';
@@ -104,6 +105,7 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
     nombreProducto?: string;
     volumenAutorizado?: string | number;
     medida?: string;
+    numeroPedido?: string;
 } => {
     const raw = (item || {}) as any;
 
@@ -149,6 +151,7 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
         nombreProducto: String(raw.NombreProducto ?? raw.nombreproducto ?? raw.nombreProducto ?? ''),
         volumenAutorizado: raw.volumenautorizado ?? raw.volumenAutorizado ?? raw.volumennaturalautorizado ?? '',
         medida: String(raw.medida ?? ''),
+        numeroPedido: String(raw.numeroPrePedido ?? raw.numeroprepedido ?? raw.numeroNotaPedido ?? raw.numeronotapedido ?? raw.numero ?? raw.prepedidoPK?.numero ?? raw.notapedidoPK?.numero ?? ''),
     };
 };
 
@@ -217,9 +220,11 @@ export const ListaPrePedidoScreen = () => {
         nombreCliente?: string; codigoCliente?: string;
         nombreTerminal?: string; codigoTerminal?: string;
         nombreProducto?: string; volumenAutorizado?: string | number; medida?: string;
+        numeroPedido?: string;
     })[]>([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [volumenesInput, setVolumenesInput] = useState<Record<string, string>>({});
     const [resolvedClientName, setResolvedClientName] = useState<string>('');
     const itemsPerPage = 10;
 
@@ -267,7 +272,7 @@ export const ListaPrePedidoScreen = () => {
             const response = await getListasNotasPedido.getResource<
                 ApiResponse<ListaNotaPedidoInterace>
             >(
-                'ec.com.infinity.modelo.notapedido/buscarpedidosfacturadosdespachados',
+                'ec.com.infinity.modelo.prepedido/buscarprepedidosfacturadosdespachados',
                 '',
                 params
             );
@@ -419,88 +424,94 @@ export const ListaPrePedidoScreen = () => {
                     {loading ? (
                         <Text style={styles.loadingText}>Cargando pedidos...</Text>
                     ) : (
-                        currentItems.map((np, index) => (
-                            <View key={`${np.numeroNotaPedido}-${index}`} style={styles.card}>
+                        currentItems.map((np: any, index: number) => (
+                            <View key={`${np.numeroPedido || index}-${np.codigoproducto || index}`} style={styles.card}>
 
-                                {/* Número de pedido */}
-                                <View style={styles.cardOrderRow}>
-                                    <Text style={styles.cardOrderLabel}>Pedido Nro:</Text>
-                                    <Text style={styles.cardOrderNumber}>{np.numeroNotaPedido || ''}</Text>
+                                {/* Header: Número y Estado */}
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={styles.cardOrderLabel}>
+                                            {user?.codigocomercializadora === '0002' ? 'Nro Solicitud:' : 'Nro Prepedido:'}
+                                        </Text>
+                                        <Text style={styles.cardOrderNumber}>{np.numeroPedido || ''}</Text>
+                                    </View>
+                                    <View style={{ alignItems: 'flex-end' }}>
+                                        <Text style={[styles.cardLabel, { marginBottom: 2 }]}>AUTORIZADO</Text>
+                                        {renderStatusPill(np.numeroFactura, !!(np.numeroFactura && np.numeroFactura.trim() && np.numeroFactura.toUpperCase() !== 'NO'))}
+                                    </View>
                                 </View>
 
-                                {/* Sección cliente y estación (solo si tiene datos) */}
                                 <View style={styles.divider} />
-                                <View style={styles.infoRow}>
-                                    <View style={styles.infoItem}>
-                                        <View style={styles.infoIconRow}>
-                                            <Icon name="person-outline" size={18} color="#000000" />
-                                            <Text style={styles.infoLabel}>CLIENTE</Text>
-                                        </View>
-                                        <Text style={styles.infoValue} numberOfLines={2}>
+
+                                {/* Producto */}
+                                <View style={{ marginBottom: 6 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Icon name="cube-outline" size={16} color="#1565C0" />
+                                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1565C0' }}>
+                                            {np.nombreProducto} - {Math.round(Number(np.volumenAutorizado || 0))} Galones
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {/* Cliente */}
+                                <View style={{ marginBottom: 10 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Icon name="person-outline" size={16} color="#6B7280" />
+                                        <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', flexShrink: 1 }} numberOfLines={1}>
                                             {np.nombreCliente || np.codigoCliente || ''}
                                         </Text>
                                     </View>
                                 </View>
 
-
-
                                 {/* Fechas */}
-                                <View style={styles.cardTopRow}>
-                                    <View>
-                                        <Text style={styles.cardLabelGenerada}>GENERADA</Text>
-                                        <View style={styles.despacharRow}>
-                                            <Icon name="calendar-outline" size={18} color="#1565C0" />
-                                            <Text style={styles.despacharText}>{formatGeneradaDate(np.fechaVenta)}</Text>
-                                        </View>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#F9FAFB', padding: 8, borderRadius: 8 }}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <Icon name="calendar-outline" size={14} color="#6B7280" />
+                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280' }}>GENERADA:</Text>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#111827' }}>{formatGeneradaDate(np.fechaVenta)}</Text>
                                     </View>
-                                    <View style={styles.cardDespachar}>
-                                        <Text style={styles.cardLabelGenerada}>PARA DESPACHAR</Text>
-                                        <View style={styles.despacharRow}>
-                                            <Icon name="calendar-outline" size={18} color="#1565C0" />
-                                            <Text style={styles.despacharText}>{formatDespacharDate(np.fechaDespacho)}</Text>
-                                        </View>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                        <Icon name="calendar-outline" size={14} color="#6B7280" />
+                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280' }}>DESPACHO:</Text>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#111827' }}>{formatDespacharDate(np.fechaDespacho)}</Text>
                                     </View>
                                 </View>
 
-                                <View style={styles.productInfoRow}>
-                                    <View style={styles.infoIconRow}>
-                                        <Icon name="cube-outline" size={18} color="#000000" />
-                                        <Text style={styles.infoLabel}>PRODUCTO</Text>
+                                {/* Input y Botón Autorizar */}
+                                <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 12, gap: 10 }}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 4 }}>
+                                            Volumen autorizado:
+                                        </Text>
+                                        <TextInput
+                                            style={styles.inputVolumen}
+                                            keyboardType="numeric"
+                                            placeholder="Ej. 1000"
+                                            value={volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`] || ''}
+                                            onChangeText={(text) => setVolumenesInput(prev => ({ ...prev, [`${np.numeroPedido}-${np.codigoproducto}`]: text }))}
+                                        />
                                     </View>
-                                    <Text style={styles.productDetailText}>
-                                        {np.nombreProducto} - {Math.round(Number(np.volumenAutorizado || 0))} {np.medida}
-                                    </Text>
-                                </View>
-
-
-
-
-                                {/* Estado: Facturada / Despachada */}
-                                <View style={styles.cardStatusRow}>
-                                    <View>
-                                        <Text style={styles.cardLabel}>FACTURADA</Text>
-                                        {renderStatusPill(np.numeroFactura, !!(np.numeroFactura && np.numeroFactura.trim()))}
-                                    </View>
-                                   {/* <View>
-                                        <Text style={[styles.cardLabel, styles.cardLabelRight]}>DESPACHADA</Text>
-                                        {renderStatusPill(np.numeroGuia, !!(np.numeroGuia && np.numeroGuia.trim()))}
-                                    </View>*/}
+                                    <TouchableOpacity
+                                        style={styles.btnAutorizar}
+                                        onPress={() => {
+                                            const vol = volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`];
+                                            if (!vol) {
+                                                Alert.alert("Atención", "Ingresa un volumen antes de autorizar.");
+                                                return;
+                                            }
+                                            Alert.alert("Autorizar", `Llamar API para autorizar pedido ${np.numeroPedido} con volumen: ${vol}`);
+                                        }}
+                                    >
+                                        <Icon name="checkmark-circle-outline" size={18} color="#FFF" />
+                                        <Text style={styles.btnAutorizarText}>Autorizar</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
                         ))
                     )}
                 </ScrollView>
 
-                {/* Botón generar pedido - arriba del footer */}
-                <View style={styles.aboveFooter}>
-                    <TouchableOpacity
-                        style={styles.fab}
-                        onPress={() => navigation.navigate('PrePedido')}
-                        activeOpacity={0.8}
-                    >
-                        <Icon name="add" size={32} color="#FFF" />
-                    </TouchableOpacity>
-                </View>
+                {/* Botón generar pedido eliminado */}
 
                 {/* Footer */}
             </View>
@@ -827,5 +838,30 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '600',
         color: '#6B7280',
+    },
+    inputVolumen: {
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        fontSize: 14,
+        color: '#111827',
+        backgroundColor: '#FFFFFF',
+    },
+    btnAutorizar: {
+        backgroundColor: '#059669',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        gap: 6,
+    },
+    btnAutorizarText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: 'bold',
     },
 });
