@@ -329,7 +329,7 @@ export const ListaPrePedidoScreen = () => {
                 });
             } else {
                 setListaNPs([]);
-                Alert.alert('Aviso', 'No se encontraron notas de pedido.');
+                Alert.alert('Aviso', 'No se encontraron pre-pedidos.');
             }
         } catch (error: any) {
             console.error('Error de red:', error);

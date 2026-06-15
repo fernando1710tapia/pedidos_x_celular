@@ -675,15 +675,15 @@ export default function PrePedidoScreen() {
                         codigocomercializadora: codComer,
                         numero: "",
                         codigoproducto: currentCodProducto,
-                        codigomedida: currentCodProducto === "9904" ? "03" : "01"
+                        codigomedida: "01"
                     },
                     volumennaturalrequerido: currentVolumen60F,
-                    volumennaturalautorizado: currentVolumen60F,
+                    volumennaturalautorizado: 0,
                     usuarioactual: user?.nombrever || "",
                     activo: true,
                     autorizado: "NO",
                     numeronp: "0",
-                    medida: { codigo: currentCodProducto === "9904" ? "03" : "01" },
+                    medida: { codigo: "01" },
                     producto: { codigo: currentCodProducto },
                     compartimento1: 0,
                     compartimento2: 0,
