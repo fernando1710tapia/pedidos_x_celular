@@ -75,13 +75,19 @@ export default function PrePedidoScreen() {
     // Factor de corrección
     const [factores, setFactores] = useState<FactorCorreccionInterface[]>([]);
 
-    const productExtra = { codigo: "9901", nombre: "EXTRA" };
-    const productSuper = { codigo: "9903", nombre: "SUPER" };
-    const productDiesel = { codigo: "9904", nombre: "DIESEL" };
+    const getProductByKeyword = (keyword: string) => {
+        if (!products) return null;
+        const matched = products.find(p => p.producto.nombre.toLowerCase().includes(keyword.toLowerCase()));
+        return matched ? matched.producto : null;
+    };
 
-    const extraLabel = productExtra.nombre;
-    const superLabel = productSuper.nombre;
-    const dieselLabel = productDiesel.nombre;
+    const productExtra = useMemo(() => getProductByKeyword('extra'), [products]);
+    const productSuper = useMemo(() => getProductByKeyword('super'), [products]);
+    const productDiesel = useMemo(() => getProductByKeyword('diesel'), [products]);
+
+    const extraLabel = useMemo(() => productExtra?.nombre || 'EXTRA', [productExtra]);
+    const superLabel = useMemo(() => productSuper?.nombre || 'SUPER', [productSuper]);
+    const dieselLabel = useMemo(() => productDiesel?.nombre || 'DIESEL', [productDiesel]);
 
     // Sin comercializadora asignada: no se hacen llamadas al API
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
@@ -573,13 +579,28 @@ export default function PrePedidoScreen() {
 
             const activeItems = [];
             if (cantidadExtra > 0) {
-                activeItems.push({ product: productExtra, qty: cantidadExtra });
+                const prod = productExtra;
+                if (!prod) {
+                    Alert.alert("Error", "El producto Gasolina Extra no está asignado a este cliente.");
+                    return;
+                }
+                activeItems.push({ product: prod, qty: cantidadExtra });
             }
             if (cantidadSuper > 0) {
-                activeItems.push({ product: productSuper, qty: cantidadSuper });
+                const prod = productSuper;
+                if (!prod) {
+                    Alert.alert("Error", "El producto Super Premium no está asignado a este cliente.");
+                    return;
+                }
+                activeItems.push({ product: prod, qty: cantidadSuper });
             }
             if (cantidadDiesel > 0) {
-                activeItems.push({ product: productDiesel, qty: cantidadDiesel });
+                const prod = productDiesel;
+                if (!prod) {
+                    Alert.alert("Error", "El producto Diesel Premium no está asignado a este cliente.");
+                    return;
+                }
+                activeItems.push({ product: prod, qty: cantidadDiesel });
             }
 
             if (activeItems.length === 0) {
@@ -1142,9 +1163,10 @@ export default function PrePedidoScreen() {
                                 {/* Summary Section */}
                                 <View style={styles.summaryContainer}>
                                     <Text style={styles.summaryLabel}>RESUMEN DE PEDIDO</Text>
-                                    <Text style={styles.summaryVolume}>
-                                        {totalVolumen60F} <Text style={styles.summaryUnit}>Galones a 60°F</Text>
-                                    </Text>
+                                    {/* Total sum deshabilitado - no visible pero mantenido */}
+                                    {/* <Text style={styles.summaryVolume}>
+                                        {totalVolumen60F} <Text style={styles.summaryUnit}>Galones</Text>
+                                    </Text> */}
                                     {cantidadExtra > 0 && (
                                         <Text style={styles.summaryProduct}>
                                             {extraLabel}: {volumen60FExtra} Gal.
@@ -1681,8 +1703,8 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     productTextInputWrapper: {
-        width: 100,
-        height: 48,
+        width: 130,
+        height: 56,
         backgroundColor: '#F3F4F6',
         borderRadius: 14,
         justifyContent: 'center',
@@ -1692,7 +1714,7 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         textAlign: 'center',
-        fontSize: 20,
+        fontSize: 26,
         fontWeight: 'bold',
         color: '#1565C0',
         padding: 0,

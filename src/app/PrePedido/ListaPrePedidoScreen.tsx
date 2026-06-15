@@ -226,6 +226,8 @@ export const ListaPrePedidoScreen = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [volumenesInput, setVolumenesInput] = useState<Record<string, string>>({});
     const [resolvedClientName, setResolvedClientName] = useState<string>('');
+    const [searchText, setSearchText] = useState<string>('');
+    const [showSearch, setShowSearch] = useState<boolean>(false);
     const itemsPerPage = 10;
 
     const fetchClientNameOnce = async (codigo: string) => {
@@ -346,10 +348,22 @@ export const ListaPrePedidoScreen = () => {
         }
     }, [user, isAdmin, paramCodigoCliente, resolvedClientName]);
 
+    const filteredNPs = searchText.trim()
+        ? listaNPs.filter(np => {
+            const q = searchText.trim().toLowerCase();
+            return (
+                (np.numeroPedido || '').toLowerCase().includes(q) ||
+                (np.nombreProducto || '').toLowerCase().includes(q) ||
+                (np.nombreCliente || '').toLowerCase().includes(q) ||
+                (np.codigoCliente || '').toLowerCase().includes(q)
+            );
+        })
+        : listaNPs;
+
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const currentItems = listaNPs.slice(startIndex, endIndex);
-    const totalPages = Math.max(1, Math.ceil(listaNPs.length / itemsPerPage));
+    const currentItems = filteredNPs.slice(startIndex, endIndex);
+    const totalPages = Math.max(1, Math.ceil(filteredNPs.length / itemsPerPage));
 
     const handleNextPage = () => {
         if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
@@ -414,6 +428,61 @@ export const ListaPrePedidoScreen = () => {
                     </TouchableOpacity>
                 </View>
 
+                {/* Buscador estilo selector de cliente */}
+                <TouchableOpacity
+                    style={styles.searchSelectorButton}
+                    onPress={() => {
+                        if (showSearch) {
+                            setShowSearch(false);
+                            setSearchText('');
+                            setCurrentPage(1);
+                        } else {
+                            setShowSearch(true);
+                        }
+                    }}
+                >
+                    <View style={styles.searchSelectorContent}>
+                        <View style={[styles.searchSelectorIconCircle]}>
+                            <Icon name="search" size={20} color="#3B82F6" />
+                        </View>
+                        <View style={styles.searchSelectorText}>
+                            <Text style={styles.searchSelectorLabel}>BUSCAR</Text>
+                            <Text style={styles.searchSelectorValue}>
+                                {searchText.trim() ? searchText : 'Buscar por N°, producto o cliente...'}
+                            </Text>
+                        </View>
+                        <Icon
+                            name={showSearch ? 'chevron-up' : 'chevron-down'}
+                            size={24}
+                            color="#9CA3AF"
+                        />
+                    </View>
+                </TouchableOpacity>
+
+                {showSearch && (
+                    <View style={styles.searchDropdown}>
+                        <View style={styles.searchDropdownWrapper}>
+                            <Icon name="search" size={20} color="#9CA3AF" style={styles.searchDropdownIcon} />
+                            <TextInput
+                                style={styles.searchDropdownInput}
+                                placeholder="Buscar por N°, producto o cliente..."
+                                placeholderTextColor="#9CA3AF"
+                                value={searchText}
+                                onChangeText={(text) => {
+                                    setSearchText(text);
+                                    setCurrentPage(1);
+                                }}
+                                autoFocus
+                            />
+                            {searchText.length > 0 && (
+                                <TouchableOpacity onPress={() => { setSearchText(''); setCurrentPage(1); }}>
+                                    <Icon name="close-circle" size={20} color="#9CA3AF" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+                )}
+
                 {/* Lista de pedidos - Cards con scroll */}
                 <ScrollView
                     style={styles.scroll}
@@ -443,22 +512,20 @@ export const ListaPrePedidoScreen = () => {
 
                                 <View style={styles.divider} />
 
-                                {/* Producto */}
-                                <View style={{ marginBottom: 6 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <Icon name="cube-outline" size={16} color="#1565C0" />
-                                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1565C0' }}>
-                                            {np.nombreProducto} - {Math.round(Number(np.volumenAutorizado || 0))} Galones
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                {/* Cliente */}
-                                <View style={{ marginBottom: 10 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                        <Icon name="person-outline" size={16} color="#6B7280" />
+                                {/* Producto + Cliente en misma fila */}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8 }}>
+                                    {/* Cliente - izquierda */}
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
+                                        <Icon name="person-outline" size={15} color="#6B7280" />
                                         <Text style={{ fontSize: 13, fontWeight: '600', color: '#374151', flexShrink: 1 }} numberOfLines={1}>
                                             {np.nombreCliente || np.codigoCliente || ''}
+                                        </Text>
+                                    </View>
+                                    {/* Producto + Galones - derecha */}
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 0 }}>
+                                        <Icon name="cube-outline" size={15} color="#1565C0" />
+                                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1565C0', textAlign: 'right' }}>
+                                            {np.nombreProducto} - {Math.round(Number(np.volumenAutorizado || 0))} Galones
                                         </Text>
                                     </View>
                                 </View>
@@ -477,34 +544,42 @@ export const ListaPrePedidoScreen = () => {
                                     </View>
                                 </View>
 
-                                {/* Input y Botón Autorizar */}
-                                <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 12, gap: 10 }}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280', marginBottom: 4 }}>
-                                            Volumen autorizado:
-                                        </Text>
+                                {/* Volumen + Botón Autorizar */}
+                                <View style={styles.volumenRow}>
+                                    <View style={styles.volumenPillContainer}>
+                                        <Text style={styles.volumenLabel}>VOLUMEN AUTORIZADO</Text>
+                                        <View style={styles.volumenPill}>
+                                            <Icon name="water-outline" size={14} color="#1565C0" />
+                                            <Text style={styles.volumenValue}>
+                                                {Math.round(Number(np.volumenAutorizado || 0)).toLocaleString()}
+                                            </Text>
+                                            <Text style={styles.volumenUnit}>Gal.</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.inputAutorizarContainer}>
                                         <TextInput
                                             style={styles.inputVolumen}
                                             keyboardType="numeric"
-                                            placeholder="Ej. 1000"
+                                            placeholder="Ingresar vol."
+                                            placeholderTextColor="#9CA3AF"
                                             value={volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`] || ''}
                                             onChangeText={(text) => setVolumenesInput(prev => ({ ...prev, [`${np.numeroPedido}-${np.codigoproducto}`]: text }))}
                                         />
+                                        <TouchableOpacity
+                                            style={styles.btnAutorizar}
+                                            onPress={() => {
+                                                const vol = volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`];
+                                                if (!vol) {
+                                                    Alert.alert("Atención", "Ingresa un volumen antes de autorizar.");
+                                                    return;
+                                                }
+                                                Alert.alert("Autorizar", `Llamar API para autorizar pedido ${np.numeroPedido} con volumen: ${vol}`);
+                                            }}
+                                        >
+                                            <Icon name="checkmark-circle-outline" size={18} color="#FFF" />
+                                            <Text style={styles.btnAutorizarText}>Autorizar</Text>
+                                        </TouchableOpacity>
                                     </View>
-                                    <TouchableOpacity
-                                        style={styles.btnAutorizar}
-                                        onPress={() => {
-                                            const vol = volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`];
-                                            if (!vol) {
-                                                Alert.alert("Atención", "Ingresa un volumen antes de autorizar.");
-                                                return;
-                                            }
-                                            Alert.alert("Autorizar", `Llamar API para autorizar pedido ${np.numeroPedido} con volumen: ${vol}`);
-                                        }}
-                                    >
-                                        <Icon name="checkmark-circle-outline" size={18} color="#FFF" />
-                                        <Text style={styles.btnAutorizarText}>Autorizar</Text>
-                                    </TouchableOpacity>
                                 </View>
                             </View>
                         ))
@@ -839,6 +914,150 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#6B7280',
     },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 20,
+        marginBottom: 12,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    searchIcon: {
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        color: '#111827',
+        padding: 0,
+    },
+    searchSelectorButton: {
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        marginHorizontal: 20,
+        marginBottom: 8,
+        zIndex: 10,
+    },
+    searchSelectorContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+    },
+    searchSelectorIconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#E0E7FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    searchSelectorText: {
+        flex: 1,
+        marginLeft: 15,
+    },
+    searchSelectorLabel: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#9CA3AF',
+        letterSpacing: 0.5,
+        marginBottom: 2,
+    },
+    searchSelectorValue: {
+        fontSize: 14,
+        color: '#374151',
+        fontWeight: '500',
+    },
+    searchDropdown: {
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        marginHorizontal: 20,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    searchDropdownWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+    },
+    searchDropdownIcon: {
+        marginRight: 8,
+    },
+    searchDropdownInput: {
+        flex: 1,
+        fontSize: 14,
+        color: '#111827',
+        padding: 0,
+        minHeight: 36,
+    },
+    volumenRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 12,
+        gap: 10,
+    },
+    volumenPillContainer: {
+        alignItems: 'flex-start',
+    },
+    volumenLabel: {
+        fontSize: 9,
+        fontWeight: '700',
+        color: '#9CA3AF',
+        letterSpacing: 0.5,
+        marginBottom: 4,
+        textTransform: 'uppercase',
+    },
+    volumenPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#EFF6FF',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#BFDBFE',
+        gap: 4,
+    },
+    volumenValue: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1565C0',
+    },
+    volumenUnit: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#3B82F6',
+    },
+    inputAutorizarContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
     inputVolumen: {
         borderWidth: 1,
         borderColor: '#D1D5DB',
@@ -848,16 +1067,18 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#111827',
         backgroundColor: '#FFFFFF',
+        width: 100,
+        textAlign: 'right',
     },
     btnAutorizar: {
         backgroundColor: '#059669',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         paddingVertical: 10,
         borderRadius: 8,
-        gap: 6,
+        gap: 5,
     },
     btnAutorizarText: {
         color: '#FFFFFF',
