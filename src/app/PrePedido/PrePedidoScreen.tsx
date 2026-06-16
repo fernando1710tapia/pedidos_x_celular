@@ -75,19 +75,13 @@ export default function PrePedidoScreen() {
     // Factor de corrección
     const [factores, setFactores] = useState<FactorCorreccionInterface[]>([]);
 
-    const getProductByKeyword = (keyword: string) => {
-        if (!products) return null;
-        const matched = products.find(p => p.producto.nombre.toLowerCase().includes(keyword.toLowerCase()));
-        return matched ? matched.producto : null;
-    };
+    const productExtra = { codigo: "9901", nombre: "EXTRA" };
+    const productSuper = { codigo: "9903", nombre: "SUPER" };
+    const productDiesel = { codigo: "9904", nombre: "DIESEL" };
 
-    const productExtra = useMemo(() => getProductByKeyword('extra'), [products]);
-    const productSuper = useMemo(() => getProductByKeyword('super'), [products]);
-    const productDiesel = useMemo(() => getProductByKeyword('diesel'), [products]);
-
-    const extraLabel = useMemo(() => productExtra?.nombre || 'EXTRA', [productExtra]);
-    const superLabel = useMemo(() => productSuper?.nombre || 'SUPER', [productSuper]);
-    const dieselLabel = useMemo(() => productDiesel?.nombre || 'DIESEL', [productDiesel]);
+    const extraLabel = productExtra.nombre;
+    const superLabel = productSuper.nombre;
+    const dieselLabel = productDiesel.nombre;
 
     // Sin comercializadora asignada: no se hacen llamadas al API
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
@@ -579,28 +573,13 @@ export default function PrePedidoScreen() {
 
             const activeItems = [];
             if (cantidadExtra > 0) {
-                const prod = productExtra;
-                if (!prod) {
-                    Alert.alert("Error", "El producto Gasolina Extra no está asignado a este cliente.");
-                    return;
-                }
-                activeItems.push({ product: prod, qty: cantidadExtra });
+                activeItems.push({ product: productExtra, qty: cantidadExtra });
             }
             if (cantidadSuper > 0) {
-                const prod = productSuper;
-                if (!prod) {
-                    Alert.alert("Error", "El producto Super Premium no está asignado a este cliente.");
-                    return;
-                }
-                activeItems.push({ product: prod, qty: cantidadSuper });
+                activeItems.push({ product: productSuper, qty: cantidadSuper });
             }
             if (cantidadDiesel > 0) {
-                const prod = productDiesel;
-                if (!prod) {
-                    Alert.alert("Error", "El producto Diesel Premium no está asignado a este cliente.");
-                    return;
-                }
-                activeItems.push({ product: prod, qty: cantidadDiesel });
+                activeItems.push({ product: productDiesel, qty: cantidadDiesel });
             }
 
             if (activeItems.length === 0) {
@@ -835,24 +814,13 @@ export default function PrePedidoScreen() {
                     rightElement={
                         <TouchableOpacity
                             onPress={() => {
-                                if (isAdmin && selectedCliente) {
-                                    navigation.navigate('ListaPrePedido', {
-                                        codigocliente: selectedCliente.codigo,
-                                        nombreCliente: selectedCliente.nombrecomercial || selectedCliente.nombre
-                                    });
-                                } else {
-                                    navigation.navigate('ListaPrePedido', {});
-                                }
+                                navigation.navigate('ListaPrePedido', {});
                             }}
                         >
                             <Icon name="eye-outline" size={28} color="#9CA3AF" />
                         </TouchableOpacity>
                     }
                 />
-
-
-
-
 
                 {/* Content Scrollable Area */}
                 <ScrollView>

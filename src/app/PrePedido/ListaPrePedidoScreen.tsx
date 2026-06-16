@@ -265,11 +265,21 @@ export const ListaPrePedidoScreen = () => {
 
         try {
             setLoading(true);
+
+            const isFetchingAllForAdmin = isAdmin && !paramCodigoCliente;
+
             const params: Record<string, any> = {
                 pcodigocomercializadora: user?.codigocomercializadora,
-                pcodigocliente: codClienteToUse,
                 pfechaventa: fechaActual,
             };
+
+            if (isFetchingAllForAdmin) {
+                params.psupervisorzonal = user?.codigo;
+                // También enviamos vacío pcodigocliente por si el back lo requiere para anular el filtro
+                params.pcodigocliente = '';
+            } else {
+                params.pcodigocliente = codClienteToUse;
+            }
 
             const response = await getListasNotasPedido.getResource<
                 ApiResponse<ListaNotaPedidoInterace>
