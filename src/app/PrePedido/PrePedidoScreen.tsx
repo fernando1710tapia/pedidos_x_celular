@@ -1133,21 +1133,21 @@ export default function PrePedidoScreen() {
                                     <Text style={styles.summaryLabel}>RESUMEN DE PEDIDO</Text>
                                     {/* Total sum deshabilitado - no visible pero mantenido */}
                                     {/* <Text style={styles.summaryVolume}>
-                                        {totalVolumen60F} <Text style={styles.summaryUnit}>Galones</Text>
+                                        {totalVolumen60F} <Text style={styles.summaryUnit}>Galones al natural</Text>
                                     </Text> */}
                                     {cantidadExtra > 0 && (
                                         <Text style={styles.summaryProduct}>
-                                            {extraLabel}: {volumen60FExtra} Gal.
+                                            {extraLabel}: {volumen60FExtra} Galones al natural
                                         </Text>
                                     )}
                                     {cantidadSuper > 0 && (
                                         <Text style={styles.summaryProduct}>
-                                            {superLabel}: {volumen60FSuper} Gal.
+                                            {superLabel}: {volumen60FSuper} Galones al natural
                                         </Text>
                                     )}
                                     {cantidadDiesel > 0 && (
                                         <Text style={styles.summaryProduct}>
-                                            {dieselLabel}: {volumen60FDiesel} Gal.
+                                            {dieselLabel}: {volumen60FDiesel} Galones al natural
                                         </Text>
                                     )}
                                 </View>

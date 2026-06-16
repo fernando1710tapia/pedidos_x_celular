@@ -1,6 +1,6 @@
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     Alert,
     StyleSheet,
@@ -15,11 +15,12 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { format, parseISO, isToday, isYesterday, addDays, isSameDay } from 'date-fns';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
-import { getListasNotasPedido, terminalService, obtenerTerminalCliente } from '../../services';
+import { getListasNotasPedido, terminalService, obtenerTerminalCliente, detallePrePedidoService } from '../../services';
 import {
     ApiResponse,
     ListaNotaPedidoInterace,
     RootStackParamList,
+    TerminalClienteInterface,
 } from '../../types';
 import BrandLogo from '../../components/BrandLogo';
 
@@ -148,8 +149,11 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
         nombreTerminal: extractName(raw.nombreTerminal ?? raw.nombreterminal ?? raw.terminal ?? raw.estacion),
         codigoTerminal: String(raw.codigoTerminal ?? raw.codigoterminal ?? (raw.terminal?.codigo ?? '')),
         usuarioactual: String(raw.usuarioactual ?? raw.usuarioActual ?? ''),
+        codigoproducto: String(raw.codigoproducto ?? raw.codigoProducto ?? ''),
+        codigoComercializadora: String(raw.codigoComercializadora ?? raw.codigocomercializadora ?? ''),
         nombreProducto: String(raw.NombreProducto ?? raw.nombreproducto ?? raw.nombreProducto ?? ''),
         volumenAutorizado: raw.volumenautorizado ?? raw.volumenAutorizado ?? raw.volumennaturalautorizado ?? '',
+        volumenRequerido: raw.volumennaturalrequerido ?? raw.volumensolicitado ?? raw.volumenrequerido ?? raw.numeroGuia ?? raw.volumenautorizado ?? '',
         medida: String(raw.medida ?? ''),
         numeroPedido: String(raw.numeroPrePedido ?? raw.numeroprepedido ?? raw.numeroNotaPedido ?? raw.numeronotapedido ?? raw.numero ?? raw.prepedidoPK?.numero ?? raw.notapedidoPK?.numero ?? ''),
     };
@@ -230,6 +234,48 @@ export const ListaPrePedidoScreen = () => {
     const [showSearch, setShowSearch] = useState<boolean>(false);
     const itemsPerPage = 10;
 
+    // Novedad: Buscador de clientes
+    const [allClientes, setAllClientes] = useState<TerminalClienteInterface[]>([]);
+    const [clienteSearchText, setClienteSearchText] = useState('');
+    const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+    const [selectedCliente, setSelectedCliente] = useState<TerminalClienteInterface | null>(null);
+    const [loadingClientes, setLoadingClientes] = useState(false);
+
+    useEffect(() => {
+        if (isAdmin && !paramCodigoCliente && user?.codigocomercializadora) {
+            const fetchClientes = async () => {
+                try {
+                    setLoadingClientes(true);
+                    const response = await obtenerTerminalCliente.getResource<ApiResponse<TerminalClienteInterface>>(
+                        'porComercializadora',
+                        '',
+                        {
+                            codigocomercializadora: user.codigocomercializadora
+                        }
+                    );
+                    if (response.retorno && Array.isArray(response.retorno) && response.retorno.length > 0) {
+                        setAllClientes(response.retorno);
+                    }
+                } catch (e) {
+                    console.error('Error fetching clients:', e);
+                } finally {
+                    setLoadingClientes(false);
+                }
+            };
+            fetchClientes();
+        }
+    }, [isAdmin, paramCodigoCliente, user]);
+
+    const filteredClientes = useMemo(() => {
+        const q = (clienteSearchText ?? '').trim().toLowerCase();
+        if (!q) return allClientes;
+        return allClientes.filter((c) => {
+            const cod = (c.codigo ?? (c as any).clientePK?.codigo ?? '').toLowerCase();
+            const nom = (c.nombrecomercial ?? c.nombre ?? '').toLowerCase();
+            return cod.includes(q) || nom.includes(q);
+        });
+    }, [allClientes, clienteSearchText]);
+
     const fetchClientNameOnce = async (codigo: string) => {
         if (!codigo || resolvedClientName) return;
         try {
@@ -250,9 +296,78 @@ export const ListaPrePedidoScreen = () => {
         }
     };
 
+    const handleAutorizarPedido = async (np: any) => {
+        const volInput = volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`];
+        if (!volInput || Number(volInput) <= 0) {
+            Alert.alert("Atención", "Ingresa un volumen válido mayor a cero antes de autorizar.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const payload = {
+                detalleprepedidoPK: {
+                    codigoabastecedora: "0001",
+                    codigocomercializadora: np.codigoComercializadora || user?.codigocomercializadora || "0002",
+                    numero: np.numeroPedido,
+                    codigoproducto: np.codigoproducto,
+                    codigomedida: "01"
+                },
+                volumennaturalrequerido: Number(np.volumenRequerido || 0),
+                volumennaturalautorizado: Number(volInput),
+                usuarioactual: user?.nombrever || user?.codigo || "ADMIN",
+                activo: true,
+                autorizado: "SI",
+                numeronp: "0",
+                selloinicial: 0,
+                sellofinal: 0,
+                compartimento1: 0,
+                compartimento2: 0,
+                compartimento3: 0,
+                compartimento4: 0,
+                compartimento5: 0,
+                compartimento6: 0,
+                compartimento7: 0,
+                compartimento8: 0,
+                compartimento9: 0,
+                compartimento10: 0,
+                medida: {
+                    codigo: "01"
+                },
+                producto: {
+                    codigo: np.codigoproducto,
+                    codigoareamercadeo: {
+                        codigo: "01"
+                    }
+                }
+            };
+
+            console.log("PAYLOAD AUTORIZACION:", JSON.stringify(payload, null, 2));
+
+            await detallePrePedidoService.autorizar(payload);
+            Alert.alert("Éxito", "El pre-pedido ha sido autorizado correctamente.");
+            setVolumenesInput(prev => ({ ...prev, [`${np.numeroPedido}-${np.codigoproducto}`]: '' }));
+            getListaNP(); // Refrescar la lista
+        } catch (error: any) {
+            console.error("Error al autorizar pre-pedido", error);
+            if (error.response) {
+                console.error("Respuesta del servidor:", error.response.data);
+                Alert.alert("Error del servidor", JSON.stringify(error.response.data).substring(0, 200));
+            } else {
+                Alert.alert("Error", "No se pudo autorizar el pre-pedido. Intenta de nuevo.");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const getListaNP = async (fallbackData?: { clientName: string; stationName: string; stationCode: string }) => {
-        const codClienteToUse = paramCodigoCliente || user?.codigocliente || user?.codigo;
-        if (!codClienteToUse) return;
+        const codClienteToUse = paramCodigoCliente || selectedCliente?.codigo || (selectedCliente as any)?.clientePK?.codigo || (!isAdmin ? (user?.codigocliente || user?.codigo) : null);
+
+        if (!codClienteToUse) {
+            setListaNPs([]);
+            return;
+        }
 
         // Intentar precargar el nombre si no lo tenemos
         if (!resolvedClientName) {
@@ -266,20 +381,11 @@ export const ListaPrePedidoScreen = () => {
         try {
             setLoading(true);
 
-            const isFetchingAllForAdmin = isAdmin && !paramCodigoCliente;
-
             const params: Record<string, any> = {
                 pcodigocomercializadora: user?.codigocomercializadora,
                 pfechaventa: fechaActual,
+                pcodigocliente: codClienteToUse
             };
-
-            if (isFetchingAllForAdmin) {
-                params.psupervisorzonal = user?.codigo;
-                // También enviamos vacío pcodigocliente por si el back lo requiere para anular el filtro
-                params.pcodigocliente = '';
-            } else {
-                params.pcodigocliente = codClienteToUse;
-            }
 
             const response = await getListasNotasPedido.getResource<
                 ApiResponse<ListaNotaPedidoInterace>
@@ -352,11 +458,13 @@ export const ListaPrePedidoScreen = () => {
     };
 
     useEffect(() => {
-        const codClienteToUse = paramCodigoCliente || user?.codigocliente || user?.codigo;
+        const codClienteToUse = paramCodigoCliente || selectedCliente?.codigo || (selectedCliente as any)?.clientePK?.codigo || (!isAdmin ? (user?.codigocliente || user?.codigo) : null);
         if (user?.codigocomercializadora && codClienteToUse) {
             getListaNP();
+        } else if (isAdmin && !codClienteToUse) {
+            setListaNPs([]);
         }
-    }, [user, isAdmin, paramCodigoCliente, resolvedClientName]);
+    }, [user, isAdmin, paramCodigoCliente, resolvedClientName, selectedCliente]);
 
     const filteredNPs = searchText.trim()
         ? listaNPs.filter(np => {
@@ -415,6 +523,87 @@ export const ListaPrePedidoScreen = () => {
                 </View>
 
 
+                {/* Selector de Cliente (Solo para administradores) */}
+                {isAdmin && !paramCodigoCliente && (
+                    <View style={styles.clienteSelectorContainer}>
+                        <Text style={styles.sectionTitle}>SELECCIONE UN CLIENTE</Text>
+                        <TouchableOpacity
+                            style={styles.clienteSelectorButton}
+                            onPress={() => {
+                                setShowSearch(false);
+                                setShowClienteDropdown(!showClienteDropdown);
+                            }}
+                        >
+                            <View style={styles.clienteSelectorContent}>
+                                <View style={[styles.iconCircle, { backgroundColor: '#E0E7FF' }]}>
+                                    <Icon name="person" size={20} color="#3B82F6" />
+                                </View>
+                                <View style={styles.clienteSelectorText}>
+                                    <Text style={styles.infoLabel}>CLIENTE</Text>
+                                    <Text style={styles.infoValue}>
+                                        {selectedCliente
+                                            ? `${selectedCliente.codigo ?? (selectedCliente as any).clientePK?.codigo ?? ''} - ${selectedCliente.nombrecomercial ?? selectedCliente.nombre ?? ''}`
+                                            : loadingClientes ? 'Cargando clientes...' : 'Seleccione un cliente...'}
+                                    </Text>
+                                </View>
+                                <Icon
+                                    name={showClienteDropdown ? "chevron-up" : "chevron-down"}
+                                    size={24}
+                                    color="#9CA3AF"
+                                />
+                            </View>
+                        </TouchableOpacity>
+
+                        {showClienteDropdown && (
+                            <View style={styles.clienteDropdown}>
+                                <View style={styles.clienteSearchWrapper}>
+                                    <Icon name="search" size={20} color="#9CA3AF" style={styles.clienteSearchIcon} />
+                                    <TextInput
+                                        style={styles.clienteSearchInput}
+                                        placeholder="Buscar por código o nombre..."
+                                        placeholderTextColor="#9CA3AF"
+                                        value={clienteSearchText}
+                                        onChangeText={setClienteSearchText}
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                    />
+                                </View>
+                                <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                    {filteredClientes.length === 0 ? (
+                                        <View style={styles.clienteDropdownLoading}>
+                                            <Text style={styles.clienteDropdownLoadingText}>
+                                                {loadingClientes ? 'Cargando...' : (clienteSearchText.trim() ? 'No hay clientes que coincidan' : 'No hay clientes')}
+                                            </Text>
+                                        </View>
+                                    ) : (
+                                        filteredClientes.map((cliente, index) => {
+                                            const cCodigo = cliente.codigo ?? (cliente as any).clientePK?.codigo ?? index.toString();
+                                            const cNombre = cliente.nombrecomercial ?? cliente.nombre ?? '';
+                                            return (
+                                                <TouchableOpacity
+                                                    key={cCodigo}
+                                                    style={[
+                                                        styles.clienteDropdownItem,
+                                                        (selectedCliente?.codigo ?? (selectedCliente as any)?.clientePK?.codigo) === cCodigo && styles.clienteDropdownItemSelected
+                                                    ]}
+                                                    onPress={() => {
+                                                        setSelectedCliente(cliente);
+                                                        setShowClienteDropdown(false);
+                                                    }}
+                                                >
+                                                    <Text style={styles.clienteDropdownItemText}>
+                                                        {cCodigo} - {cNombre}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })
+                                    )}
+                                </ScrollView>
+                            </View>
+                        )}
+                    </View>
+                )}
+
                 <View style={styles.pagination}>
                     <TouchableOpacity
                         onPress={handlePrevPage}
@@ -438,60 +627,7 @@ export const ListaPrePedidoScreen = () => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Buscador estilo selector de cliente */}
-                <TouchableOpacity
-                    style={styles.searchSelectorButton}
-                    onPress={() => {
-                        if (showSearch) {
-                            setShowSearch(false);
-                            setSearchText('');
-                            setCurrentPage(1);
-                        } else {
-                            setShowSearch(true);
-                        }
-                    }}
-                >
-                    <View style={styles.searchSelectorContent}>
-                        <View style={[styles.searchSelectorIconCircle]}>
-                            <Icon name="search" size={20} color="#3B82F6" />
-                        </View>
-                        <View style={styles.searchSelectorText}>
-                            <Text style={styles.searchSelectorLabel}>BUSCAR</Text>
-                            <Text style={styles.searchSelectorValue}>
-                                {searchText.trim() ? searchText : 'Buscar por N°, producto o cliente...'}
-                            </Text>
-                        </View>
-                        <Icon
-                            name={showSearch ? 'chevron-up' : 'chevron-down'}
-                            size={24}
-                            color="#9CA3AF"
-                        />
-                    </View>
-                </TouchableOpacity>
 
-                {showSearch && (
-                    <View style={styles.searchDropdown}>
-                        <View style={styles.searchDropdownWrapper}>
-                            <Icon name="search" size={20} color="#9CA3AF" style={styles.searchDropdownIcon} />
-                            <TextInput
-                                style={styles.searchDropdownInput}
-                                placeholder="Buscar por N°, producto o cliente..."
-                                placeholderTextColor="#9CA3AF"
-                                value={searchText}
-                                onChangeText={(text) => {
-                                    setSearchText(text);
-                                    setCurrentPage(1);
-                                }}
-                                autoFocus
-                            />
-                            {searchText.length > 0 && (
-                                <TouchableOpacity onPress={() => { setSearchText(''); setCurrentPage(1); }}>
-                                    <Icon name="close-circle" size={20} color="#9CA3AF" />
-                                </TouchableOpacity>
-                            )}
-                        </View>
-                    </View>
-                )}
 
                 {/* Lista de pedidos - Cards con scroll */}
                 <ScrollView
@@ -535,7 +671,7 @@ export const ListaPrePedidoScreen = () => {
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                                         <Icon name="cube-outline" size={15} color="#1565C0" />
                                         <Text style={{ fontSize: 14, fontWeight: '700', color: '#1565C0', textAlign: 'right' }}>
-                                            {np.nombreProducto} - {Math.round(Number(np.volumenAutorizado || 0))} Galones
+                                            {np.nombreProducto} - {Math.round(Number(np.volumenRequerido || 0))} Galones
                                         </Text>
                                     </View>
                                 </View>
@@ -556,40 +692,37 @@ export const ListaPrePedidoScreen = () => {
 
                                 {/* Volumen + Botón Autorizar */}
                                 <View style={styles.volumenRow}>
-                                    <View style={styles.volumenPillContainer}>
-                                        <Text style={styles.volumenLabel}>VOLUMEN AUTORIZADO</Text>
-                                        <View style={styles.volumenPill}>
-                                            <Icon name="water-outline" size={14} color="#1565C0" />
-                                            <Text style={styles.volumenValue}>
-                                                {Math.round(Number(np.volumenAutorizado || 0)).toLocaleString()}
-                                            </Text>
-                                            <Text style={styles.volumenUnit}>Gal.</Text>
+                                    {Number(np.volumenAutorizado || 0) > 0 && (
+                                        <View style={styles.volumenPillContainer}>
+                                            <Text style={styles.volumenLabel}>VOLUMEN AUTORIZADO</Text>
+                                            <View style={styles.volumenPill}>
+                                                <Icon name="water" size={14} color="#3B82F6" />
+                                                <Text style={styles.volumenValue}>
+                                                    {Math.round(Number(np.volumenAutorizado || 0))}
+                                                </Text>
+                                                <Text style={styles.volumenUnit}>Gal.</Text>
+                                            </View>
                                         </View>
-                                    </View>
-                                    <View style={styles.inputAutorizarContainer}>
-                                        <TextInput
-                                            style={styles.inputVolumen}
-                                            keyboardType="numeric"
-                                            placeholder="Ingresar vol."
-                                            placeholderTextColor="#9CA3AF"
-                                            value={volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`] || ''}
-                                            onChangeText={(text) => setVolumenesInput(prev => ({ ...prev, [`${np.numeroPedido}-${np.codigoproducto}`]: text }))}
-                                        />
-                                        <TouchableOpacity
-                                            style={styles.btnAutorizar}
-                                            onPress={() => {
-                                                const vol = volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`];
-                                                if (!vol) {
-                                                    Alert.alert("Atención", "Ingresa un volumen antes de autorizar.");
-                                                    return;
-                                                }
-                                                Alert.alert("Autorizar", `Llamar API para autorizar pedido ${np.numeroPedido} con volumen: ${vol}`);
-                                            }}
-                                        >
-                                            <Icon name="checkmark-circle-outline" size={18} color="#FFF" />
-                                            <Text style={styles.btnAutorizarText}>Autorizar</Text>
-                                        </TouchableOpacity>
-                                    </View>
+                                    )}
+                                    {!(Number(np.volumenAutorizado || 0) > 0) && (
+                                        <View style={styles.inputAutorizarContainer}>
+                                            <TextInput
+                                                style={styles.inputVolumen}
+                                                keyboardType="numeric"
+                                                placeholder="Ingresar vol."
+                                                placeholderTextColor="#9CA3AF"
+                                                value={volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`] || ''}
+                                                onChangeText={(text) => setVolumenesInput(prev => ({ ...prev, [`${np.numeroPedido}-${np.codigoproducto}`]: text }))}
+                                            />
+                                            <TouchableOpacity
+                                                style={styles.btnAutorizar}
+                                                onPress={() => handleAutorizarPedido(np)}
+                                            >
+                                                <Icon name="checkmark-circle-outline" size={18} color="#FFF" />
+                                                <Text style={styles.btnAutorizarText}>Autorizar</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
                                 </View>
                             </View>
                         ))
@@ -1091,8 +1224,106 @@ const styles = StyleSheet.create({
         gap: 5,
     },
     btnAutorizarText: {
-        color: '#FFFFFF',
+        color: '#FFF',
         fontSize: 13,
-        fontWeight: 'bold',
+        fontWeight: '700',
+    },
+    // Estilos para selector de cliente
+    clienteSelectorContainer: {
+        paddingHorizontal: 20,
+        paddingTop: 15,
+        zIndex: 50,
+    },
+    sectionTitle: {
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#9CA3AF',
+        marginBottom: 10,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+    },
+    clienteSelectorButton: {
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+    },
+    clienteSelectorContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 15,
+    },
+    iconCircle: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 15,
+    },
+    clienteSelectorText: {
+        flex: 1,
+    },
+    clienteDropdown: {
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        borderRadius: 16,
+        backgroundColor: '#FFFFFF',
+        marginTop: 5,
+        maxHeight: 300,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    clienteSearchWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    clienteSearchIcon: {
+        marginRight: 8,
+    },
+    clienteSearchInput: {
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+        borderWidth: 0,
+        minHeight: 40,
+        paddingHorizontal: 10,
+        borderRadius: 8,
+    },
+    clienteDropdownScroll: {
+        maxHeight: 240,
+    },
+    clienteDropdownLoading: {
+        padding: 24,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    clienteDropdownLoadingText: {
+        fontSize: 14,
+        color: '#6B7280',
+    },
+    clienteDropdownItem: {
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    clienteDropdownItemSelected: {
+        backgroundColor: '#E0F2FE',
+    },
+    clienteDropdownItemText: {
+        fontSize: 14,
+        color: '#374151',
+        fontWeight: '500',
     },
 });
