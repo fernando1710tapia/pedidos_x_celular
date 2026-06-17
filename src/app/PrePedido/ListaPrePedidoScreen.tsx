@@ -247,10 +247,11 @@ export const ListaPrePedidoScreen = () => {
                 try {
                     setLoadingClientes(true);
                     const response = await obtenerTerminalCliente.getResource<ApiResponse<TerminalClienteInterface>>(
-                        'porComercializadora',
+                        'porsupervisorzonalcomercializadora',
                         '',
                         {
-                            codigocomercializadora: user.codigocomercializadora
+                            codigocomercializadora: user.codigocomercializadora,
+                            supervisorzonal: user.codigo
                         }
                     );
                     if (response.retorno && Array.isArray(response.retorno) && response.retorno.length > 0) {
