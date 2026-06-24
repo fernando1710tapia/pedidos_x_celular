@@ -58,22 +58,29 @@ const CHART_COLORS = [
 
 const cleanProductName = (name: string) => {
     if (!name) return 'Desconocido';
-    return String(name)
-        .replace(/^DES\s+/i, '')
-        .replace(/^[\s\d\-]+-\s*/, '')
-        .replace(/\./g, ' ')
-        .trim();
+    let clean = String(name);
+    
+    // Remover "DES" inicial opcional con o sin guion
+    clean = clean.replace(/^DES\s*-?\s*/i, '');
+    
+    // Remover códigos numéricos iniciales (ej. 0101-)
+    clean = clean.replace(/^\d+\s*-\s*/, '');
+    
+    // Remover códigos de letras iniciales (ej. -DDR-, DDR-, -DGT-)
+    clean = clean.replace(/^-?[a-zA-Z]+\s*-\s*/, '');
+    
+    // Remover espacios o guiones sobrantes al inicio
+    clean = clean.replace(/^[\s\-]+/, '');
+    
+    // Reemplazar puntos por espacios
+    clean = clean.replace(/\./g, ' ');
+    
+    return clean.trim();
 };
 
 const formatFullProductName = (name: string) => {
-    if (!name) return 'Desconocido VOL';
-    // DES  - 0101-GAS.EXTRA -> 0101-GAS EXTRA VOL
-    // Si no hay código, solo devuelve el nombre limpio + VOL
-    const codeMatch = String(name).match(/(\d+)-/);
-    const code = codeMatch ? codeMatch[1] : '';
-    const cleanName = cleanProductName(name);
-    const label = code ? `${code}-${cleanName}` : cleanName;
-    return `${label} VOL`.trim();
+    if (!name) return 'Desconocido';
+    return cleanProductName(name);
 };
 
 const dateService = new NativeDateService('es', { format: 'DD/MM/YYYY' });

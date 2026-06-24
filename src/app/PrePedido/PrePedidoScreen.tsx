@@ -87,18 +87,6 @@ export default function PrePedidoScreen() {
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    // Estado para modal de Petroecuador
-    const [petroModal, setPetroModal] = useState({
-        visible: false,
-        type: 'success' as 'success' | 'error' | 'warning',
-        title: '',
-        message: ''
-    });
-
-
-
-
-
     // Función para obtener la fecha en formato "YYYY-MM-DDTHH:mm:ssZ"
     const formatDate = (date: Date): string => {
         return date.toISOString().split('.')[0] + 'Z'; // Devuelve el formato ISO con "Z" sin milisegundos
@@ -587,25 +575,9 @@ export default function PrePedidoScreen() {
                 return;
             }
 
-            if (!isAdmin) {
-                for (const item of activeItems) {
-                    const factorObj = factores.find(f =>
-                        f.factorcorreccionPK.codigoproducto === item.product.codigo &&
-                        f.factorcorreccionPK.codigoterminal === terminal?.codigo
-                    );
-                    if (!factorObj) {
-                        Alert.alert("Error", `No existe un factor de corrección vigente para el producto ${item.product.nombre} y terminal seleccionados.`);
-                        return;
-                    }
-                }
-            }
+
 
             const generatedNumbers: string[] = [];
-            let petroModalData: {
-                type: 'success' | 'error' | 'warning';
-                title: string;
-                message: string;
-            } | null = null;
 
             const nowDate = formatDate(new Date());
             const formattedDate = selectedDateDate ? formatDate(selectedDateDate) : '';
@@ -722,58 +694,6 @@ export default function PrePedidoScreen() {
                 }
 
                 generatedNumbers.push(resultNumber);
-
-                if (comercializadora?.generapedidodirecto && (user?.niveloperacion === 'ADMIN' || isAdmin)) {
-                    try {
-                        const devMsg = response.developerMessage || "";
-
-                        if (devMsg && devMsg.includes(';')) {
-                            const [numero, trama] = devMsg.split(';');
-
-                            const petroRes = await crearPrePedido.enviarPetroecuador<any>({
-                                codigoabastecedora: codAbas,
-                                codigocomercializadora: codComer,
-                                numero: numero,
-                                cadena: trama
-                            });
-
-                            const successCodes = ["00", "20"];
-                            const rawMsg = Array.isArray(petroRes?.retorno) && petroRes.retorno.length > 0
-                                ? petroRes.retorno[0]
-                                : (typeof petroRes?.retorno === 'string' ? petroRes.retorno : '');
-
-                            const msgCode = (typeof rawMsg === 'string') ? rawMsg.substring(0, 2) : "";
-                            const isSuccessful = successCodes.includes(String(petroRes?.statusCode)) ||
-                                ((petroRes?.statusCode === "200" || petroRes?.statusCode === 200) && successCodes.includes(msgCode));
-
-                            if (isSuccessful) {
-                                petroModalData = {
-                                    type: 'success',
-                                    title: '¡Éxito Petroecuador!',
-                                    message: msgCode + ' La orden fue transmitida correctamente.'
-                                };
-                            } else {
-                                petroModalData = {
-                                    type: 'warning',
-                                    title: 'Aviso Petroecuador',
-                                    message: msgCode || `Status: ${petroRes?.statusCode}. ${petroRes?.developerMessage || 'Sin mensaje'}`
-                                };
-                            }
-                        } else {
-                            petroModalData = {
-                                type: 'error',
-                                title: 'Error de Envío',
-                                message: 'El pedido se creó localmente, pero no se pudo enviar a Petroecuador porque faltan datos de despacho.'
-                            };
-                        }
-                    } catch (petroErr: any) {
-                        petroModalData = {
-                            type: 'error',
-                            title: 'Error Petroecuador',
-                            message: `Fallo de red o servicio externo: ${petroErr.message}`
-                        };
-                    }
-                }
             }
 
             if (generatedNumbers.length > 0) {
@@ -785,16 +705,7 @@ export default function PrePedidoScreen() {
                 setCantidadSuper(0);
                 setCantidadDiesel(0);
 
-                if (petroModalData) {
-                    setPetroModal({
-                        visible: true,
-                        type: petroModalData.type,
-                        title: petroModalData.title,
-                        message: `prepedido creado exitosamente y el numero de prepedido: ${numbersStr}.\n${petroModalData.message}`
-                    });
-                } else {
-                    setShowSuccessModal(true);
-                }
+                setShowSuccessModal(true);
             }
         } catch (error: any) {
             console.error("Error al enviar la solicitud:", error);
@@ -1181,7 +1092,7 @@ export default function PrePedidoScreen() {
                             <Icon name="checkmark" size={40} color="#FFFFFF" />
                         </View>
                         <Text style={styles.modalTitle}>Pedido registrado</Text>
-                        <Text style={styles.modalMessage}>prepedido creado exitosamente y el numero de prepedido: {npNumber}</Text>
+                        <Text style={styles.modalMessage}>Prepedido creado exitosamente y es el {npNumber}</Text>
                         <TouchableOpacity
                             style={styles.modalButton}
                             onPress={() => setShowSuccessModal(false)}
@@ -1192,36 +1103,7 @@ export default function PrePedidoScreen() {
                 </View>
             )}
 
-            {/* Modal de Estado de Petroecuador Custom */}
-            {petroModal.visible && (
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={[
-                            styles.successIconCircle,
-                            petroModal.type === 'error' && { backgroundColor: '#EF4444' },
-                            petroModal.type === 'warning' && { backgroundColor: '#F59E0B' }
-                        ]}>
-                            <Icon
-                                name={petroModal.type === 'success' ? "checkmark" : petroModal.type === 'error' ? "close" : "alert-triangle"}
-                                size={40}
-                                color="#FFFFFF"
-                            />
-                        </View>
-                        <Text style={styles.modalTitle}>{petroModal.title}</Text>
-                        <Text style={styles.modalMessage}>{petroModal.message}</Text>
-                        <TouchableOpacity
-                            style={[
-                                styles.modalButton,
-                                petroModal.type === 'error' && { backgroundColor: '#EF4444' },
-                                petroModal.type === 'warning' && { backgroundColor: '#F59E0B' }
-                            ]}
-                            onPress={() => setPetroModal({ ...petroModal, visible: false })}
-                        >
-                            <Text style={styles.modalButtonText}>Entendido</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            )}
+
         </ScreenWrapper>
     );
 }

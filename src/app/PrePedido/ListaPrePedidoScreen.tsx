@@ -28,6 +28,22 @@ import BrandLogo from '../../components/BrandLogo';
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 type RouteProps = RouteProp<RootStackParamList, 'ListaPrePedido'>;
 
+const cleanProductName = (name: string) => {
+    if (!name) return 'Desconocido';
+    let clean = String(name);
+    // Remover "DES" inicial opcional con o sin guion
+    clean = clean.replace(/^DES\s*-?\s*/i, '');
+    // Remover códigos numéricos iniciales (ej. 0101-)
+    clean = clean.replace(/^\d+\s*-\s*/, '');
+    // Remover códigos de letras iniciales (ej. -DDR-, DDR-, -DGT-)
+    clean = clean.replace(/^-?[a-zA-Z]+\s*-\s*/, '');
+    // Remover espacios o guiones sobrantes al inicio
+    clean = clean.replace(/^[\s\-]+/, '');
+    // Reemplazar puntos por espacios
+    clean = clean.replace(/\./g, ' ');
+    return clean.trim();
+};
+
 /** Parsea fechas: ISO, yyyy/MM/dd, dd/MM/yyyy, timestamp.
  *  IMPORTANTE: Siempre crea la fecha en hora LOCAL para que
  *  isSameDay / isToday / isYesterday funcionen correctamente. */
@@ -151,7 +167,7 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
         usuarioactual: String(raw.usuarioactual ?? raw.usuarioActual ?? ''),
         codigoproducto: String(raw.codigoproducto ?? raw.codigoProducto ?? ''),
         codigoComercializadora: String(raw.codigoComercializadora ?? raw.codigocomercializadora ?? ''),
-        nombreProducto: String(raw.NombreProducto ?? raw.nombreproducto ?? raw.nombreProducto ?? ''),
+        nombreProducto: cleanProductName(String(raw.NombreProducto ?? raw.nombreproducto ?? raw.nombreProducto ?? '')),
         volumenAutorizado: raw.volumenautorizado ?? raw.volumenAutorizado ?? raw.volumennaturalautorizado ?? '',
         volumenRequerido: raw.volumennaturalrequerido ?? raw.volumensolicitado ?? raw.volumenrequerido ?? raw.numeroGuia ?? raw.volumenautorizado ?? '',
         medida: String(raw.medida ?? ''),
