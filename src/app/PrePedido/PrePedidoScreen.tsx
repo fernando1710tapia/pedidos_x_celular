@@ -434,7 +434,7 @@ export default function PrePedidoScreen() {
         if (factorObj) {
             return Number((qty * factorObj.factor).toFixed(2));
         }
-        return 0;
+        return qty;
     };
 
     const volumen60FExtra = useMemo(() => getVolumen60F(productExtra?.codigo || '', cantidadExtra), [cantidadExtra, productExtra, terminal, factores, isAdmin]);
