@@ -230,6 +230,7 @@ export const ListaPrePedidoScreen = () => {
 
     // Determina si es usuario regular (8 dígitos) o admin
     const isAdmin = user?.codigo ? !/^\d{8}$/.test(user.codigo) : false;
+    const isNumericUser = user?.codigo ? /^\d+$/.test(user.codigo) : false;
 
     const ayer = new Date();
     // ayer.setDate(ayer.getDate() - 1); // Remove yesterday logic
@@ -249,6 +250,11 @@ export const ListaPrePedidoScreen = () => {
     const [searchText, setSearchText] = useState<string>('');
     const [showSearch, setShowSearch] = useState<boolean>(false);
     const itemsPerPage = 10;
+
+    // Filtro de fechas
+    const opcionesFechas = ['Hoy', 'Ayer', 'Últimos 3 días', 'Últimos 5 días', 'Últimos 7 días'];
+    const [filtroFecha, setFiltroFecha] = useState<string>('Hoy');
+    const [showFechaDropdown, setShowFechaDropdown] = useState(false);
 
     // Novedad: Buscador de clientes
     const [allClientes, setAllClientes] = useState<TerminalClienteInterface[]>([]);
@@ -314,6 +320,11 @@ export const ListaPrePedidoScreen = () => {
     };
 
     const handleAutorizarPedido = async (np: any) => {
+        if (user?.codigo && /^\d+$/.test(user.codigo)) {
+            Alert.alert("Acceso denegado", "Los usuarios numéricos no tienen permitido autorizar pre-pedidos.");
+            return;
+        }
+
         const volInput = volumenesInput[`${np.numeroPedido}-${np.codigoproducto}`];
         if (!volInput || Number(volInput) <= 0) {
             Alert.alert("Atención", "Ingresa un volumen válido mayor a cero antes de autorizar.");
@@ -325,7 +336,7 @@ export const ListaPrePedidoScreen = () => {
             const payload = {
                 detalleprepedidoPK: {
                     codigoabastecedora: "0001",
-                    codigocomercializadora: np.codigoComercializadora || user?.codigocomercializadora || "0002",
+                    codigocomercializadora: np.codigoComercializadora || user?.codigocomercializadora,
                     numero: np.numeroPedido,
                     codigoproducto: np.codigoproducto,
                     codigomedida: "01"
@@ -398,9 +409,43 @@ export const ListaPrePedidoScreen = () => {
         try {
             setLoading(true);
 
+            // Calcular rango de fechas según filtro
+            const today = new Date();
+            let startDate = new Date();
+            let endDate = new Date();
+
+            switch (filtroFecha) {
+                case 'Hoy':
+                    startDate = today;
+                    endDate = today;
+                    break;
+                case 'Ayer':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 1);
+                    endDate = startDate;
+                    break;
+                case 'Últimos 3 días':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 3);
+                    break;
+                case 'Últimos 5 días':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 5);
+                    break;
+                case 'Últimos 7 días':
+                    startDate = new Date(today);
+                    startDate.setDate(today.getDate() - 7);
+                    break;
+                default:
+                    startDate = today;
+                    endDate = today;
+            }
+
             const params: Record<string, any> = {
                 pcodigocomercializadora: user?.codigocomercializadora,
-                pfechaventa: fechaActual,
+                pfechaventa: format(endDate, 'yyyy/MM/dd'),
+                pfechainicio: format(startDate, 'yyyy/MM/dd'),
+                pfechafin: format(endDate, 'yyyy/MM/dd'),
                 pcodigocliente: codClienteToUse
             };
 
@@ -481,7 +526,7 @@ export const ListaPrePedidoScreen = () => {
         } else if (isAdmin && !codClienteToUse) {
             setListaNPs([]);
         }
-    }, [user, isAdmin, paramCodigoCliente, resolvedClientName, selectedCliente]);
+    }, [user, isAdmin, paramCodigoCliente, resolvedClientName, selectedCliente, filtroFecha]);
 
     const filteredNPs = searchText.trim()
         ? listaNPs.filter(np => {
@@ -548,6 +593,7 @@ export const ListaPrePedidoScreen = () => {
                             style={styles.clienteSelectorButton}
                             onPress={() => {
                                 setShowSearch(false);
+                                setShowFechaDropdown(false);
                                 setShowClienteDropdown(!showClienteDropdown);
                             }}
                         >
@@ -621,30 +667,55 @@ export const ListaPrePedidoScreen = () => {
                     </View>
                 )}
 
-                <View style={styles.pagination}>
+                {/* Selector de Fechas (Para todos los usuarios) */}
+                <View style={styles.clienteSelectorContainer}>
+                    <Text style={styles.sectionTitle}>VER PREPEDIDOS DE</Text>
                     <TouchableOpacity
-                        onPress={handlePrevPage}
-                        disabled={currentPage <= 1}
-                        style={styles.paginationSide}
+                        style={styles.clienteSelectorButton}
+                        onPress={() => {
+                            setShowSearch(false);
+                            setShowClienteDropdown(false);
+                            setShowFechaDropdown(!showFechaDropdown);
+                        }}
                     >
-                        <Text style={[styles.paginationText, currentPage <= 1 && styles.paginationTextDisabled]}>
-                            &lt; Anterior
-                        </Text>
+                        <View style={styles.clienteSelectorContent}>
+                            <View style={[styles.iconCircle, { backgroundColor: '#FCE7F3' }]}>
+                                <Icon name="calendar" size={20} color="#DB2777" />
+                            </View>
+                            <View style={styles.clienteSelectorText}>
+                                <Text style={styles.infoLabel}>FECHA</Text>
+                                <Text style={styles.infoValue}>{filtroFecha}</Text>
+                            </View>
+                            <Icon
+                                name={showFechaDropdown ? "chevron-up" : "chevron-down"}
+                                size={24}
+                                color="#9CA3AF"
+                            />
+                        </View>
                     </TouchableOpacity>
-                    <Text style={styles.pageInfo}>Página {currentPage} de {totalPages}</Text>
 
-                    <TouchableOpacity
-                        onPress={handleNextPage}
-                        disabled={currentPage >= totalPages}
-                        style={styles.paginationSide}
-                    >
-                        <Text style={[styles.paginationText, currentPage >= totalPages && styles.paginationTextDisabled]}>
-                            Siguiente &gt;
-                        </Text>
-                    </TouchableOpacity>
+                    {showFechaDropdown && (
+                        <View style={styles.clienteDropdown}>
+                            <ScrollView style={styles.clienteDropdownScroll} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
+                                {opcionesFechas.map((opcion) => (
+                                    <TouchableOpacity
+                                        key={opcion}
+                                        style={[
+                                            styles.clienteDropdownItem,
+                                            filtroFecha === opcion && styles.clienteDropdownItemSelected
+                                        ]}
+                                        onPress={() => {
+                                            setFiltroFecha(opcion);
+                                            setShowFechaDropdown(false);
+                                        }}
+                                    >
+                                        <Text style={styles.clienteDropdownItemText}>{opcion}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+                    )}
                 </View>
-
-
 
                 {/* Lista de pedidos - Cards con scroll */}
                 <ScrollView
@@ -721,7 +792,7 @@ export const ListaPrePedidoScreen = () => {
                                             </View>
                                         </View>
                                     )}
-                                    {!(Number(np.volumenAutorizado || 0) > 0) && (
+                                    {!(Number(np.volumenAutorizado || 0) > 0) && !isNumericUser && (
                                         <View style={styles.inputAutorizarContainer}>
                                             <TextInput
                                                 style={styles.inputVolumen}
@@ -745,6 +816,29 @@ export const ListaPrePedidoScreen = () => {
                         ))
                     )}
                 </ScrollView>
+
+                <View style={styles.pagination}>
+                    <TouchableOpacity
+                        onPress={handlePrevPage}
+                        disabled={currentPage <= 1}
+                        style={[styles.paginationSide, currentPage <= 1 && styles.paginationSideDisabled]}
+                    >
+                        <Icon name="chevron-back" size={20} color={currentPage <= 1 ? "#9CA3AF" : "#3B82F6"} />
+                    </TouchableOpacity>
+                    
+                    <View style={styles.pageInfoContainer}>
+                        <Text style={styles.pageInfoText}>{currentPage}</Text>
+                        <Text style={styles.pageInfoDe}>de {totalPages}</Text>
+                    </View>
+
+                    <TouchableOpacity
+                        onPress={handleNextPage}
+                        disabled={currentPage >= totalPages}
+                        style={[styles.paginationSide, currentPage >= totalPages && styles.paginationSideDisabled]}
+                    >
+                        <Icon name="chevron-forward" size={20} color={currentPage >= totalPages ? "#9CA3AF" : "#3B82F6"} />
+                    </TouchableOpacity>
+                </View>
 
                 {/* Botón generar pedido eliminado */}
 
@@ -802,28 +896,60 @@ const styles = StyleSheet.create({
     pagination: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
+        gap: 15,
         paddingHorizontal: 20,
         paddingVertical: 14,
         backgroundColor: 'transparent',
     },
     paginationSide: {
-        minWidth: 90,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#EFF6FF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
-    paginationText: {
+    paginationSideDisabled: {
+        backgroundColor: '#F3F4F6',
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    pageInfoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    pageInfoText: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#3B82F6',
+        color: '#FFFFFF',
         fontSize: 14,
-        color: '#6B7280',
+        fontWeight: '700',
+        textAlign: 'center',
+        lineHeight: 36,
+        overflow: 'hidden',
+        shadowColor: '#3B82F6',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    paginationTextDisabled: {
-        color: '#9CA3AF',
-    },
-    pageInfo: {
+    pageInfoDe: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
+        color: '#6B7280',
     },
     scroll: {
         flex: 1,
+        marginTop: 15,
     },
     scrollContent: {
         paddingHorizontal: 20,
@@ -1273,15 +1399,15 @@ const styles = StyleSheet.create({
     clienteSelectorContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 15,
+        padding: 10,
     },
     iconCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 15,
+        marginRight: 12,
     },
     clienteSelectorText: {
         flex: 1,
