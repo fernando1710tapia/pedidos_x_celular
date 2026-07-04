@@ -30,7 +30,8 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.dsas97.InfinityMobile",
-      "versionCode": 2
+      "versionCode": 2,
+      "usesCleartextTraffic": true
     },
     "androidStatusBar": {
       "barStyle": "dark-content",
