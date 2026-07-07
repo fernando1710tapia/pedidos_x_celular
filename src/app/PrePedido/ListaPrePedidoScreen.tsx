@@ -15,7 +15,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { format, parseISO, isToday, isYesterday, addDays, isSameDay } from 'date-fns';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
-import { getListasNotasPedido, terminalService, obtenerTerminalCliente, detallePrePedidoService } from '../../services';
+import { getListasPrePedido, terminalService, obtenerTerminalCliente, detallePrePedidoService } from '../../services';
 import {
     ApiResponse,
     ListaNotaPedidoInterace,
@@ -169,9 +169,12 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
         codigoComercializadora: String(raw.codigoComercializadora ?? raw.codigocomercializadora ?? ''),
         nombreProducto: cleanProductName(String(raw.NombreProducto ?? raw.nombreproducto ?? raw.nombreProducto ?? '')),
         volumenAutorizado: raw.volumenautorizado ?? raw.volumenAutorizado ?? raw.volumennaturalautorizado ?? '',
-        volumenRequerido: raw.volumennaturalrequerido ?? raw.volumensolicitado ?? raw.volumenrequerido ?? raw.numeroGuia ?? raw.volumenautorizado ?? '',
+        volumenRequerido: raw.numeroGuia ?? raw.volumennaturalrequerido ?? raw.volumensolicitado ?? raw.volumenrequerido ?? raw.volumenautorizado ?? '',
         medida: String(raw.medida ?? ''),
-        numeroPedido: String(raw.numeroPrePedido ?? raw.numeroprepedido ?? raw.numeroNotaPedido ?? raw.numeronotapedido ?? raw.numero ?? raw.prepedidoPK?.numero ?? raw.notapedidoPK?.numero ?? ''),
+        // Soportar numeroNotaPedido (respuesta prepedido) y otros campos
+        numeroPedido: String(raw.numeroPrePedido ?? raw.numeroprepedido ?? raw.numeroNotaPedido ?? raw.numeronotapedido ?? raw.numeroNotaPedido ?? raw.numero ?? raw.prepedidoPK?.numero ?? raw.notapedidoPK?.numero ?? ''),
+        // Campo de autorización: el API devuelve "numeroFactura (Autorizado)" con espacios
+        numeroFactura: String(raw['numeroFactura (Autorizado)'] ?? raw.numeroFactura ?? raw.numerofactura ?? ''),
     };
 };
 
@@ -389,7 +392,7 @@ export const ListaPrePedidoScreen = () => {
         }
     };
 
-    const getListaNP = async (fallbackData?: { clientName: string; stationName: string; stationCode: string }) => {
+    const getListaNP = async (overrideFiltroFecha?: string) => {
         const codClienteToUse = paramCodigoCliente || selectedCliente?.codigo || (selectedCliente as any)?.clientePK?.codigo || (!isAdmin ? (user?.codigocliente || user?.codigo) : null);
 
         if (!codClienteToUse) {
@@ -409,47 +412,50 @@ export const ListaPrePedidoScreen = () => {
         try {
             setLoading(true);
 
-            // Calcular rango de fechas según filtro
-            const today = new Date();
-            let startDate = new Date();
-            let endDate = new Date();
+            // Usar el filtro pasado explícitamente o el del estado actual
+            const filtroActual = overrideFiltroFecha ?? filtroFecha;
 
-            switch (filtroFecha) {
+            // Calcular la fecha según filtro (el API acepta una sola fecha: pfechaventa)
+            const today = new Date();
+            let fechaConsulta = format(today, 'yyyy/MM/dd');
+
+            switch (filtroActual) {
                 case 'Hoy':
-                    startDate = today;
-                    endDate = today;
+                    fechaConsulta = format(today, 'yyyy/MM/dd');
                     break;
                 case 'Ayer':
-                    startDate = new Date(today);
-                    startDate.setDate(today.getDate() - 1);
-                    endDate = startDate;
+                    const ayer = new Date(today);
+                    ayer.setDate(today.getDate() - 1);
+                    fechaConsulta = format(ayer, 'yyyy/MM/dd');
                     break;
                 case 'Últimos 3 días':
-                    startDate = new Date(today);
-                    startDate.setDate(today.getDate() - 3);
+                    const hace3 = new Date(today);
+                    hace3.setDate(today.getDate() - 3);
+                    fechaConsulta = format(hace3, 'yyyy/MM/dd');
                     break;
                 case 'Últimos 5 días':
-                    startDate = new Date(today);
-                    startDate.setDate(today.getDate() - 5);
+                    const hace5 = new Date(today);
+                    hace5.setDate(today.getDate() - 5);
+                    fechaConsulta = format(hace5, 'yyyy/MM/dd');
                     break;
                 case 'Últimos 7 días':
-                    startDate = new Date(today);
-                    startDate.setDate(today.getDate() - 7);
+                    const hace7 = new Date(today);
+                    hace7.setDate(today.getDate() - 7);
+                    fechaConsulta = format(hace7, 'yyyy/MM/dd');
                     break;
                 default:
-                    startDate = today;
-                    endDate = today;
+                    fechaConsulta = format(today, 'yyyy/MM/dd');
             }
 
             const params: Record<string, any> = {
                 pcodigocomercializadora: user?.codigocomercializadora,
-                pfechaventa: format(endDate, 'yyyy/MM/dd'),
-                pfechainicio: format(startDate, 'yyyy/MM/dd'),
-                pfechafin: format(endDate, 'yyyy/MM/dd'),
-                pcodigocliente: codClienteToUse
+                pcodigocliente: codClienteToUse,
+                pfechaventa: fechaConsulta,
             };
 
-            const response = await getListasNotasPedido.getResource<
+            console.log('🔍 Buscando prepedidos con params:', JSON.stringify(params));
+
+            const response = await getListasPrePedido.getResource<
                 ApiResponse<ListaNotaPedidoInterace>
             >(
                 'ec.com.infinity.modelo.prepedido/buscarprepedidosfacturadosdespachados',
@@ -468,8 +474,9 @@ export const ListaPrePedidoScreen = () => {
                 });
 
                 setListaNPs(normalized);
+                setCurrentPage(1); // Resetear paginación al buscar
 
-                // 1. Resolver nombres de CLIENTES faltantes (para casos donde hay múltiples clientes en la lista)
+                // Resolver nombres de CLIENTES faltantes
                 const clientesFaltantes = [...new Set(normalized
                     .filter(item => !item.nombreCliente && item.codigoCliente)
                     .map(item => item.codigoCliente))] as string[];
@@ -483,7 +490,7 @@ export const ListaPrePedidoScreen = () => {
                     }
 
                     try {
-                        const response = await obtenerTerminalCliente.getResource<ApiResponse<any>>(
+                        const resp = await obtenerTerminalCliente.getResource<ApiResponse<any>>(
                             'porComercializadoraCliente',
                             '',
                             {
@@ -492,8 +499,8 @@ export const ListaPrePedidoScreen = () => {
                             }
                         );
 
-                        if (response.retorno && response.retorno[0]) {
-                            const clientData = response.retorno[0];
+                        if (resp.retorno && resp.retorno[0]) {
+                            const clientData = resp.retorno[0];
                             const nombre = String(clientData.nombrecomercial || clientData.nombre || '');
                             if (nombre) {
                                 setListaNPs(prev => prev.map(item =>
@@ -522,11 +529,13 @@ export const ListaPrePedidoScreen = () => {
     useEffect(() => {
         const codClienteToUse = paramCodigoCliente || selectedCliente?.codigo || (selectedCliente as any)?.clientePK?.codigo || (!isAdmin ? (user?.codigocliente || user?.codigo) : null);
         if (user?.codigocomercializadora && codClienteToUse) {
-            getListaNP();
+            getListaNP(filtroFecha);
         } else if (isAdmin && !codClienteToUse) {
             setListaNPs([]);
         }
-    }, [user, isAdmin, paramCodigoCliente, resolvedClientName, selectedCliente, filtroFecha]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user, isAdmin, paramCodigoCliente, selectedCliente, filtroFecha]);
+
 
     const filteredNPs = searchText.trim()
         ? listaNPs.filter(np => {
@@ -717,6 +726,32 @@ export const ListaPrePedidoScreen = () => {
                     )}
                 </View>
 
+                {/* Indicador de búsqueda activa */}
+                {(() => {
+                    const codClienteActual = paramCodigoCliente || selectedCliente?.codigo || (selectedCliente as any)?.clientePK?.codigo || (!isAdmin ? (user?.codigocliente || user?.codigo) : null);
+                    const nombreClienteActual = paramNombreCliente || selectedCliente?.nombrecomercial || selectedCliente?.nombre || resolvedClientName || codClienteActual || '';
+                    if (!codClienteActual) return null;
+                    return (
+                        <View style={styles.buscarContainer}>
+                            {loading ? (
+                                <View style={styles.buscarResumen}>
+                                    <Icon name="sync-outline" size={14} color="#2563EB" />
+                                    <Text style={[styles.buscarResumenText, { color: '#2563EB' }]}>
+                                        Buscando prepedidos...
+                                    </Text>
+                                </View>
+                            ) : (
+                                <View style={styles.buscarResumen}>
+                                    <Icon name="information-circle-outline" size={14} color="#6B7280" />
+                                    <Text style={styles.buscarResumenText} numberOfLines={1}>
+                                        {nombreClienteActual ? `${nombreClienteActual} · ` : ''}{filtroFecha}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    );
+                })()}
+
                 {/* Lista de pedidos - Cards con scroll */}
                 <ScrollView
                     style={styles.scroll}
@@ -825,7 +860,7 @@ export const ListaPrePedidoScreen = () => {
                     >
                         <Icon name="chevron-back" size={20} color={currentPage <= 1 ? "#9CA3AF" : "#3B82F6"} />
                     </TouchableOpacity>
-                    
+
                     <View style={styles.pageInfoContainer}>
                         <Text style={styles.pageInfoText}>{currentPage}</Text>
                         <Text style={styles.pageInfoDe}>de {totalPages}</Text>
@@ -891,7 +926,49 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
 
-
+    // Botón Buscar
+    buscarContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        gap: 6,
+    },
+    buscarResumen: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5,
+        paddingHorizontal: 4,
+    },
+    buscarResumenText: {
+        fontSize: 11,
+        color: '#6B7280',
+        flex: 1,
+    },
+    btnBuscar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#2563EB',
+        borderRadius: 10,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        shadowColor: '#2563EB',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 4,
+    },
+    btnBuscarDisabled: {
+        backgroundColor: '#93C5FD',
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    btnBuscarText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
+        letterSpacing: 0.5,
+    },
 
     pagination: {
         flexDirection: 'row',
