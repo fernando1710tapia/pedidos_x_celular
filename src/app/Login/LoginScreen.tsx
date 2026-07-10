@@ -2,13 +2,13 @@ import { Button, Input, Layout, Text, Icon } from '@ui-kitten/components';
 import CryptoJS from 'crypto-js';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform, StyleSheet, Linking } from 'react-native';
+import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { API_CONFIG } from '../../constants/Config';
 import { useUser } from '../../hooks';
-import { loginServices } from '../../services/Login/loginServices';
+import { loginServices, searchUserInAllEnvironments } from '../../services/Login/loginServices';
 import { loginStyles } from '../../styles';
 import { ApiResponse, UserInterface } from '../../types';
 import { RootStackParamList } from '../../types/navigation';
@@ -21,11 +21,21 @@ type FormData = {
 };
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 
+const LOGOS: Record<string, any> = {
+    '0002': require('../../../assets/logo0002.png'),
+    '0008': require('../../../assets/logo0008.png'),
+    '0095': require('../../../assets/logo0095.jpeg'),
+    '7011': require('../../../assets/logo7011.jpeg'),
+    'default': require('../../../assets/infinityOne.png')
+};
+
 export default function LoginScreen() {
     const { control, handleSubmit, formState: { errors } } = useForm<FormData>();
     const navigation = useNavigation<NavigationProps>();
     const { setUser } = useUser();
     const [secureTextEntry, setSecureTextEntry] = React.useState(true);
+    const [commercializerCode, setCommercializerCode] = React.useState<string | null>(null);
+    const [isSearchingUser, setIsSearchingUser] = React.useState(false);
     const [alertModal, setAlertModal] = React.useState({
         visible: false,
         title: '',
@@ -35,6 +45,32 @@ export default function LoginScreen() {
 
     const toggleSecureEntry = () => {
         setSecureTextEntry(!secureTextEntry);
+    };
+
+    const handleUserBlur = async (username: string) => {
+        if (!username) return;
+        setIsSearchingUser(true);
+        try {
+            const { baseUrl, user } = await searchUserInAllEnvironments(username);
+            API_CONFIG.BASE_URL = baseUrl;
+            
+            const code = user.codigocomercializadora ? String(user.codigocomercializadora).trim() : null;
+            if (code && LOGOS[code]) {
+                setCommercializerCode(code);
+            } else {
+                setCommercializerCode('default');
+            }
+        } catch (error: any) {
+            setAlertModal({
+                visible: true,
+                title: 'Usuario no encontrado',
+                message: 'No pudimos localizar este usuario en ningún ambiente.',
+                type: 'error'
+            });
+            setCommercializerCode('default');
+        } finally {
+            setIsSearchingUser(false);
+        }
     };
 
     const renderPersonIcon = (props: any) => (
@@ -142,7 +178,7 @@ export default function LoginScreen() {
                     <Layout style={loginStyles.container}>
                         <View style={loginStyles.headerContainer}>
                             <Image
-                                source={require('../../../assets/infinityOne.png')}
+                                source={commercializerCode && LOGOS[commercializerCode] ? LOGOS[commercializerCode] : LOGOS['default']}
                                 style={loginStyles.image}
                                 resizeMode="contain"
                             />
@@ -165,11 +201,16 @@ export default function LoginScreen() {
                                             placeholderTextColor="#C5CEE0"
                                             keyboardType="default"
                                             accessoryLeft={renderPersonIcon}
+                                            accessoryRight={isSearchingUser ? () => <ActivityIndicator size="small" color="#33C5F6" /> : undefined}
                                             value={value}
                                             onChangeText={onChange}
-                                            onBlur={onBlur}
+                                            onBlur={() => {
+                                                onBlur();
+                                                handleUserBlur(value);
+                                            }}
                                             status={errors.username ? 'danger' : 'basic'}
                                             textStyle={loginStyles.inputText}
+                                            disabled={isSearchingUser}
                                         />
                                     </View>
                                 )}
