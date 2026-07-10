@@ -26,6 +26,7 @@ const LOGOS: Record<string, any> = {
     '0008': require('../../../assets/logo0008.png'),
     '0095': require('../../../assets/logo0095.jpeg'),
     '7011': require('../../../assets/logo7011.jpeg'),
+    '0061': require('../../../assets/logo0061.jpeg'),
     'default': require('../../../assets/infinityOne.png')
 };
 
