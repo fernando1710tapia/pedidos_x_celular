@@ -174,7 +174,7 @@ export default function VolumenTotalScreen() {
             const tipoconsulta = activeTab === 'Nacional' ? 'n' : 't';
 
             // Comprobar si debemos comparar periodos
-            const checkCompare = isAdmin && activeTab === 'Nacional' && isComparing;
+            const checkCompare = activeTab === 'Nacional' && isComparing;
 
             if (checkCompare) {
                 // Calcular Rango B (siempre es custom ahora)
@@ -938,67 +938,43 @@ export default function VolumenTotalScreen() {
                     )}
 
                     {/* Date Selector */}
-                    {/* Date Selector */}
-                    {isAdmin ? (
-                        <View style={styles.dateRangeContainer}>
-                            <TouchableOpacity
-                                style={[styles.dateCardHalf, { marginRight: 6 }]}
-                                onPress={() => setPickerType('start')}
-                            >
-                                <View style={styles.dateLeft}>
-                                    <View style={styles.calendarIconBoxSmall}>
-                                        <Icon name="calendar-outline" size={16} color={COLORS.primary} />
-                                    </View>
-                                    <View style={styles.dateTextContainer}>
-                                        <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>FECHA DESDE</Text>
-                                        <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
-                                            {format(startDate, "dd/MM/yyyy")}
-                                        </Text>
-                                    </View>
-                                </View>
-                                <Icon name="chevron-forward" size={14} color={COLORS.gray} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.dateCardHalf, { marginLeft: 6 }]}
-                                onPress={() => setPickerType('end')}
-                            >
-                                <View style={styles.dateLeft}>
-                                    <View style={styles.calendarIconBoxSmall}>
-                                        <Icon name="calendar-outline" size={16} color={COLORS.primary} />
-                                    </View>
-                                    <View style={styles.dateTextContainer}>
-                                        <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>FECHA HASTA</Text>
-                                        <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
-                                            {format(endDate, "dd/MM/yyyy")}
-                                        </Text>
-                                    </View>
-                                </View>
-                                <Icon name="chevron-forward" size={14} color={COLORS.gray} />
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
+                    <View style={styles.dateRangeContainer}>
                         <TouchableOpacity
-                            style={styles.dateCard}
-                            onPress={() => setPickerType('single')}
+                            style={[styles.dateCardHalf, { marginRight: 6 }]}
+                            onPress={() => setPickerType('start')}
                         >
                             <View style={styles.dateLeft}>
-                                <View style={styles.calendarIconBox}>
-                                    <Icon name="calendar-outline" size={20} color={COLORS.primary} />
+                                <View style={styles.calendarIconBoxSmall}>
+                                    <Icon name="calendar-outline" size={16} color={COLORS.primary} />
                                 </View>
                                 <View style={styles.dateTextContainer}>
-                                    <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>INFORMACIÓN DE</Text>
-                                    <Text style={styles.dateText} numberOfLines={1} adjustsFontSizeToFit>
-                                        {(() => {
-                                            const str = format(startDate, "EEEE, d 'de' MMMM", { locale: es });
-                                            return str.charAt(0).toUpperCase() + str.slice(1);
-                                        })()}
+                                    <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>FECHA DESDE</Text>
+                                    <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                        {format(startDate, "dd/MM/yyyy")}
                                     </Text>
                                 </View>
                             </View>
-                            <Icon name="chevron-forward" size={20} color={COLORS.gray} />
+                            <Icon name="chevron-forward" size={14} color={COLORS.gray} />
                         </TouchableOpacity>
-                    )}
+
+                        <TouchableOpacity
+                            style={[styles.dateCardHalf, { marginLeft: 6 }]}
+                            onPress={() => setPickerType('end')}
+                        >
+                            <View style={styles.dateLeft}>
+                                <View style={styles.calendarIconBoxSmall}>
+                                    <Icon name="calendar-outline" size={16} color={COLORS.primary} />
+                                </View>
+                                <View style={styles.dateTextContainer}>
+                                    <Text style={styles.dateInfoLabel} numberOfLines={1} adjustsFontSizeToFit>FECHA HASTA</Text>
+                                    <Text style={styles.dateTextSmall} numberOfLines={1} adjustsFontSizeToFit>
+                                        {format(endDate, "dd/MM/yyyy")}
+                                    </Text>
+                                </View>
+                            </View>
+                            <Icon name="chevron-forward" size={14} color={COLORS.gray} />
+                        </TouchableOpacity>
+                    </View>
 
 
 
@@ -1026,8 +1002,8 @@ export default function VolumenTotalScreen() {
                                 <Icon name="information-circle-outline" size={20} color="#D1D5DB" />
                             </View>
 
-                            {/* Compare controls (Only for admins) */}
-                            {isAdmin && user?.codigocomercializadora === '0008' && (
+                            {/* Compare controls */}
+                            {user?.codigocomercializadora === '0008' && (
                                 <View style={styles.compareContainer}>
                                     <View style={styles.compareHeader}>
                                         <Icon name="git-compare-outline" size={18} color={isComparing ? COLORS.primary : COLORS.gray} />
