@@ -53,7 +53,7 @@ export default function LoginScreen() {
         try {
             const { baseUrl, user } = await searchUserInAllEnvironments(username);
             API_CONFIG.BASE_URL = baseUrl;
-            
+
             const code = user.codigocomercializadora ? String(user.codigocomercializadora).trim() : null;
             if (code && LOGOS[code]) {
                 setCommercializerCode(code);
@@ -250,7 +250,7 @@ export default function LoginScreen() {
                                 <Text style={loginStyles.forgotPassword}>Olvidé mi contraseña</Text>
                             </TouchableOpacity>
 
-                                <TouchableOpacity onPress={() => navigation.navigate('BorrarUsuario')}>
+                            <TouchableOpacity onPress={() => navigation.navigate('BorrarUsuario')}>
                                 <Text style={loginStyles.forgotPassword}>
                                     ¿Deseas eliminar tu usuario de InfinityMobile?
                                 </Text>
