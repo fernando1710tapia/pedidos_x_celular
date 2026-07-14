@@ -1,9 +1,11 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, ReactNode, useEffect, useState, useContext } from "react";
+import { createContext, ReactNode, useEffect, useState } from "react";
 import { UserInterface } from "../types";
-import { API_CONFIG, getBaseUrlByComercializadora } from "../constants/Config";
+import { API_CONFIG } from "../constants/Config";
 
+const SESSION_BASE_URL_KEY = 'sessionBaseUrl';
+const DEFAULT_BASE_URL = 'https://www.supertech.ec:8443/infinityone1/resources';
 
 // Define la interfaz del contexto
 interface UserContextType {
@@ -24,13 +26,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         const loadUser = async () => {
             try {
                 const storedUser = await AsyncStorage.getItem('user');
+                // Restaurar la URL del ambiente donde el usuario fue encontrado
+                // Esto es lo que fijó searchUserInAllEnvironments en el último login
+                const storedBaseUrl = await AsyncStorage.getItem(SESSION_BASE_URL_KEY);
+                if (storedBaseUrl) {
+                    API_CONFIG.BASE_URL = storedBaseUrl;
+                }
                 if (storedUser) {
                     const parsedUser = JSON.parse(storedUser);
                     setUser(parsedUser);
-                    // Actualizar API_CONFIG con la URL correspondiente a la comercializadora
-                    if (parsedUser.codigocomercializadora) {
-                        API_CONFIG.BASE_URL = getBaseUrlByComercializadora(parsedUser.codigocomercializadora);
-                    }
                 }
             } catch (error) {
                 console.error("Error loading user from AsyncStorage:", error);
@@ -44,14 +48,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         try {
             if (userData) {
                 await AsyncStorage.setItem('user', JSON.stringify(userData));
-                // Actualizar API_CONFIG cuando se guarda el usuario (ej. post-login)
-                if (userData.codigocomercializadora) {
-                    API_CONFIG.BASE_URL = getBaseUrlByComercializadora(userData.codigocomercializadora);
-                }
+                // Persistir la URL actual (ya fijada por searchUserInAllEnvironments en el onBlur)
+                // para que al reiniciar la app se restaure el mismo ambiente
+                await AsyncStorage.setItem(SESSION_BASE_URL_KEY, API_CONFIG.BASE_URL);
             } else {
                 await AsyncStorage.removeItem('user');
-                // Restaurar a desarrollo si no hay usuario
-                API_CONFIG.BASE_URL = getBaseUrlByComercializadora(null);
+                await AsyncStorage.removeItem(SESSION_BASE_URL_KEY);
+                // Restaurar URL por defecto
+                API_CONFIG.BASE_URL = DEFAULT_BASE_URL;
             }
             setUser(userData);
         } catch (error) {
@@ -59,14 +63,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-
-
     // Cerrar sesión
     const logout = async () => {
         try {
             await AsyncStorage.removeItem('user');
+            await AsyncStorage.removeItem(SESSION_BASE_URL_KEY);
             setUser(null);
-            API_CONFIG.BASE_URL = getBaseUrlByComercializadora(null);
+            // Restaurar URL por defecto al desloguear
+            API_CONFIG.BASE_URL = DEFAULT_BASE_URL;
         } catch (error) {
             console.error("Error logging out:", error);
         }

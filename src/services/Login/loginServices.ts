@@ -54,7 +54,7 @@ const searchUserInAllEnvironments = async (username: string): Promise<{ baseUrl:
     const urls = API_CONFIG.GLOBAL_URLS || [];
     if (!urls.length) throw new Error("No global URLs configured");
 
-    const promises = urls.map(async (baseUrl) => {
+    for (const baseUrl of urls) {
         const url = `${baseUrl}/ec.com.infinity.modelo.usuario/porUsuario`;
         try {
             const response = await axios.get<ApiResponse<UserInterface>>(url, {
@@ -65,17 +65,13 @@ const searchUserInAllEnvironments = async (username: string): Promise<{ baseUrl:
             if (response.data && response.data.retorno && response.data.retorno.length > 0) {
                 return { baseUrl, user: response.data.retorno[0] };
             }
-            throw new Error("User not found in this environment");
         } catch (error) {
-            throw error;
+            // Esta URL no respondió o el usuario no existe aquí → continuar con la siguiente
+            continue;
         }
-    });
-
-    try {
-        return await Promise.any(promises);
-    } catch (error) {
-        throw new Error("Usuario no encontrado en ningún ambiente.");
     }
+
+    throw new Error("Usuario no encontrado en ningún ambiente.");
 };
 
 export {loginServices, updatePassword, searchUserInAllEnvironments};
