@@ -1,8 +1,6 @@
 import axios, { AxiosResponse } from "axios";
 import { API_CONFIG } from "../../constants/Config";
 
-const PREPEDIDO_BASE_URL = "http://www.supertech.ec:8080/infinityone1/resources";
-
 export interface AutorizarPrePedidoPayload {
     detalleprepedidoPK: {
         codigoabastecedora: string;
@@ -58,7 +56,7 @@ const sendPutRequest = async <T>(url: string, body: any): Promise<T> => {
 
 const detallePrePedidoService = {
     autorizar: async <T>(body: AutorizarPrePedidoPayload): Promise<T> => {
-        const url = `${PREPEDIDO_BASE_URL}/ec.com.infinity.modelo.detalleprepedido/porId`;
+        const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.detalleprepedido/porId`;
         return sendPutRequest<T>(url, body);
     }
 };
