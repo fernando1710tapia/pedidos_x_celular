@@ -302,8 +302,8 @@ export const ListaPrePedidoScreen = () => {
         });
     }, [allClientes, clienteSearchText]);
 
-    const fetchClientNameOnce = async (codigo: string) => {
-        if (!codigo || resolvedClientName) return;
+    const fetchClientName = async (codigo: string): Promise<string> => {
+        if (!codigo) return '';
         try {
             const response = await obtenerTerminalCliente.getResource<ApiResponse<any>>(
                 'porComercializadoraCliente',
@@ -314,12 +314,12 @@ export const ListaPrePedidoScreen = () => {
                 }
             );
             if (response.retorno && response.retorno[0]) {
-                const nombre = String(response.retorno[0].nombrecomercial || response.retorno[0].nombre || '');
-                if (nombre) setResolvedClientName(nombre);
+                return String(response.retorno[0].nombrecomercial || response.retorno[0].nombre || '');
             }
         } catch (e) {
-            console.error('Error precargando nombre cliente:', e);
+            console.error('Error resolviendo nombre cliente:', e);
         }
+        return '';
     };
 
     const handleAutorizarPedido = async (np: any) => {
@@ -400,13 +400,24 @@ export const ListaPrePedidoScreen = () => {
             return;
         }
 
-        // Intentar precargar el nombre si no lo tenemos
-        if (!resolvedClientName) {
-            if (paramNombreCliente) {
-                setResolvedClientName(paramNombreCliente);
-            } else {
-                fetchClientNameOnce(codClienteToUse);
-            }
+        // BUG FIX: Calcular el nombre del cliente LOCALMENTE en esta ejecución,
+        // sin depender del estado `resolvedClientName` que puede ser stale.
+        // 1) Fuente más directa: el objeto selectedCliente ya tiene el nombre (viene del dropdown)
+        // 2) Si viene de params (navegación desde otra pantalla), usar paramNombreCliente
+        // 3) Si no hay ninguno, hacer await al API para tenerlo ANTES de normalizar los ítems
+        let localClientName =
+            paramNombreCliente ||
+            selectedCliente?.nombrecomercial ||
+            selectedCliente?.nombre ||
+            '';
+
+        if (!localClientName) {
+            localClientName = await fetchClientName(codClienteToUse);
+        }
+
+        // Persistir en el estado para el indicador de búsqueda activa
+        if (localClientName) {
+            setResolvedClientName(localClientName);
         }
 
         try {
@@ -464,11 +475,12 @@ export const ListaPrePedidoScreen = () => {
             );
 
             if (response.retorno && response.retorno.length > 0) {
+                // BUG FIX: Usar `localClientName` (ya resuelto con await) en vez del estado
+                // `resolvedClientName` que podría tener el nombre del cliente anterior.
                 let normalized = response.retorno.map((item: unknown) => {
                     const norm = normalizarItemLista(item);
-                    // Si el item no trae nombre pero tenemos el nombre resuelto para este cliente, lo aplicamos
                     if (!norm.nombreCliente && (norm.codigoCliente === codClienteToUse || !norm.codigoCliente)) {
-                        norm.nombreCliente = resolvedClientName;
+                        norm.nombreCliente = localClientName;
                     }
                     return norm;
                 });
@@ -476,39 +488,20 @@ export const ListaPrePedidoScreen = () => {
                 setListaNPs(normalized);
                 setCurrentPage(1); // Resetear paginación al buscar
 
-                // Resolver nombres de CLIENTES faltantes
+                // Resolver nombres de OTROS clientes distintos al seleccionado (si los hubiera)
                 const clientesFaltantes = [...new Set(normalized
-                    .filter(item => !item.nombreCliente && item.codigoCliente)
+                    .filter(item => !item.nombreCliente && item.codigoCliente && item.codigoCliente !== codClienteToUse)
                     .map(item => item.codigoCliente))] as string[];
 
                 clientesFaltantes.forEach(async (codigo) => {
-                    if (codigo === codClienteToUse && resolvedClientName) {
-                        setListaNPs(prev => prev.map(item =>
-                            item.codigoCliente === codigo ? { ...item, nombreCliente: resolvedClientName } : item
-                        ));
-                        return;
-                    }
-
                     try {
-                        const resp = await obtenerTerminalCliente.getResource<ApiResponse<any>>(
-                            'porComercializadoraCliente',
-                            '',
-                            {
-                                codigocomercializadora: user?.codigocomercializadora,
-                                codigo: codigo
-                            }
-                        );
-
-                        if (resp.retorno && resp.retorno[0]) {
-                            const clientData = resp.retorno[0];
-                            const nombre = String(clientData.nombrecomercial || clientData.nombre || '');
-                            if (nombre) {
-                                setListaNPs(prev => prev.map(item =>
-                                    item.codigoCliente === codigo
-                                        ? { ...item, nombreCliente: nombre }
-                                        : item
-                                ));
-                            }
+                        const nombre = await fetchClientName(codigo);
+                        if (nombre) {
+                            setListaNPs(prev => prev.map(item =>
+                                item.codigoCliente === codigo
+                                    ? { ...item, nombreCliente: nombre }
+                                    : item
+                            ));
                         }
                     } catch (e) {
                         console.error(`Error resolviendo cliente ${codigo}:`, e);
