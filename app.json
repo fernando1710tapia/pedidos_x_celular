@@ -2,7 +2,7 @@
   "expo": {
     "name": "InfinityMobile",
     "slug": "InfinityMobile",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "orientation": "portrait",
     "icon": "./assets/app-icon-resized.png",
     "userInterfaceStyle": "light",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dsas97.InfinityMobile",
-      "buildNumber": "4",
+      "buildNumber": "5",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -30,7 +30,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.dsas97.InfinityMobile",
-      "versionCode": 2,
+      "versionCode": 3,
       "usesCleartextTraffic": true
     },
     "androidStatusBar": {
