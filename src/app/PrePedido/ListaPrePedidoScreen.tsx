@@ -126,10 +126,14 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
 } => {
     const raw = (item || {}) as any;
 
+    
+
     // 1. Buscar campos de venta/generación
+    console.log("FT:: LINEA RECUPERADA:", raw.numeroPrePedido + " - "+raw.fechaventa);
     let venta = String(raw.fechaventa ?? raw.fechaVenta ?? raw.fechaGeneracion ?? raw.fechageneracion ?? raw.fecha ?? '').trim();
 
     // 2. Buscar campos de despacho/entrega
+    console.log("FT:: LINEA RECUPERADA:", raw.numeroPrePedido + " - "+raw.fechaDespacho);
     let despacho = String(raw.fechadespacho ?? raw.fechaDespacho ?? raw.fechaentrega ?? raw.fechaEntrega ?? raw.entrega ?? '').trim();
 
     // 3. Fallback: buscar cualquier cosa que parezca fecha si los campos principales fallan
@@ -158,8 +162,10 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
 
     return {
         ...raw,
-        fechaVenta: venta,
-        fechaDespacho: despacho,
+//        fechaVenta: venta,
+//        fechaDespacho: despacho,
+          fechaVenta: despacho,
+          fechaDespacho: venta,
         nombreCliente: extractName(raw.nombreCliente ?? raw.nombrecliente ?? raw.cliente),
         codigoCliente: String(raw.codigoCliente ?? raw.codigocliente ?? (raw.cliente?.codigo ?? '')),
         nombreTerminal: extractName(raw.nombreTerminal ?? raw.nombreterminal ?? raw.terminal ?? raw.estacion),

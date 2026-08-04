@@ -40,6 +40,7 @@ export default function MenuOperativoScreen() {
 
     // Verificar si el usuario tiene 8 dígitos
     const isEightDigitUser = user?.codigo ? /^\d{8}$/.test(user.codigo) : false;
+    const codigoComercializadora = user?.codigocomercializadora || '';
 
     return (
         <ScreenWrapper>
@@ -97,11 +98,13 @@ export default function MenuOperativoScreen() {
                             onPress={() => navigation.navigate('ListaNotaPedido')}
                         />
                         */}
+                         {codigoComercializadora && codigoComercializadora !== '0061'  && (
                         <MenuButton
                             title={PRE_PEDIDO_MODULE_NAME}
                             iconName="clipboard-outline"
                             onPress={() => navigation.navigate('PrePedido')}
                         />
+                    )}
                     </View>
                 </View>
 
