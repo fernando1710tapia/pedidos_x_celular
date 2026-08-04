@@ -44,7 +44,7 @@ const cleanProductName = (name: string) => {
     return clean.trim();
 };
 
-/** Parsea fechas: ISO, yyyy/MM/dd, dd/MM/yyyy, timestamp.
+/** Parsea fechas: ISO, yyyy/MM/dd, dd/MM/yyyy, dd/MM (sin año), timestamp.
  *  IMPORTANTE: Siempre crea la fecha en hora LOCAL para que
  *  isSameDay / isToday / isYesterday funcionen correctamente. */
 const parseDate = (fecha: string | number | undefined | null): Date | null => {
@@ -69,6 +69,14 @@ const parseDate = (fecha: string | number | undefined | null): Date | null => {
         if (dmy) {
             const [, d, m, y] = dmy;
             const date = new Date(Number(y), Number(m) - 1, Number(d));
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+        // DD/MM o DD-MM (sin año): asumimos el año actual
+        const dm = norm.match(/^(\d{1,2})-(\d{1,2})$/);
+        if (dm) {
+            const [, d, m] = dm;
+            const year = new Date().getFullYear();
+            const date = new Date(year, Number(m) - 1, Number(d));
             return Number.isNaN(date.getTime()) ? null : date;
         }
         const date = new Date(raw);
@@ -162,10 +170,11 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
 
     return {
         ...raw,
-//        fechaVenta: venta,
-//        fechaDespacho: despacho,
-          fechaVenta: despacho,
-          fechaDespacho: venta,
+        // ATENCIÓN: El API usa nombres invertidos.
+        // API fechaDespacho = fecha de CREACIÓN del pedido → UI campo GENERADA (norm.fechaVenta)
+        // API fechaVenta    = fecha de DESPACHO/ENTREGA   → UI campo DESPACHO (norm.fechaDespacho)
+        fechaVenta: despacho,    // norm.fechaVenta ← API fechaDespacho (creación)
+        fechaDespacho: venta,    // norm.fechaDespacho ← API fechaVenta (despacho)
         nombreCliente: extractName(raw.nombreCliente ?? raw.nombrecliente ?? raw.cliente),
         codigoCliente: String(raw.codigoCliente ?? raw.codigocliente ?? (raw.cliente?.codigo ?? '')),
         nombreTerminal: extractName(raw.nombreTerminal ?? raw.nombreterminal ?? raw.terminal ?? raw.estacion),
@@ -198,25 +207,68 @@ const resolverEtiquetaFecha = (fecha: string | number | undefined, etiquetasPerm
     // 2. Si es una fecha real o ISO, intentamos parsearla
     const date = parseDate(fecha);
     if (!date) {
-        // Fallback: si no es parseable pero es un string corto, mostrarlo (capitalizado)
+        // Fallback: si no es parseable pero es un string corto, mostrarlo tal cual
         if (val.length > 0 && val.length < 15) return val.charAt(0).toUpperCase() + val.slice(1);
         return 'Hoy';
     }
 
     const today = new Date();
-    if (isSameDay(date, today)) return etiquetasPermitidas.includes('Hoy') ? 'Hoy' : 'Hoy';
-    if (isSameDay(date, addDays(today, -1))) return etiquetasPermitidas.includes('Ayer') ? 'Ayer' : '';
-    if (isSameDay(date, addDays(today, 1))) return etiquetasPermitidas.includes('Mañana') ? 'Mañana' : '';
+    if (isSameDay(date, today)) return 'Hoy';
+    if (isSameDay(date, addDays(today, -1))) return 'Ayer';
+    if (isSameDay(date, addDays(today, 1))) return etiquetasPermitidas.includes('Mañana') ? 'Mañana' : format(date, 'dd/MM');
 
-    return 'Hoy';
+    // Para fechas más antiguas: mostrar la fecha como dd/MM
+    return format(date, 'dd/MM');
 };
 
-/** Para GENERADA: muestra siempre Hoy por defecto */
-const formatGeneradaDate = (fecha: string | undefined): string => 'Hoy';
+/** Convierte literales del API ("hoy", "mañana", "ayer") a un objeto Date real.
+ *  El API devuelve estos strings en vez de fechas concretas cuando el pedido
+ *  es muy reciente. Retorna null si el valor ya es una fecha real (dd/MM, etc.). */
+const resolverLiteralAFecha = (valor: string): Date | null => {
+    const v = valor.trim().toLowerCase();
+    const hoy = new Date();
+    if (v === 'hoy') return hoy;
+    if (v === 'ayer') return addDays(hoy, -1);
+    if (v === 'mañana' || v === 'manana') return addDays(hoy, 1);
+    return null; // No es un literal — parsear como fecha normal
+};
 
-/** Para PARA DESPACHAR: muestra "Hoy" o "Mañana" */
-const formatDespacharDate = (fecha: string | number | undefined): string =>
-    resolverEtiquetaFecha(fecha, ['Hoy', 'Mañana']);
+/** Para GENERADA:
+ *  - usarEtiquetas=true (filtro "Hoy"): muestra "Hoy" o "Ayer"
+ *  - usarEtiquetas=false (ayer / últimos X días): siempre dd/MM */
+const formatGeneradaDate = (fecha: string | undefined, usarEtiquetas: boolean): string => {
+    if (!fecha) return usarEtiquetas ? 'Hoy' : format(new Date(), 'dd/MM');
+
+    // Resolver literales del API primero
+    const literal = resolverLiteralAFecha(fecha);
+    if (literal) {
+        if (usarEtiquetas) return resolverEtiquetaFecha(fecha, ['Hoy', 'Ayer']);
+        return format(literal, 'dd/MM');
+    }
+
+    if (usarEtiquetas) return resolverEtiquetaFecha(fecha, ['Hoy', 'Ayer']);
+    const date = parseDate(fecha);
+    return date ? format(date, 'dd/MM') : format(new Date(), 'dd/MM');
+};
+
+/** Para DESPACHO:
+ *  - usarEtiquetas=true (filtro "Hoy"): muestra "Hoy" o "Mañana"
+ *  - usarEtiquetas=false (ayer / últimos X días): siempre dd/MM */
+const formatDespacharDate = (fecha: string | number | undefined, usarEtiquetas: boolean): string => {
+    if (!fecha) return usarEtiquetas ? 'Hoy' : format(new Date(), 'dd/MM');
+
+    // Resolver literales del API primero
+    const str = String(fecha).trim();
+    const literal = resolverLiteralAFecha(str);
+    if (literal) {
+        if (usarEtiquetas) return resolverEtiquetaFecha(fecha, ['Hoy', 'Mañana']);
+        return format(literal, 'dd/MM');
+    }
+
+    if (usarEtiquetas) return resolverEtiquetaFecha(fecha, ['Hoy', 'Mañana']);
+    const date = parseDate(str);
+    return date ? format(date, 'dd/MM') : format(new Date(), 'dd/MM');
+};
 
 const renderStatusPill = (value: string | undefined, isFilled: boolean) => {
     const text = value && String(value).trim() ? value : 'AUN NO';
@@ -488,6 +540,10 @@ export const ListaPrePedidoScreen = () => {
                     if (!norm.nombreCliente && (norm.codigoCliente === codClienteToUse || !norm.codigoCliente)) {
                         norm.nombreCliente = localClientName;
                     }
+                    // NOTA: NO sobreescribir fechaVenta con fechaConsulta.
+                    // Si el API no devuelve fechaVenta y cae a 'hoy', eso es correcto:
+                    // significa que el pedido fue creado hoy. formatGeneradaDate lo
+                    // formatea como la fecha real de hoy (dd/MM).
                     return norm;
                 });
 
@@ -803,12 +859,12 @@ export const ListaPrePedidoScreen = () => {
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                         <Icon name="calendar-outline" size={14} color="#6B7280" />
                                         <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280' }}>GENERADA:</Text>
-                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#111827' }}>{formatGeneradaDate(np.fechaVenta)}</Text>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#111827' }}>{formatGeneradaDate(np.fechaVenta, filtroFecha === 'Hoy')}</Text>
                                     </View>
                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                         <Icon name="calendar-outline" size={14} color="#6B7280" />
                                         <Text style={{ fontSize: 11, fontWeight: '600', color: '#6B7280' }}>DESPACHO:</Text>
-                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#111827' }}>{formatDespacharDate(np.fechaDespacho)}</Text>
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: '#111827' }}>{formatDespacharDate(np.fechaDespacho, filtroFecha === 'Hoy')}</Text>
                                     </View>
                                 </View>
 
