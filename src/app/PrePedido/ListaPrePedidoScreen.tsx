@@ -134,14 +134,14 @@ const normalizarItemLista = (item: unknown): ListaNotaPedidoInterace & {
 } => {
     const raw = (item || {}) as any;
 
-    
+
 
     // 1. Buscar campos de venta/generación
-    console.log("FT:: LINEA RECUPERADA:", raw.numeroPrePedido + " - "+raw.fechaventa);
+    console.log("FT:: LINEA RECUPERADA:", raw.numeroPrePedido + " - " + raw.fechaventa);
     let venta = String(raw.fechaventa ?? raw.fechaVenta ?? raw.fechaGeneracion ?? raw.fechageneracion ?? raw.fecha ?? '').trim();
 
     // 2. Buscar campos de despacho/entrega
-    console.log("FT:: LINEA RECUPERADA:", raw.numeroPrePedido + " - "+raw.fechaDespacho);
+    console.log("FT:: LINEA RECUPERADA:", raw.numeroPrePedido + " - " + raw.fechaDespacho);
     let despacho = String(raw.fechadespacho ?? raw.fechaDespacho ?? raw.fechaentrega ?? raw.fechaEntrega ?? raw.entrega ?? '').trim();
 
     // 3. Fallback: buscar cualquier cosa que parezca fecha si los campos principales fallan
@@ -588,7 +588,7 @@ export const ListaPrePedidoScreen = () => {
         } else if (isAdmin && !codClienteToUse) {
             setListaNPs([]);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, isAdmin, paramCodigoCliente, selectedCliente, filtroFecha]);
 
 

@@ -4,7 +4,7 @@ import { Button, Input, Layout, Text } from '@ui-kitten/components';
 import CryptoJS from 'crypto-js';
 import React, { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Alert, TouchableOpacity } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
 import { useUser } from '../../hooks';
 import { loginServices, updatePassword } from '../../services/Login/loginServices';
 import { loginStyles } from '../../styles';
@@ -92,133 +92,145 @@ export default function RecuperarClaveScreen() {
 
     return (
         <SafeLayout>
-            <Layout style={loginStyles.container}>
-                <Text style={loginStyles.title}>{titulo}</Text>
-                <Text style={loginStyles.subtitle}>{leyenda}</Text>
-                <Layout style={loginStyles.formContainer}>
-                    <Controller
-                        control={control}
-                        name="codigo"
-                        rules={{ required: 'El usuario es obligatorio' }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <Input
-                                style={loginStyles.input}
-                                label="Usuario"
-                                placeholder="Ingrese su usuario"
-                                value={user !== null && user !== undefined ? user.codigo : value}
-                                onChangeText={onChange}
-                                onBlur={onBlur}
-                                disabled={primerAcceso}
-                                status={errors.codigo ? 'danger' : 'basic'}
-                            />
-                        )}
-                    />
-                    {errors.codigo && <Text style={loginStyles.error}>{errors.codigo.message}</Text>}
-                    <Controller
-                        control={control}
-                        name="correo"
-                        rules={{
-                            required: 'El correo es obligatorio',
-                            pattern: {
-                                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                                message: 'El formato del correo no es válido',
-                            },
-                        }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <Input
-                                style={loginStyles.input}
-                                label="Correo"
-                                placeholder="Ingrese su dirección de correo"
-                                value={value}
-                                onChangeText={onChange}
-                                onBlur={onBlur}
-                                status={errors.correo ? 'danger' : 'basic'}
-                            />
-                        )}
-                    />
-                    {errors.correo && <Text style={loginStyles.error}>{errors.correo.message}</Text>}
-                    <Controller
-                        control={control}
-                        name="cedula"
-                        rules={{
-                            required: 'La cédula es obligatoria',
-                            pattern: {
-                                value: /^[0-9]{1,10}$/, // Asegura que solo números y hasta 10 dígitos
-                                message: 'La cédula solo debe contener números y máximo 10 dígitos',
-                            },
-                            maxLength: {
-                                value: 10,
-                                message: 'La cédula no puede tener más de 10 dígitos',
-                            },
-                        }}
-                        render={({ field: { onChange, onBlur, value } }) => (
-                            <Input
-                                style={loginStyles.input}
-                                label="Cédula"
-                                placeholder="Ingrese su cédula"
-                                value={value}
-                                onChangeText={onChange}
-                                onBlur={onBlur}
-                                keyboardType="numeric" // Muestra teclado numérico en móviles
-                                maxLength={10} // Limita el número de caracteres a 10
-                                status={errors.cedula ? 'danger' : 'basic'}
-                            />
-                        )}
-                    />
-                    {errors.cedula && <Text style={loginStyles.error}>{errors.cedula.message}</Text>}
-                    {datosCorrectos === false && (
-                        <Button style={loginStyles.button} onPress={handleSubmit(onVerifyUser)}>
-                            Verificar Usuario
-                        </Button>
-                    )}
-                    {datosCorrectos === true && (
-                        <>
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+            >
+                <ScrollView
+                    contentContainerStyle={{ flexGrow: 1 }}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <Layout style={loginStyles.container}>
+                        <Text style={loginStyles.title}>{titulo}</Text>
+                        <Text style={loginStyles.subtitle}>{leyenda}</Text>
+                        <Layout style={loginStyles.formContainer}>
                             <Controller
                                 control={control}
-                                name="password"
-                                rules={{ required: 'La contraseña es obligatoria' }}
+                                name="codigo"
+                                rules={{ required: 'El usuario es obligatorio' }}
                                 render={({ field: { onChange, onBlur, value } }) => (
                                     <Input
                                         style={loginStyles.input}
-                                        label="Clave"
-                                        placeholder="Nueva Clave"
-                                        secureTextEntry
-                                        value={value}
+                                        label="Usuario"
+                                        placeholder="Ingrese su usuario"
+                                        value={user !== null && user !== undefined ? user.codigo : value}
                                         onChangeText={onChange}
                                         onBlur={onBlur}
-                                        status={errors.password ? 'danger' : 'basic'}
+                                        disabled={primerAcceso}
+                                        status={errors.codigo ? 'danger' : 'basic'}
                                     />
                                 )}
                             />
-                            {errors.password && <Text style={loginStyles.error}>{errors.password.message}</Text>}
+                            {errors.codigo && <Text style={loginStyles.error}>{errors.codigo.message}</Text>}
                             <Controller
                                 control={control}
-                                name="repeatPassword"
-                                rules={{ required: 'La contraseña es obligatoria' }}
+                                name="correo"
+                                rules={{
+                                    required: 'El correo es obligatorio',
+                                    pattern: {
+                                        value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                                        message: 'El formato del correo no es válido',
+                                    },
+                                }}
                                 render={({ field: { onChange, onBlur, value } }) => (
                                     <Input
                                         style={loginStyles.input}
-                                        label="Repite tu nueva clave"
-                                        placeholder="Nueva Clave"
-                                        secureTextEntry
+                                        label="Correo"
+                                        placeholder="Ingrese su dirección de correo"
                                         value={value}
                                         onChangeText={onChange}
                                         onBlur={onBlur}
-                                        status={errors.password ? 'danger' : 'basic'}
+                                        status={errors.correo ? 'danger' : 'basic'}
                                     />
                                 )}
                             />
-                            {errors.password && <Text style={loginStyles.error}>{errors.password.message}</Text>}
-                            <Button style={loginStyles.button} onPress={handleSubmit(updatePasswordUser)}>
-                                Cambiar su clave
-                            </Button>
-                        </>
-                    )}
-                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-                        <Text style={loginStyles.forgotPassword}>Cancelar</Text>
-                    </TouchableOpacity>
-                </Layout>
-            </Layout>
+                            {errors.correo && <Text style={loginStyles.error}>{errors.correo.message}</Text>}
+                            <Controller
+                                control={control}
+                                name="cedula"
+                                rules={{
+                                    required: 'La cédula es obligatoria',
+                                    pattern: {
+                                        value: /^[0-9]{1,10}$/, // Asegura que solo números y hasta 10 dígitos
+                                        message: 'La cédula solo debe contener números y máximo 10 dígitos',
+                                    },
+                                    maxLength: {
+                                        value: 10,
+                                        message: 'La cédula no puede tener más de 10 dígitos',
+                                    },
+                                }}
+                                render={({ field: { onChange, onBlur, value } }) => (
+                                    <Input
+                                        style={loginStyles.input}
+                                        label="Cédula"
+                                        placeholder="Ingrese su cédula"
+                                        value={value}
+                                        onChangeText={onChange}
+                                        onBlur={onBlur}
+                                        keyboardType="numeric" // Muestra teclado numérico en móviles
+                                        maxLength={10} // Limita el número de caracteres a 10
+                                        status={errors.cedula ? 'danger' : 'basic'}
+                                    />
+                                )}
+                            />
+                            {errors.cedula && <Text style={loginStyles.error}>{errors.cedula.message}</Text>}
+                            {datosCorrectos === false && (
+                                <Button style={loginStyles.button} onPress={handleSubmit(onVerifyUser)}>
+                                    Verificar Usuario
+                                </Button>
+                            )}
+                            {datosCorrectos === true && (
+                                <>
+                                    <Controller
+                                        control={control}
+                                        name="password"
+                                        rules={{ required: 'La contraseña es obligatoria' }}
+                                        render={({ field: { onChange, onBlur, value } }) => (
+                                            <Input
+                                                style={loginStyles.input}
+                                                label="Clave"
+                                                placeholder="Nueva Clave"
+                                                secureTextEntry
+                                                value={value}
+                                                onChangeText={onChange}
+                                                onBlur={onBlur}
+                                                status={errors.password ? 'danger' : 'basic'}
+                                            />
+                                        )}
+                                    />
+                                    {errors.password && <Text style={loginStyles.error}>{errors.password.message}</Text>}
+                                    <Controller
+                                        control={control}
+                                        name="repeatPassword"
+                                        rules={{ required: 'La contraseña es obligatoria' }}
+                                        render={({ field: { onChange, onBlur, value } }) => (
+                                            <Input
+                                                style={loginStyles.input}
+                                                label="Repite tu nueva clave"
+                                                placeholder="Nueva Clave"
+                                                secureTextEntry
+                                                value={value}
+                                                onChangeText={onChange}
+                                                onBlur={onBlur}
+                                                status={errors.password ? 'danger' : 'basic'}
+                                            />
+                                        )}
+                                    />
+                                    {errors.password && <Text style={loginStyles.error}>{errors.password.message}</Text>}
+                                    <Button style={loginStyles.button} onPress={handleSubmit(updatePasswordUser)}>
+                                        Cambiar su clave
+                                    </Button>
+                                </>
+                            )}
+                            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                                <Text style={loginStyles.forgotPassword}>Cancelar</Text>
+                            </TouchableOpacity>
+                        </Layout>
+                    </Layout>
+                </ScrollView>
+            </KeyboardAvoidingView>
         </SafeLayout>
     );
 }
