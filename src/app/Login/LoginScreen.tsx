@@ -1,19 +1,20 @@
-import { Button, Input, Layout, Text, Icon } from '@ui-kitten/components';
+import { Button, Input, Layout, Text, Icon, IndexPath } from '@ui-kitten/components';
 import CryptoJS from 'crypto-js';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, Image, TouchableOpacity, View, TouchableWithoutFeedback, KeyboardAvoidingView, ScrollView, Platform, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import Constants from 'expo-constants';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { API_CONFIG } from '../../constants/Config';
 import { useUser } from '../../hooks';
-import { loginServices, searchUserInAllEnvironments } from '../../services/Login/loginServices';
+import { loginServices, searchUserInAllEnvironments, searchDistributorEnvironments } from '../../services/Login/loginServices';
 import { loginStyles } from '../../styles';
 import { ApiResponse, UserInterface } from '../../types';
 import { RootStackParamList } from '../../types/navigation';
 
-// Asegúrate de tener estos tipos
+// AsegÃºrate de tener estos tipos
 
 type FormData = {
     username: string;
@@ -43,6 +44,9 @@ export default function LoginScreen() {
         message: '',
         type: 'success' // 'success' o 'error'
     });
+    const [distributorEnvironments, setDistributorEnvironments] = React.useState<Array<{ baseUrl: string; name: string; codigocomercializadora: string; user: UserInterface }>>([]);
+    const [selectedEnvironmentIndex, setSelectedEnvironmentIndex] = React.useState<IndexPath | null>(null);
+    const [comboOpen, setComboOpen] = React.useState(false);
 
     const toggleSecureEntry = () => {
         setSecureTextEntry(!secureTextEntry);
@@ -51,21 +55,35 @@ export default function LoginScreen() {
     const handleUserBlur = async (username: string) => {
         if (!username) return;
         setIsSearchingUser(true);
-        try {
-            const { baseUrl, user } = await searchUserInAllEnvironments(username);
-            API_CONFIG.BASE_URL = baseUrl;
+        // Reiniciamos los estados de distribuidores por si cambian de usuario
+        setDistributorEnvironments([]);
+        setSelectedEnvironmentIndex(null);
 
-            const code = user.codigocomercializadora ? String(user.codigocomercializadora).trim() : null;
-            if (code && LOGOS[code]) {
-                setCommercializerCode(code);
+        const isEightDigitUser = /^\d{8}$/.test(username);
+
+        try {
+            if (isEightDigitUser) {
+                // Buscamos en todos los ambientes para distribuidor
+                const environments = await searchDistributorEnvironments(username);
+                setDistributorEnvironments(environments);
+                // NO cambiamos el logo todavÃ­a
             } else {
-                setCommercializerCode('default');
+                // Comportamiento original para administradores
+                const { baseUrl, user } = await searchUserInAllEnvironments(username);
+                API_CONFIG.BASE_URL = baseUrl;
+
+                const code = user.codigocomercializadora ? String(user.codigocomercializadora).trim() : null;
+                if (code && LOGOS[code]) {
+                    setCommercializerCode(code);
+                } else {
+                    setCommercializerCode('default');
+                }
             }
         } catch (error: any) {
             setAlertModal({
                 visible: true,
                 title: 'Usuario no encontrado',
-                message: 'No pudimos localizar este usuario en ningún ambiente.',
+                message: 'No pudimos localizar este usuario en ningÃºn ambiente.',
                 type: 'error'
             });
             setCommercializerCode('default');
@@ -100,7 +118,25 @@ export default function LoginScreen() {
 
     const onLogin = async (data: FormData) => {
         try {
-            // Encripta la contraseña con SHA-256
+            const isEightDigitUser = /^\d{8}$/.test(data.username);
+
+            if (isEightDigitUser) {
+                if (distributorEnvironments.length > 0 && !selectedEnvironmentIndex) {
+                    setAlertModal({
+                        visible: true,
+                        title: 'SelecciÃ³n Requerida',
+                        message: 'Debe seleccionar una comercializadora de la lista antes de continuar.',
+                        type: 'error'
+                    });
+                    return;
+                }
+
+                if (selectedEnvironmentIndex) {
+                    API_CONFIG.BASE_URL = distributorEnvironments[selectedEnvironmentIndex.row].baseUrl;
+                }
+            }
+
+            // Encripta la contraseÃ±a con SHA-256
             const encryptedPassword = CryptoJS.SHA256(data.password).toString(CryptoJS.enc.Hex);
 
             const response = await loginServices.getResource<ApiResponse<UserInterface>>(
@@ -131,7 +167,7 @@ export default function LoginScreen() {
                         setAlertModal({
                             visible: true,
                             title: 'Aviso',
-                            message: 'Su usuario no tiene comercializadora asignada. No podrá generar ni revisar pedidos hasta que un administrador le asigne una. Contacte al administrador.',
+                            message: 'Su usuario no tiene comercializadora asignada. No podrÃ¡ generar ni revisar pedidos hasta que un administrador le asigne una. Contacte al administrador.',
                             type: 'error'
                         });
                     }
@@ -218,6 +254,74 @@ export default function LoginScreen() {
                             />
                             {errors.username && <Text style={loginStyles.error}>{errors.username.message}</Text>}
 
+                            {distributorEnvironments.length > 0 && (
+                                <View style={{ marginBottom: 15 }}>
+                                    <Text style={loginStyles.label}>Comercializadora:</Text>
+                                    <TouchableOpacity
+                                        style={[loginStyles.input, {
+                                            paddingHorizontal: 20,
+                                            minHeight: 48,
+                                            borderWidth: 0,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between'
+                                        }]}
+                                        onPress={() => setComboOpen(!comboOpen)}
+                                    >
+                                        <Text style={{ color: selectedEnvironmentIndex ? '#1A2138' : '#C5CEE0', fontSize: 15, fontWeight: selectedEnvironmentIndex ? '600' : '400' }}>
+                                            {selectedEnvironmentIndex ? distributorEnvironments[selectedEnvironmentIndex.row].name : 'Seleccione una opción'}
+                                        </Text>
+                                        <Icon name={comboOpen ? 'arrow-ios-upward' : 'arrow-ios-downward'} fill="#B0B8C8" style={{ width: 20, height: 20 }} />
+                                    </TouchableOpacity>
+
+                                    {comboOpen && (
+                                        <View style={{
+                                            backgroundColor: '#fff',
+                                            borderRadius: 20,
+                                            marginTop: -10,
+                                            marginBottom: 10,
+                                            overflow: 'hidden',
+                                            shadowColor: '#000',
+                                            shadowOffset: { width: 0, height: 4 },
+                                            shadowOpacity: 0.05,
+                                            shadowRadius: 10,
+                                            elevation: 2,
+                                        }}>
+                                            {distributorEnvironments.map((env, index) => (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={{
+                                                        paddingVertical: 14,
+                                                        paddingHorizontal: 20,
+                                                        backgroundColor: selectedEnvironmentIndex?.row === index ? '#F2F8FF' : '#fff',
+                                                        borderBottomWidth: index === distributorEnvironments.length - 1 ? 0 : 1,
+                                                        borderBottomColor: '#F3F4F6'
+                                                    }}
+                                                    onPress={() => {
+                                                        setSelectedEnvironmentIndex({ row: index } as IndexPath);
+                                                        setComboOpen(false);
+                                                        const code = env.codigocomercializadora;
+                                                        if (code && LOGOS[code]) {
+                                                            setCommercializerCode(code);
+                                                        } else {
+                                                            setCommercializerCode('default');
+                                                        }
+                                                    }}
+                                                >
+                                                    <Text style={{
+                                                        color: selectedEnvironmentIndex?.row === index ? '#3366FF' : '#4B5563',
+                                                        fontSize: 15,
+                                                        fontWeight: selectedEnvironmentIndex?.row === index ? 'bold' : 'normal'
+                                                    }}>
+                                                        {env.name}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+
                             <Controller
                                 control={control}
                                 name="password"
@@ -264,6 +368,9 @@ export default function LoginScreen() {
                             </TouchableOpacity> */}
 
                         </Layout>
+                        <Text style={[loginStyles.subtitle, { marginTop: 20, fontSize: 12 }]}>
+                            VersiÃ³n {Constants.expoConfig?.version || '1.0.0'}
+                        </Text>
                     </Layout>
                 </ScrollView>
             </KeyboardAvoidingView>
