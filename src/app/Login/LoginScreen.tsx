@@ -369,7 +369,7 @@ export default function LoginScreen() {
 
                         </Layout>
                         <Text style={[loginStyles.subtitle, { marginTop: 20, fontSize: 12 }]}>
-                            VersiÃ³n {Constants.expoConfig?.version || '1.0.0'}
+                            Versión {Constants.expoConfig?.version || '1.0.0'}
                         </Text>
                     </Layout>
                 </ScrollView>
@@ -409,7 +409,11 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
     modalOverlay: {
-        ...StyleSheet.absoluteFillObject,
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',
