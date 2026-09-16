@@ -10,7 +10,7 @@ import {
     ScrollView,
     Text,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import { format, parseISO, isToday, isYesterday, addDays, isSameDay } from 'date-fns';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';

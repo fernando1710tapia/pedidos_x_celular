@@ -4,7 +4,7 @@ import { Button, Input, Layout, Text } from '@ui-kitten/components';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Alert, TouchableOpacity, StyleSheet, View, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 
 import { loginServices } from '../../services/Login/loginServices';
 import { loginStyles } from '../../styles';

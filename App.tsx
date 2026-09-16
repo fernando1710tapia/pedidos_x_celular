@@ -9,7 +9,10 @@ import { LogBox } from 'react-native';
 import LoginScreen from './src/app/Login/LoginScreen';
 
 // Ignorar advertencias específicas de UI Kitten que son ruidosas pero no fatales
-LogBox.ignoreLogs(['Cannot update during an existing state transition']);
+LogBox.ignoreLogs([
+  'Cannot update during an existing state transition',
+  'InteractionManager has been deprecated',
+]);
 import NotaPedidoScreen from './src/app/NotaPedido/NotaPedidoScreen';
 import PrePedidoScreen from './src/app/PrePedido/PrePedidoScreen';
 import { ThemeProvider } from './src/components/theme';

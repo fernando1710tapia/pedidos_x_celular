@@ -14,7 +14,7 @@ import {
 import { Layout, Text, Button, Datepicker, Icon as KittenIcon, NativeDateService } from '@ui-kitten/components';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ScreenWrapper from '../../components/ScreenWrapper';

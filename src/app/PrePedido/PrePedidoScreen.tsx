@@ -3,9 +3,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Input, Layout, Text, useTheme } from '@ui-kitten/components';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, TouchableOpacity, View, Image, ScrollView, TextInput } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
+import { useFeatures } from '../../hooks/useFeatures';
 import obtenerComercializadoraCliente from '../../services/Comercializadora/comercializadoraServices';
 import { crearNotaPedido } from '../../services/NotaPedido/notaPedidoServices';
 import { crearPrePedido } from '../../services/PrePedido/prePedidoServices';
@@ -25,6 +26,7 @@ import { PRE_PEDIDO_MODULE_NAME } from '../../config/constants';
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function PrePedidoScreen() {
+    const features = useFeatures();
     const [cantidadExtra, setCantidadExtra] = useState<number>(0);
     const [cantidadSuper, setCantidadSuper] = useState<number>(0);
     const [cantidadDiesel, setCantidadDiesel] = useState<number>(0);
@@ -723,13 +725,15 @@ export default function PrePedidoScreen() {
                     title={PRE_PEDIDO_MODULE_NAME.toUpperCase()}
                     onBackPress={() => navigation.goBack()}
                     rightElement={
-                        <TouchableOpacity
-                            onPress={() => {
-                                navigation.navigate('ListaPrePedido', {});
-                            }}
-                        >
-                            <Icon name="eye-outline" size={28} color="#9CA3AF" />
-                        </TouchableOpacity>
+                        features.mostrarOjitoListadoPrePedidos ? (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    navigation.navigate('ListaPrePedido', {});
+                                }}
+                            >
+                                <Icon name="eye-outline" size={28} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        ) : undefined
                     }
                 />
 

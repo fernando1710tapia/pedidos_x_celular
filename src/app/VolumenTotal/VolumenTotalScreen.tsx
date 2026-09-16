@@ -8,7 +8,7 @@ import {
     Platform,
 } from 'react-native';
 import { Layout, Text, Icon as KittenIcon, Calendar, Card, NativeDateService, Input } from '@ui-kitten/components';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import { Svg, Circle, G, Path, Text as SvgText, TSpan } from 'react-native-svg';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';

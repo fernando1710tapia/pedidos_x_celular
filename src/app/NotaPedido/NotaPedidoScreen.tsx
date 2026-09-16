@@ -3,9 +3,10 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { Button, Input, Layout, Text, useTheme } from '@ui-kitten/components';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, TouchableOpacity, View, Image, ScrollView } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { useUser } from '../../hooks';
+import { useFeatures } from '../../hooks/useFeatures';
 import obtenerComercializadoraCliente from '../../services/Comercializadora/comercializadoraServices';
 import { crearNotaPedido } from '../../services/NotaPedido/notaPedidoServices';
 import ProductoServices from '../../services/Producto/productoServices';
@@ -26,6 +27,7 @@ import AppHeader from '../../components/AppHeader';
 type NavigationProps = StackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function NotaPedido() {
+    const features = useFeatures();
     const [cantidad, setCantidad] = useState<number>(0);
     const { user, logout } = useUser();
     const CheckIcon = (props: any) => (
@@ -766,20 +768,22 @@ export default function NotaPedido() {
                     title="GENERAR PEDIDO"
                     onBackPress={() => navigation.goBack()}
                     rightElement={
-                        <TouchableOpacity
-                            onPress={() => {
-                                if (isAdmin && selectedCliente) {
-                                    navigation.navigate('ListaNotaPedido', {
-                                        codigocliente: selectedCliente.codigo,
-                                        nombreCliente: selectedCliente.nombrecomercial || selectedCliente.nombre
-                                    });
-                                } else {
-                                    navigation.navigate('ListaNotaPedido', {});
-                                }
-                            }}
-                        >
-                            <Icon name="eye-outline" size={28} color="#9CA3AF" />
-                        </TouchableOpacity>
+                        features.mostrarOjitoListadoPedidos ? (
+                            <TouchableOpacity
+                                onPress={() => {
+                                    if (isAdmin && selectedCliente) {
+                                        navigation.navigate('ListaNotaPedido', {
+                                            codigocliente: selectedCliente.codigo,
+                                            nombreCliente: selectedCliente.nombrecomercial || selectedCliente.nombre
+                                        });
+                                    } else {
+                                        navigation.navigate('ListaNotaPedido', {});
+                                    }
+                                }}
+                            >
+                                <Icon name="eye-outline" size={28} color="#9CA3AF" />
+                            </TouchableOpacity>
+                        ) : undefined
                     }
                 />
 

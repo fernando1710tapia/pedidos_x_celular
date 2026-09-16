@@ -3,7 +3,7 @@ import { StyleSheet, View, Image, TouchableOpacity, Alert } from 'react-native';
 import { Layout, Text } from '@ui-kitten/components';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/Ionicons';
+import { Ionicons as Icon } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { RootStackParamList } from '../../types/navigation';
 import { useUser } from '../../hooks';
