@@ -83,7 +83,7 @@ export default function LoginScreen() {
             setAlertModal({
                 visible: true,
                 title: 'Usuario no encontrado',
-                message: 'No pudimos localizar este usuario en ningÃºn ambiente.',
+                message: 'No pudimos localizar este usuario en ningún ambiente.',
                 type: 'error'
             });
             setCommercializerCode('default');
@@ -124,7 +124,7 @@ export default function LoginScreen() {
                 if (distributorEnvironments.length > 0 && !selectedEnvironmentIndex) {
                     setAlertModal({
                         visible: true,
-                        title: 'SelecciÃ³n Requerida',
+                        title: 'Selección Requerida',
                         message: 'Debe seleccionar una comercializadora de la lista antes de continuar.',
                         type: 'error'
                     });

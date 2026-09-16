@@ -1152,7 +1152,7 @@ export default function NotaPedido() {
                             petroModal.type === 'warning' && { backgroundColor: '#F59E0B' }
                         ]}>
                             <Icon
-                                name={petroModal.type === 'success' ? "checkmark" : petroModal.type === 'error' ? "close" : "alert-triangle"}
+                                name={petroModal.type === 'success' ? "checkmark" : petroModal.type === 'error' ? "close" : "warning"}
                                 size={40}
                                 color="#FFFFFF"
                             />

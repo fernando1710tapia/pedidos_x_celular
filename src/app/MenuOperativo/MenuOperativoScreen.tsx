@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Image, TouchableOpacity, Alert } from 'react-native';
 import { Layout, Text } from '@ui-kitten/components';
 import { useNavigation } from '@react-navigation/native';
@@ -10,12 +10,17 @@ import { useUser } from '../../hooks';
 import BrandLogo from '../../components/BrandLogo';
 import AppHeader from '../../components/AppHeader';
 import { PRE_PEDIDO_MODULE_NAME } from '../../config/constants';
+import { getActiveFeatures } from '../../config/features';
+import obtenerComercializadoraCliente from '../../services/Comercializadora/comercializadoraServices';
+import { ApiResponse, ComercializadoraInterface } from '../../types';
 
 type NavigationProps = StackNavigationProp<RootStackParamList, 'MenuOperativo'>;
 
 export default function MenuOperativoScreen() {
     const navigation = useNavigation<NavigationProps>();
     const { user, logout } = useUser();
+    const [comercializadora, setComercializadora] = useState<ComercializadoraInterface | null>(null);
+    const features = getActiveFeatures();
 
     const onLogout = async () => {
         await logout();
@@ -25,9 +30,9 @@ export default function MenuOperativoScreen() {
         });
     }
 
-    const MenuButton = ({ title, iconName, onPress, disabled = false }: { title: string, iconName: string, onPress: () => void, disabled?: boolean }) => (
+    const MenuButton = ({ title, iconName, onPress, disabled = false }: { title: string, iconName: React.ComponentProps<typeof Icon>['name'], onPress: () => void, disabled?: boolean }) => (
         <TouchableOpacity
-            style={[styles.menuButton, disabled && styles.menuButtonDisabled]}
+            style={[styles.menuButton, { marginBottom: 20 }, disabled && styles.menuButtonDisabled]}
             onPress={disabled ? undefined : onPress}
             disabled={disabled}
         >
@@ -38,9 +43,30 @@ export default function MenuOperativoScreen() {
         </TouchableOpacity>
     );
 
-    // Verificar si el usuario tiene 8 dígitos
-    const isEightDigitUser = user?.codigo ? /^\d{8}$/.test(user.codigo) : false;
     const codigoComercializadora = user?.codigocomercializadora || '';
+
+    useEffect(() => {
+        const handleGetComer = async () => {
+            if (!codigoComercializadora || codigoComercializadora.trim() === '') {
+                return;
+            }
+            try {
+                const response = await obtenerComercializadoraCliente.getResource<ApiResponse<ComercializadoraInterface>>(
+                    'porId',
+                    '',
+                    { codigo: codigoComercializadora }
+                );
+                if (response.retorno !== null && response.retorno !== undefined) {
+                    setComercializadora(response.retorno[0]);
+                }
+            } catch (error: any) {
+                console.error('Error fetching comercializadora:', error);
+            }
+        };
+        handleGetComer();
+    }, [codigoComercializadora]);
+
+    const allowedMenus = comercializadora?.menuapp ? comercializadora.menuapp.split(';') : [];
 
     return (
         <ScreenWrapper>
@@ -62,50 +88,35 @@ export default function MenuOperativoScreen() {
                 </View>
 
                 {/* Grid de Botones */}
-                <View style={styles.gridContainer}>
-                    <View style={styles.gridRow}>
+                <View style={[styles.gridContainer, { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignContent: 'flex-start' }]}>
+                    {allowedMenus.includes('NotaPedido') && (
                         <MenuButton
                             title="Genera tu pedido"
                             iconName="cart-outline"
                             onPress={() => navigation.navigate('NotaPedido')}
                         />
-                        {isEightDigitUser ? (
-                            <MenuButton
-                                title="Valida tus sellos"
-                                iconName="checkmark-done-circle-outline"
-                                onPress={() => navigation.navigate('ValidaSellos')}
-                            />
-                        ) : (
-                            <MenuButton
-                                title="Observa el volumen total"
-                                iconName="bar-chart-outline"
-                                onPress={() => navigation.navigate('VolumenTotal')}
-                            />
-                        )}
-                    </View>
-                    <View style={styles.gridRow}>
-                        {isEightDigitUser && (
-                            <MenuButton
-                                title="Observa el volumen total"
-                                iconName="bar-chart-outline"
-                                onPress={() => navigation.navigate('VolumenTotal')}
-                            />
-                        )}
-                        {/* 
+                    )}
+                    {allowedMenus.includes('ValidaSellos') && (
                         <MenuButton
-                            title="Revisa tus pedidos"
-                            iconName="eye-outline"
-                            onPress={() => navigation.navigate('ListaNotaPedido')}
+                            title="Valida tus sellos"
+                            iconName="checkmark-done-circle-outline"
+                            onPress={() => navigation.navigate('ValidaSellos')}
                         />
-                        */}
-                         {codigoComercializadora && codigoComercializadora !== '0061'  && (
+                    )}
+                    {allowedMenus.includes('VolumenTotal') && (
+                        <MenuButton
+                            title="Observa el volumen total"
+                            iconName="bar-chart-outline"
+                            onPress={() => navigation.navigate('VolumenTotal')}
+                        />
+                    )}
+                    {allowedMenus.includes('PrePedido') && features.habilitarMenuPrePedido && (
                         <MenuButton
                             title={PRE_PEDIDO_MODULE_NAME}
                             iconName="clipboard-outline"
                             onPress={() => navigation.navigate('PrePedido')}
                         />
                     )}
-                    </View>
                 </View>
 
                 {/* Footer con Botón Salir y Branding Infinity */}

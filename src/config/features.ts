@@ -15,12 +15,14 @@ export enum Company {
 export interface AppFeatures {
     mostrarOjitoListadoPedidos: boolean;
     mostrarOjitoListadoPrePedidos: boolean;
+    habilitarMenuPrePedido: boolean;
 }
 
 // Configuración por defecto para empresas no mapeadas o desconocidas
 const defaultFeatures: AppFeatures = {
     mostrarOjitoListadoPedidos: true,
     mostrarOjitoListadoPrePedidos: true,
+    habilitarMenuPrePedido: true,
 };
 
 // Diccionario de configuración por empresa
@@ -29,10 +31,12 @@ export const FEATURE_FLAGS: Record<Company, AppFeatures> = {
     [Company.PYS]: {
         mostrarOjitoListadoPedidos: false,
         mostrarOjitoListadoPrePedidos: false,
+        habilitarMenuPrePedido: false,
     },
     [Company.PETROLRIOS]: {
         mostrarOjitoListadoPedidos: true,
         mostrarOjitoListadoPrePedidos: true,
+        habilitarMenuPrePedido: true,
     },
     [Company.COMBUSTIBLES]: {
         ...defaultFeatures

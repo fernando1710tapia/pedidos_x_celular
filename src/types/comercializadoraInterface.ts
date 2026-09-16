@@ -46,6 +46,7 @@ export interface ComercializadoraInterface {
   notapedidoList: NotaPedidoInterface[]
   generasolicitud?: boolean
   generapedidodirecto?: boolean
+  menuapp?: string | null;
 }
 
 export interface BancoComerInterface {
