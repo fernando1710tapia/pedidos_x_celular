@@ -16,6 +16,7 @@ export interface AppFeatures {
     mostrarOjitoListadoPedidos: boolean;
     mostrarOjitoListadoPrePedidos: boolean;
     habilitarMenuPrePedido: boolean;
+    validarTerminalCerrada: boolean;
 }
 
 // Configuración por defecto para empresas no mapeadas o desconocidas
@@ -23,6 +24,7 @@ const defaultFeatures: AppFeatures = {
     mostrarOjitoListadoPedidos: true,
     mostrarOjitoListadoPrePedidos: true,
     habilitarMenuPrePedido: true,
+    validarTerminalCerrada: false,
 };
 
 // Diccionario de configuración por empresa
@@ -32,11 +34,13 @@ export const FEATURE_FLAGS: Record<Company, AppFeatures> = {
         mostrarOjitoListadoPedidos: false,
         mostrarOjitoListadoPrePedidos: false,
         habilitarMenuPrePedido: false,
+        validarTerminalCerrada: true,
     },
     [Company.PETROLRIOS]: {
         mostrarOjitoListadoPedidos: true,
         mostrarOjitoListadoPrePedidos: true,
         habilitarMenuPrePedido: true,
+        validarTerminalCerrada: false,
     },
     [Company.COMBUSTIBLES]: {
         ...defaultFeatures

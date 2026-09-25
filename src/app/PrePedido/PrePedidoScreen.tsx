@@ -560,7 +560,7 @@ export default function PrePedidoScreen() {
                 return;
             }
 
-            if (terminal && terminal.recibirsolicitud === false) {
+            if (features.validarTerminalCerrada && terminal && terminal.recibirsolicitud === false) {
                 setErrorMessage('No se pueden generar prepedidos en esta terminal porque se encuentra temporalmente cerrada.');
                 setShowErrorModal(true);
                 return;
@@ -935,11 +935,11 @@ export default function PrePedidoScreen() {
                                                                                 styles.clienteDropdownItem,
                                                                                 selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
                                                                             ]}
-                                                                            disabled={term.recibirsolicitud === false}
+                                                                            disabled={features.validarTerminalCerrada && term.recibirsolicitud === false}
                                                                             onPress={() => handleSelectTerminal(term)}
                                                                         >
-                                                                            <Text style={[styles.clienteDropdownItemText, term.recibirsolicitud === false && { color: '#9CA3AF' }]}>
-                                                                                {term.codigo} - {term.nombre}{term.recibirsolicitud === false ? ' (Cerrada)' : ''}
+                                                                            <Text style={[styles.clienteDropdownItemText, features.validarTerminalCerrada && term.recibirsolicitud === false && { color: '#9CA3AF' }]}>
+                                                                                {term.codigo} - {term.nombre}{(features.validarTerminalCerrada && term.recibirsolicitud === false) ? ' (Cerrada)' : ''}
                                                                             </Text>
                                                                         </TouchableOpacity>
                                                                     ))
