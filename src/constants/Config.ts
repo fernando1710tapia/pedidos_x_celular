@@ -8,15 +8,15 @@ export const API_CONFIG = {
 
 
    // FT. GLOBAL. LOS // CIERRAN URLS PARA BUSCAR . LAS DE DESARROLLO HABILITADAS SE CONECTAN
-   // A DESARROLLO
+   // A DESARROLLO 
    // todas prendidas, puede entrar con usuarios de produ y desarrollo 
     GLOBAL_URLS: [
         'https://infinity.petroleosyservicios.com:8443/infinityone1/resources',
         'https://infinity.petrolrios.ec:8443/infinityone1/resources',
         'https://infinity.combustibles.com.ec:8443/infinityone1/resources',
         'https://infinity.secsacombustibles.ec:8443/infinityone1/resources',
-        //'http://www.supertech.ec:8080/infinityone1/resources',
-        //'https://www.supertech.ec:8443/infinityone1/resources'
+        'http://www.supertech.ec:8080/infinityone1/resources',
+        'https://www.supertech.ec:8443/infinityone1/resources'
     ],
     TIMEOUT: 4000,
     HEADERS: {
