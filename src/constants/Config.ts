@@ -11,8 +11,8 @@ export const API_CONFIG = {
         'https://infinity.petrolrios.ec:8443/infinityone1/resources',
         'https://infinity.combustibles.com.ec:8443/infinityone1/resources',
         'https://infinity.secsacombustibles.ec:8443/infinityone1/resources',
-        //'http://www.supertech.ec:8080/infinityone1/resources',
-        //'https://www.supertech.ec:8443/infinityone1/resources'
+        'http://www.supertech.ec:8080/infinityone1/resources',
+        'https://www.supertech.ec:8443/infinityone1/resources'
     ],
     TIMEOUT: 4000,
     HEADERS: {

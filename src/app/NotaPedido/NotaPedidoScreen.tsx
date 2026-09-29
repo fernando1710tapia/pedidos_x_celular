@@ -68,8 +68,8 @@ export default function NotaPedido() {
     const [showClienteDropdown, setShowClienteDropdown] = useState<boolean>(false);
     const [clienteSearchText, setClienteSearchText] = useState<string>('');
     // Terminal combo (admin): lista de terminales del cliente seleccionado
-    const [terminalesList, setTerminalesList] = useState<{ codigo: string; nombre: string }[]>([]);
-    const [selectedTerminal, setSelectedTerminal] = useState<{ codigo: string; nombre: string } | null>(null);
+    const [terminalesList, setTerminalesList] = useState<{ codigo: string; nombre: string; recibirsolicitud?: boolean }[]>([]);
+    const [selectedTerminal, setSelectedTerminal] = useState<{ codigo: string; nombre: string; recibirsolicitud?: boolean } | null>(null);
     const [showTerminalDropdown, setShowTerminalDropdown] = useState<boolean>(false);
     const [terminalSearchText, setTerminalSearchText] = useState<string>('');
     const [loadingTerminales, setLoadingTerminales] = useState<boolean>(false);
@@ -233,7 +233,7 @@ export default function NotaPedido() {
         // Poblar combo de terminales con la terminal por defecto del cliente (cuando exista API de varias terminales, añadir aquí)
         const def = cliente.codigoterminaldefecto;
         if (def?.codigo && def?.nombre != null) {
-            const defaultTerm = { codigo: def.codigo, nombre: def.nombre };
+            const defaultTerm = { codigo: def.codigo, nombre: def.nombre, recibirsolicitud: def.recibirsolicitud };
             setTerminalesList([defaultTerm]);
             setSelectedTerminal(defaultTerm);
         } else {
@@ -263,15 +263,16 @@ export default function NotaPedido() {
     };
 
     // Al cambiar la terminal en el combo (admin)
-    const handleSelectTerminal = (term: { codigo: string; nombre: string }) => {
+    const handleSelectTerminal = (term: { codigo: string; nombre: string; recibirsolicitud?: boolean }) => {
         setSelectedTerminal(term);
         setShowTerminalDropdown(false);
         setTerminalSearchText('');
         setTerminalName(term.nombre);
-        setTerminal((prev) => prev ? { ...prev, codigo: term.codigo, nombre: term.nombre } : {
+        setTerminal((prev) => prev ? { ...prev, codigo: term.codigo, nombre: term.nombre, recibirsolicitud: term.recibirsolicitud ?? true } : {
             codigo: term.codigo,
             nombre: term.nombre,
             activo: true,
+            recibirsolicitud: term.recibirsolicitud ?? true,
             usuarioactual: user?.nombrever ?? '',
             notapedidoList: [],
             clienteList: [],
@@ -283,18 +284,18 @@ export default function NotaPedido() {
         if (!selectedCliente) return;
         const defaultTerm = selectedCliente.codigoterminaldefecto;
         const fallbackList = defaultTerm?.codigo != null && defaultTerm?.nombre != null
-            ? [{ codigo: defaultTerm.codigo, nombre: defaultTerm.nombre }]
+            ? [{ codigo: defaultTerm.codigo, nombre: defaultTerm.nombre, recibirsolicitud: defaultTerm.recibirsolicitud }]
             : [];
 
         setLoadingTerminales(true);
         try {
-            const response = await terminalService.getResource<ApiResponse<Array<{ codigo: string; nombre: string }>>>(
+            const response = await terminalService.getResource<ApiResponse<Array<{ codigo: string; nombre: string; recibirsolicitud?: boolean }>>>(
                 '',
                 '',
                 {}
             );
             const list = response?.retorno && Array.isArray(response.retorno)
-                ? response.retorno.map((t: any) => ({ codigo: String(t?.codigo ?? ''), nombre: String(t?.nombre ?? '') })).filter((t) => t.codigo)
+                ? response.retorno.map((t: any) => ({ codigo: String(t?.codigo ?? ''), nombre: String(t?.nombre ?? ''), recibirsolicitud: t?.recibirsolicitud })).filter((t) => t.codigo)
                 : fallbackList;
             const uniq = list.length ? list : fallbackList;
             const seen = new Set<string>();
@@ -520,6 +521,7 @@ export default function NotaPedido() {
                 codigo: terminalDefecto.codigo,
                 nombre: terminalCli.nombre ?? '',
                 activo: terminalCli.estado ?? false,
+                recibirsolicitud: terminalDefecto.recibirsolicitud ?? true,
                 usuarioactual: user?.nombrever ?? '',
                 notapedidoList: notaPedidoList,
                 clienteList: clienteList,
@@ -563,6 +565,11 @@ export default function NotaPedido() {
     const handleSubmit = async () => {
         try {
             // Validar que se haya seleccionado un cliente si es administrador
+            if (features.validarTerminalCerrada && terminal && terminal.recibirsolicitud === false) {
+                Alert.alert('Aviso', 'No se pueden generar pedidos en esta terminal porque se encuentra temporalmente cerrada.');
+                return;
+            }
+
             if (isAdmin && !selectedCliente) {
                 Alert.alert("Error", "Debe seleccionar un cliente primero");
                 return;
@@ -975,6 +982,7 @@ export default function NotaPedido() {
                                                                     filteredTerminales.map((term, index) => (
                                                                         <TouchableOpacity
                                                                             key={term.codigo ?? index}
+                                                                            disabled={features.validarTerminalCerrada && term.recibirsolicitud === false}
                                                                             style={[
                                                                                 styles.clienteDropdownItem,
                                                                                 selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
@@ -982,7 +990,7 @@ export default function NotaPedido() {
                                                                             onPress={() => handleSelectTerminal(term)}
                                                                         >
                                                                             <Text style={styles.clienteDropdownItemText}>
-                                                                                {term.codigo} - {term.nombre}
+                                                                                {term.codigo} - {term.nombre}{(features.validarTerminalCerrada && term.recibirsolicitud === false) ? ' (Cerrada)' : ''}
                                                                             </Text>
                                                                         </TouchableOpacity>
                                                                     ))
@@ -1674,3 +1682,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#10B981',
     },
 });
+
+
+
+
