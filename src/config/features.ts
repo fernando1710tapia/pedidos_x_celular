@@ -24,7 +24,7 @@ const defaultFeatures: AppFeatures = {
     mostrarOjitoListadoPedidos: true,
     mostrarOjitoListadoPrePedidos: true,
     habilitarMenuPrePedido: true,
-    validarTerminalCerrada: false,
+    validarTerminalCerrada: true,
 };
 
 // Diccionario de configuración por empresa
