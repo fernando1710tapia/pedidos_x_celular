@@ -68,8 +68,8 @@ export default function PrePedidoScreen() {
     const [showClienteDropdown, setShowClienteDropdown] = useState<boolean>(false);
     const [clienteSearchText, setClienteSearchText] = useState<string>('');
     // Terminal combo (admin): lista de terminales del cliente seleccionado
-    const [terminalesList, setTerminalesList] = useState<{ codigo: string; nombre: string }[]>([]);
-    const [selectedTerminal, setSelectedTerminal] = useState<{ codigo: string; nombre: string } | null>(null);
+    const [terminalesList, setTerminalesList] = useState<{ codigo: string; nombre: string; recibirsolicitud?: boolean }[]>([]);
+    const [selectedTerminal, setSelectedTerminal] = useState<{ codigo: string; nombre: string; recibirsolicitud?: boolean } | null>(null);
     const [showTerminalDropdown, setShowTerminalDropdown] = useState<boolean>(false);
     const [terminalSearchText, setTerminalSearchText] = useState<string>('');
     const [loadingTerminales, setLoadingTerminales] = useState<boolean>(false);
@@ -88,6 +88,8 @@ export default function PrePedidoScreen() {
     // Sin comercializadora asignada: no se hacen llamadas al API
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     // Función para obtener la fecha en formato "YYYY-MM-DDTHH:mm:ssZ"
     const formatDate = (date: Date): string => {
@@ -228,7 +230,7 @@ export default function PrePedidoScreen() {
         // Poblar combo de terminales con la terminal por defecto del cliente (cuando exista API de varias terminales, añadir aquí)
         const def = cliente.codigoterminaldefecto;
         if (def?.codigo && def?.nombre != null) {
-            const defaultTerm = { codigo: def.codigo, nombre: def.nombre };
+            const defaultTerm = { codigo: def.codigo, nombre: def.nombre, recibirsolicitud: def.recibirsolicitud };
             setTerminalesList([defaultTerm]);
             setSelectedTerminal(defaultTerm);
         } else {
@@ -258,15 +260,16 @@ export default function PrePedidoScreen() {
     };
 
     // Al cambiar la terminal en el combo (admin)
-    const handleSelectTerminal = (term: { codigo: string; nombre: string }) => {
+    const handleSelectTerminal = (term: { codigo: string; nombre: string; recibirsolicitud?: boolean }) => {
         setSelectedTerminal(term);
         setShowTerminalDropdown(false);
         setTerminalSearchText('');
         setTerminalName(term.nombre);
-        setTerminal((prev) => prev ? { ...prev, codigo: term.codigo, nombre: term.nombre } : {
+        setTerminal((prev) => prev ? { ...prev, codigo: term.codigo, nombre: term.nombre, recibirsolicitud: term.recibirsolicitud ?? true } : {
             codigo: term.codigo,
             nombre: term.nombre,
             activo: true,
+            recibirsolicitud: term.recibirsolicitud ?? true,
             usuarioactual: user?.nombrever ?? '',
             notapedidoList: [],
             clienteList: [],
@@ -278,18 +281,18 @@ export default function PrePedidoScreen() {
         if (!selectedCliente) return;
         const defaultTerm = selectedCliente.codigoterminaldefecto;
         const fallbackList = defaultTerm?.codigo != null && defaultTerm?.nombre != null
-            ? [{ codigo: defaultTerm.codigo, nombre: defaultTerm.nombre }]
+            ? [{ codigo: defaultTerm.codigo, nombre: defaultTerm.nombre, recibirsolicitud: defaultTerm.recibirsolicitud }]
             : [];
 
         setLoadingTerminales(true);
         try {
-            const response = await terminalService.getResource<ApiResponse<Array<{ codigo: string; nombre: string }>>>(
+            const response = await terminalService.getResource<ApiResponse<Array<{ codigo: string; nombre: string; recibirsolicitud?: boolean }>>>(
                 '',
                 '',
                 {}
             );
             const list = response?.retorno && Array.isArray(response.retorno)
-                ? response.retorno.map((t: any) => ({ codigo: String(t?.codigo ?? ''), nombre: String(t?.nombre ?? '') })).filter((t) => t.codigo)
+                ? response.retorno.map((t: any) => ({ codigo: String(t?.codigo ?? ''), nombre: String(t?.nombre ?? ''), recibirsolicitud: t?.recibirsolicitud })).filter((t) => t.codigo)
                 : fallbackList;
             const uniq = list.length ? list : fallbackList;
             const seen = new Set<string>();
@@ -505,6 +508,7 @@ export default function PrePedidoScreen() {
                 codigo: terminalDefecto.codigo,
                 nombre: terminalCli.nombre ?? '',
                 activo: terminalCli.estado ?? false,
+                recibirsolicitud: terminalDefecto.recibirsolicitud ?? true,
                 usuarioactual: user?.nombrever ?? '',
                 notapedidoList: notaPedidoList,
                 clienteList: clienteList,
@@ -553,6 +557,12 @@ export default function PrePedidoScreen() {
             // Validar que se haya seleccionado un cliente si es administrador
             if (isAdmin && !selectedCliente) {
                 Alert.alert("Error", "Debe seleccionar un cliente primero");
+                return;
+            }
+
+            if (features.validarTerminalCerrada && terminal && terminal.recibirsolicitud === false) {
+                setErrorMessage('No se pueden generar prepedidos en esta terminal porque se encuentra temporalmente cerrada.');
+                setShowErrorModal(true);
                 return;
             }
 
@@ -925,10 +935,11 @@ export default function PrePedidoScreen() {
                                                                                 styles.clienteDropdownItem,
                                                                                 selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
                                                                             ]}
+                                                                            disabled={features.validarTerminalCerrada && term.recibirsolicitud === false}
                                                                             onPress={() => handleSelectTerminal(term)}
                                                                         >
-                                                                            <Text style={styles.clienteDropdownItemText}>
-                                                                                {term.codigo} - {term.nombre}
+                                                                            <Text style={[styles.clienteDropdownItemText, features.validarTerminalCerrada && term.recibirsolicitud === false && { color: '#9CA3AF' }]}>
+                                                                                {term.codigo} - {term.nombre}{(features.validarTerminalCerrada && term.recibirsolicitud === false) ? ' (Cerrada)' : ''}
                                                                             </Text>
                                                                         </TouchableOpacity>
                                                                     ))
@@ -1100,6 +1111,25 @@ export default function PrePedidoScreen() {
                         <TouchableOpacity
                             style={styles.modalButton}
                             onPress={() => setShowSuccessModal(false)}
+                        >
+                            <Text style={styles.modalButtonText}>Entendido</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* Modal de Error Custom */}
+            {showErrorModal && (
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.errorIconCircle}>
+                            <Icon name="close" size={40} color="#FFFFFF" />
+                        </View>
+                        <Text style={styles.modalTitle}>Terminal Cerrada</Text>
+                        <Text style={styles.modalMessage}>{errorMessage}</Text>
+                        <TouchableOpacity
+                            style={[styles.modalButton, { backgroundColor: '#EF4444' }]}
+                            onPress={() => setShowErrorModal(false)}
                         >
                             <Text style={styles.modalButtonText}>Entendido</Text>
                         </TouchableOpacity>
@@ -1603,6 +1633,15 @@ const styles = StyleSheet.create({
         height: 80,
         borderRadius: 40,
         backgroundColor: '#10B981',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    errorIconCircle: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: '#EF4444',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 20,

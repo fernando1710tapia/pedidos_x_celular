@@ -64,6 +64,7 @@ export interface TerminalDefectoInterface {
     codigo: string
     nombre: string
     activo: boolean
+    recibirsolicitud?: boolean
     usuarioactual: string
 }
 

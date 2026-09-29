@@ -5,6 +5,7 @@ export interface TerminalInterface {
     codigo: string;
     nombre: string;
     activo: boolean;
+    recibirsolicitud?: boolean;
     usuarioactual: string;
     notapedidoList: NotaPedidoInterface[]; // Lista de `NotaPedido`
     clienteList: ClienteInterface[]; // Lista de `Cliente`
