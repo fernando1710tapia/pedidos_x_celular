@@ -620,16 +620,10 @@ export default function PrePedidoScreen() {
                 prefijo: prefijo,
                 facturada: "NO",
                 codigoclienteId: codCli,
-                codigocliente: (() => {
-                    if (terminalCli) {
-                        const { codigo, codigocomercializadora, ...rest } = terminalCli as any;
-                        return {
-                            ...rest,
-                            clientePK: { codigo: codCli, codigocomercializadora: codComer }
-                        };
-                    }
-                    return { clientePK: { codigo: codCli, codigocomercializadora: codComer } };
-                })(),
+                // Solo enviamos clientePK. Si se envía el objeto terminalCli completo (con campos
+                // anidados como codigoterminaldefecto, etc.), Hibernate lo recibe como instancia
+                // "transient" (no administrada por JPA) y lanza TransientPropertyValueException.
+                codigocliente: { clientePK: { codigo: codCli, codigocomercializadora: codComer } },
                 codigoterminal: { codigo: terminal?.codigo || "", nombre: terminal?.nombre || "" },
                 codigobanco: { codigo: codBank },
                 comercializadora: comercializadora ? {
