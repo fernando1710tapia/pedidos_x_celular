@@ -599,6 +599,13 @@ export default function PrePedidoScreen() {
                 numero: ""
             };
 
+            const finalCodCli = isAdmin ? (selectedCliente?.codigo || "") : (user?.codigo || "");
+            
+            if (!finalCodCli) {
+                Alert.alert("Error", "No se pudo determinar el código de cliente.");
+                return;
+            }
+
             const prepedido = {
                 prepedidoPK: prepedidoPK,
                 fechaventa: nowDate,
@@ -619,11 +626,11 @@ export default function PrePedidoScreen() {
                 usuarioactual: user?.nombrever || "",
                 prefijo: prefijo,
                 facturada: "NO",
-                codigoclienteId: codCli,
+                codigoclienteId: finalCodCli,
                 // Solo enviamos clientePK. Si se envía el objeto terminalCli completo (con campos
                 // anidados como codigoterminaldefecto, etc.), Hibernate lo recibe como instancia
                 // "transient" (no administrada por JPA) y lanza TransientPropertyValueException.
-                codigocliente: { clientePK: { codigo: codCli, codigocomercializadora: codComer } },
+                codigocliente: { clientePK: { codigo: finalCodCli, codigocomercializadora: codComer } },
                 codigoterminal: { codigo: terminal?.codigo || "", nombre: terminal?.nombre || "" },
                 codigobanco: { codigo: codBank },
                 comercializadora: comercializadora ? {

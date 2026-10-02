@@ -584,6 +584,13 @@ export default function NotaPedido() {
                 numero: ""
             };
 
+            const finalCodCli = isAdmin ? (selectedCliente?.codigo || "") : (user?.codigo || "");
+            
+            if (!finalCodCli) {
+                Alert.alert("Error", "No se pudo determinar el código de cliente.");
+                return;
+            }
+
             const notaPedido: NotaPedidoInterface = {
                 notapedidoPK: notaPedidoPk,
                 fechaventa: nowDate,
@@ -604,8 +611,8 @@ export default function NotaPedido() {
                 usuarioactual: user?.nombrever || "",
                 prefijo: prefijo,
                 facturada: "NO",
-                codigoclienteId: codCli,
-                codigocliente: { clientePK: { codigo: codCli, codigocomercializadora: codComer } },
+                codigoclienteId: finalCodCli,
+                codigocliente: { clientePK: { codigo: finalCodCli, codigocomercializadora: codComer } },
                 codigoterminal: { codigo: terminal?.codigo || "" },
                 codigobanco: { codigo: codBank },
                 comercializadora: {
