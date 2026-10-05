@@ -600,7 +600,7 @@ export default function PrePedidoScreen() {
             };
 
             const finalCodCli = isAdmin ? (selectedCliente?.codigo || "") : (user?.codigo || "");
-            
+
             if (!finalCodCli) {
                 Alert.alert("Error", "No se pudo determinar el código de cliente.");
                 return;
