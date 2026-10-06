@@ -91,6 +91,16 @@ export default function PrePedidoScreen() {
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
 
+    // Terminal cerrada: solo se bloquean prepedidos para el día actual (Hoy). Para Mañana sí se permite.
+    const MSG_TERMINAL_CERRADA_HOY = 'La terminal se encuentra cerrada. No se pueden ingresar solicitudes para el día actual. Puede seleccionar "Mañana".';
+    const terminalCerrada = features.validarTerminalCerrada && terminal?.recibirsolicitud === false;
+    const bloqueoTerminalHoy = terminalCerrada && selectedDate === 'hoy';
+
+    const mostrarErrorTerminalCerradaHoy = () => {
+        setErrorMessage(MSG_TERMINAL_CERRADA_HOY);
+        setShowErrorModal(true);
+    };
+
     // Función para obtener la fecha en formato "YYYY-MM-DDTHH:mm:ssZ"
     const formatDate = (date: Date): string => {
         return date.toISOString().split('.')[0] + 'Z'; // Devuelve el formato ISO con "Z" sin milisegundos
@@ -100,6 +110,9 @@ export default function PrePedidoScreen() {
     const setCurrentDate = () => {
         setSelectedDateDate(new Date()); // Guardamos el objeto Date sin formatear
         setSelectedDate('hoy');
+        if (terminalCerrada) {
+            mostrarErrorTerminalCerradaHoy();
+        }
     };
 
     const setTomorrowDate = () => {
@@ -274,6 +287,9 @@ export default function PrePedidoScreen() {
             notapedidoList: [],
             clienteList: [],
         });
+        if (features.validarTerminalCerrada && term.recibirsolicitud === false && selectedDate === 'hoy') {
+            mostrarErrorTerminalCerradaHoy();
+        }
     };
 
     // Cargar todas las terminales al abrir el combo (admin). API: ec.com.infinity.modelo.terminal
@@ -560,14 +576,14 @@ export default function PrePedidoScreen() {
                 return;
             }
 
-            if (features.validarTerminalCerrada && terminal && terminal.recibirsolicitud === false) {
-                setErrorMessage('No se pueden generar prepedidos en esta terminal porque se encuentra temporalmente cerrada.');
-                setShowErrorModal(true);
+            if (selectedDate === null) {
+                Alert.alert("Error", "Seleccione el día de despacho, por favor");
                 return;
             }
 
-            if (selectedDate === null) {
-                Alert.alert("Error", "Seleccione el día de despacho, por favor");
+            // Terminal cerrada: bloquear solo para Hoy; Mañana sí se permite
+            if (bloqueoTerminalHoy) {
+                mostrarErrorTerminalCerradaHoy();
                 return;
             }
 
@@ -736,7 +752,7 @@ export default function PrePedidoScreen() {
                     title={PRE_PEDIDO_MODULE_NAME.toUpperCase()}
                     onBackPress={() => navigation.goBack()}
                     rightElement={
-                        features.mostrarOjitoListadoPrePedidos ? (
+                        features.mostrarOjitoListadoPrePedidos && !(user?.codigocomercializadora === '0002' && user?.codigo?.length === 8) ? (
                             <TouchableOpacity
                                 onPress={() => {
                                     navigation.navigate('ListaPrePedido', {});
@@ -936,7 +952,6 @@ export default function PrePedidoScreen() {
                                                                                 styles.clienteDropdownItem,
                                                                                 selectedTerminal?.codigo === term.codigo && styles.clienteDropdownItemSelected
                                                                             ]}
-                                                                            disabled={features.validarTerminalCerrada && term.recibirsolicitud === false}
                                                                             onPress={() => handleSelectTerminal(term)}
                                                                         >
                                                                             <Text style={[styles.clienteDropdownItemText, features.validarTerminalCerrada && term.recibirsolicitud === false && { color: '#9CA3AF' }]}>
@@ -994,6 +1009,11 @@ export default function PrePedidoScreen() {
                                         <Text style={[styles.dateOptionText, selectedDate === 'manana' && styles.dateOptionTextActive]}>Mañana</Text>
                                     </TouchableOpacity>
                                 </View>
+                                {bloqueoTerminalHoy && (
+                                    <Text style={styles.terminalCerradaWarning}>
+                                        Terminal cerrada: solo se permiten prepedidos para mañana.
+                                    </Text>
+                                )}
 
                                 {/* Dispatch Date Display */}
                                 <Text style={styles.sectionTitle}>SE DESPACHARÁ:</Text>
@@ -1081,8 +1101,9 @@ export default function PrePedidoScreen() {
 
                                 {/* Action Buttons */}
                                 <Button
-                                    style={styles.mainButton}
+                                    style={[styles.mainButton, bloqueoTerminalHoy && styles.mainButtonDisabled]}
                                     size='giant'
+                                    disabled={bloqueoTerminalHoy}
                                     onPress={handleSubmit}
                                 >
                                     {(evaProps: any) => <Text {...evaProps} style={styles.mainButtonText}>{PRE_PEDIDO_MODULE_NAME}</Text>}
@@ -1145,6 +1166,18 @@ export default function PrePedidoScreen() {
 
 
 const styles = StyleSheet.create({
+    terminalCerradaWarning: {
+        color: '#EF4444',
+        fontSize: 13,
+        fontWeight: '600',
+        marginTop: 8,
+        marginBottom: 4,
+    },
+    mainButtonDisabled: {
+        backgroundColor: '#9CA3AF',
+        borderColor: '#9CA3AF',
+        opacity: 0.8,
+    },
     mainContainer: {
         flex: 1,
         backgroundColor: '#FFFFFF',
