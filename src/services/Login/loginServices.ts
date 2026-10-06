@@ -6,7 +6,7 @@ const loginServices: GlobalServiceInterface = {
     getResource: async <T>(resource: string, id: string = '', queryParams: Record<string, any> = {}): Promise<T> => {
         try {
             const url = `${API_CONFIG.BASE_URL}/${resource}`;
-      
+
             const response: AxiosResponse<T> = await axios.get(url, {
                 params: queryParams,
                 timeout: API_CONFIG.TIMEOUT,
@@ -33,10 +33,10 @@ const loginServices: GlobalServiceInterface = {
 };
 
 const updatePassword = {
-    postUser: async <T>(body: UserInterface ): Promise<any> => {
+    postUser: async <T>(body: UserInterface): Promise<any> => {
         try {
             const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.usuario/porId`; // URL correcta
-            
+
             const response: AxiosResponse<T> = await axios.put(url, body, {
                 timeout: API_CONFIG.TIMEOUT,
                 headers: API_CONFIG.HEADERS,
@@ -89,8 +89,8 @@ const searchDistributorEnvironments = async (username: string): Promise<Array<{ 
 
     // Promesas para buscar en paralelo en todas las URLs
     const searchPromises = urls.map(async (baseUrl) => {
-        // Excluir supertech
-        if (baseUrl.includes('supertech.ec')) return null;
+        // Excluir supertech (comentado para permitir pruebas en desarrollo)
+        // if (baseUrl.includes('supertech.ec')) return null;
 
         const url = `${baseUrl}/ec.com.infinity.modelo.usuario/porUsuario`;
         try {
@@ -126,4 +126,4 @@ const searchDistributorEnvironments = async (username: string): Promise<Array<{ 
     return foundEnvironments;
 };
 
-export {loginServices, updatePassword, searchUserInAllEnvironments, searchDistributorEnvironments};
+export { loginServices, updatePassword, searchUserInAllEnvironments, searchDistributorEnvironments };
