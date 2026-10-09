@@ -15,7 +15,6 @@ export enum Company {
 export interface AppFeatures {
     mostrarOjitoListadoPedidos: boolean;
     mostrarOjitoListadoPrePedidos: boolean;
-    habilitarMenuPrePedido: boolean;
     validarTerminalCerrada: boolean;
 }
 
@@ -23,7 +22,6 @@ export interface AppFeatures {
 const defaultFeatures: AppFeatures = {
     mostrarOjitoListadoPedidos: true,
     mostrarOjitoListadoPrePedidos: true,
-    habilitarMenuPrePedido: true,
     validarTerminalCerrada: true,
 };
 
@@ -33,13 +31,11 @@ export const FEATURE_FLAGS: Record<Company, AppFeatures> = {
     [Company.PYS]: {
         mostrarOjitoListadoPedidos: false,
         mostrarOjitoListadoPrePedidos: false,
-        habilitarMenuPrePedido: false,
         validarTerminalCerrada: true,
     },
     [Company.PETROLRIOS]: {
         mostrarOjitoListadoPedidos: true,
         mostrarOjitoListadoPrePedidos: true,
-        habilitarMenuPrePedido: true,
         validarTerminalCerrada: false,
     },
     [Company.COMBUSTIBLES]: {

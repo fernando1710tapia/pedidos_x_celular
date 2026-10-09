@@ -110,7 +110,7 @@ export default function MenuOperativoScreen() {
                             onPress={() => navigation.navigate('VolumenTotal')}
                         />
                     )}
-                    {allowedMenus.includes('PrePedido') && features.habilitarMenuPrePedido && (
+                    {allowedMenus.includes('PrePedido') && (
                         <MenuButton
                             title={PRE_PEDIDO_MODULE_NAME}
                             iconName="clipboard-outline"
