@@ -54,24 +54,30 @@ const searchUserInAllEnvironments = async (username: string): Promise<{ baseUrl:
     const urls = API_CONFIG.GLOBAL_URLS || [];
     if (!urls.length) throw new Error("No global URLs configured");
 
-    for (const baseUrl of urls) {
+    const searchPromises = urls.map(async (baseUrl) => {
         const url = `${baseUrl}/ec.com.infinity.modelo.usuario/porUsuario`;
-        try {
-            const response = await axios.get<ApiResponse<UserInterface>>(url, {
-                params: { codigo: username },
-                timeout: 5000,
-                headers: API_CONFIG.HEADERS
-            });
-            if (response.data && response.data.retorno && response.data.retorno.length > 0) {
-                return { baseUrl, user: response.data.retorno[0] };
-            }
-        } catch (error) {
-            // Esta URL no respondió o el usuario no existe aquí → continuar con la siguiente
-            continue;
+        const response = await axios.get<ApiResponse<UserInterface>>(url, {
+            params: { codigo: username },
+            timeout: 15000,
+            headers: API_CONFIG.HEADERS
+        });
+        if (response.data && response.data.retorno && response.data.retorno.length > 0) {
+            return { baseUrl, user: response.data.retorno[0] };
         }
-    }
+        throw new Error("Usuario no encontrado");
+    });
 
-    throw new Error("Usuario no encontrado en ningún ambiente.");
+    return new Promise((resolve, reject) => {
+        let errors = 0;
+        searchPromises.forEach(promise => {
+            promise.then(resolve).catch(() => {
+                errors++;
+                if (errors === searchPromises.length) {
+                    reject(new Error("Usuario no encontrado en ningún ambiente."));
+                }
+            });
+        });
+    });
 };
 
 const COMERCIALIZADORAS_NAMES: Record<string, string> = {
@@ -96,7 +102,7 @@ const searchDistributorEnvironments = async (username: string): Promise<Array<{ 
         try {
             const response = await axios.get<ApiResponse<UserInterface>>(url, {
                 params: { codigo: username },
-                timeout: 5000,
+                timeout: 15000,
                 headers: API_CONFIG.HEADERS
             });
             if (response.data && response.data.retorno && response.data.retorno.length > 0) {
