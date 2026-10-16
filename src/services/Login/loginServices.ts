@@ -84,7 +84,9 @@ const COMERCIALIZADORAS_NAMES: Record<string, string> = {
     'https://infinity.petroleosyservicios.com:8443/infinityone1/resources': 'Petróleos y Servicios',
     'https://infinity.petrolrios.ec:8443/infinityone1/resources': 'Petrolríos',
     'https://infinity.combustibles.com.ec:8443/infinityone1/resources': 'Fenapet / Combustibles',
-    'https://infinity.secsacombustibles.ec:8443/infinityone1/resources': 'Secsa'
+    'https://infinity.secsacombustibles.ec:8443/infinityone1/resources': 'Secsa',
+    'http://www.supertech.ec:8080/infinityone1/resources': 'Supertech (8080)',
+    'https://www.supertech.ec:8443/infinityone1/resources': 'Supertech (8443)'
 };
 
 const searchDistributorEnvironments = async (username: string): Promise<Array<{ baseUrl: string; name: string; codigocomercializadora: string; user: UserInterface }>> => {

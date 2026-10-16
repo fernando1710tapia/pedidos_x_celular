@@ -87,6 +87,7 @@ export default function PrePedidoScreen() {
 
     // Sin comercializadora asignada: no se hacen llamadas al API
     const [missingComercializadora, setMissingComercializadora] = useState<boolean>(false);
+    const [isClienteSuspendido, setIsClienteSuspendido] = useState<boolean>(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -160,7 +161,7 @@ export default function PrePedidoScreen() {
     //   terminal por defecto y se muestran los productos de ese cliente. Se debe permitir cambiar la terminal (requiere API que
     //   devuelva varias terminales por cliente; por ahora se usa solo la terminal por defecto).
 
-    const handleGetTerminal = async () => {
+    const handleGetTerminal = async (): Promise<boolean> => {
         try {
             const response = await obtenerTerminalCliente.getResource<ApiResponse<TerminalClienteInterface>>(
                 'porComercializadoraCliente',
@@ -170,13 +171,37 @@ export default function PrePedidoScreen() {
                     codigo: user?.codigo
                 }
             );
-            if (response.retorno !== null && response.retorno !== undefined) {
-                setTerminalCli(response.retorno[0]);
+            if (response.retorno !== null && response.retorno !== undefined && response.retorno.length > 0) {
+                const cliente = response.retorno[0];
+
+                // Control de cliente suspendido: CLIENTE.ESTADO (false = suspendido)
+                const isSuspendido = cliente.estado === false || String(cliente.estado).toLowerCase() === 'false';
+                if (isSuspendido) {
+                    setIsClienteSuspendido(true);
+                    Alert.alert(
+                        'Atención',
+                        'Actualmente usted no puede generar solicitudes de producto.\nPor favor, comuniquese con PyS para poder atender su necesidad',
+                        [
+                            {
+                                text: 'Entendido',
+                                onPress: () => navigation.navigate('MenuOperativo')
+                            }
+                        ],
+                        { cancelable: false }
+                    );
+                    return false;
+                }
+
+                setIsClienteSuspendido(false);
+                setTerminalCli(cliente);
+                return true;
             } else {
                 Alert.alert('Error', 'No hay Terminal para mostrar');
+                return false;
             }
         } catch (error) {
             Alert.alert('Error', 'Hubo un problema al obtener la Terminal:. ' + error);
+            return false;
         }
     };
 
@@ -187,11 +212,11 @@ export default function PrePedidoScreen() {
         nombrecomercial: c.nombrecomercial ?? c.nombre ?? '',
     });
 
-    // Nuevo método para obtener todos los clientes (para administradores)
+    // Nuevo método para obtener todos los clientes activos (para administradores)
     const handleGetAllClientes = async () => {
         try {
             const response = await obtenerTerminalCliente.getResource<ApiResponse<TerminalClienteInterface>>(
-                'porComercializadora',
+                'porComercializadoraactivo',
                 '',
                 {
                     codigocomercializadora: user?.codigocomercializadora
@@ -403,8 +428,10 @@ export default function PrePedidoScreen() {
                 if (!isEightDigitUser) {
                     await handleGetAllClientes();
                 } else {
-                    await handleGetTerminal();
-                    await handleGetProductos();
+                    const terminalOk = await handleGetTerminal();
+                    if (terminalOk) {
+                        await handleGetProductos();
+                    }
                 }
             } catch (err) {
                 console.error(
@@ -570,6 +597,21 @@ export default function PrePedidoScreen() {
 
     const handleSubmit = async () => {
         try {
+            if (isClienteSuspendido) {
+                Alert.alert(
+                    'Atención',
+                    'Actualmente usted no puede generar solicitudes de producto.\nPor favor, comuniquese con PyS para poder atender su necesidad',
+                    [
+                        {
+                            text: 'Entendido',
+                            onPress: () => navigation.navigate('MenuOperativo')
+                        }
+                    ],
+                    { cancelable: false }
+                );
+                return;
+            }
+
             // Validar que se haya seleccionado un cliente si es administrador
             if (isAdmin && !selectedCliente) {
                 Alert.alert("Error", "Debe seleccionar un cliente primero");
@@ -790,6 +832,27 @@ export default function PrePedidoScreen() {
                                 </Text>
                                 <TouchableOpacity
                                     style={styles.backToMenuButton}
+                                    onPress={() => navigation.navigate('MenuOperativo')}
+                                >
+                                    <Text style={styles.backToMenuButtonText}>Volver al menú</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : isClienteSuspendido ? (
+                            <View style={styles.missingComercializadoraContainer}>
+                                <View style={[styles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
+                                    <Icon name="alert-circle-outline" size={48} color="#EF4444" />
+                                </View>
+                                <Text style={styles.missingComercializadoraTitle}>
+                                    Usuario Suspendido
+                                </Text>
+                                <Text style={styles.missingComercializadoraText}>
+                                    Actualmente usted no puede generar solicitudes de producto.
+                                </Text>
+                                <Text style={styles.missingComercializadoraSubtext}>
+                                    Por favor, comuniquese con PyS para poder atender su necesidad
+                                </Text>
+                                <TouchableOpacity
+                                    style={[styles.backToMenuButton, { backgroundColor: '#EF4444' }]}
                                     onPress={() => navigation.navigate('MenuOperativo')}
                                 >
                                     <Text style={styles.backToMenuButtonText}>Volver al menú</Text>
