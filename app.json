@@ -30,8 +30,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.dsas97.InfinityMobile",
-      "versionCode": 7,
-      "usesCleartextTraffic": true
+      "versionCode": 7
     },
     "androidStatusBar": {
       "barStyle": "dark-content",
@@ -41,6 +40,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "e678c999-fb1b-4cf9-984c-5459bb1d7f57"
