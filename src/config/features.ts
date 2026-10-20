@@ -33,7 +33,7 @@ export const FEATURE_FLAGS: Record<Company, AppFeatures> = {
     [Company.PYS]: {
         mostrarOjitoListadoPedidos: false,
         mostrarOjitoListadoPrePedidos: false,
-        habilitarMenuPrePedido: false,
+        habilitarMenuPrePedido: true,
         validarTerminalCerrada: true,
     },
     [Company.PETROLRIOS]: {
