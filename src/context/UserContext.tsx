@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { UserInterface } from "../types";
 import { API_CONFIG } from "../constants/Config";
+import { desregistrarPushUsuario, registrarPushUsuario } from "../services/Push/pushNotificationService";
 
 const SESSION_BASE_URL_KEY = 'sessionBaseUrl';
 const DEFAULT_BASE_URL = 'https://www.supertech.ec:8443/infinityone1/resources';
@@ -35,6 +36,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                 if (storedUser) {
                     const parsedUser = JSON.parse(storedUser);
                     setUser(parsedUser);
+                    // El token puede rotar: se vuelve a registrar al abrir la app con sesión guardada
+                    if (parsedUser?.habilitadoapp) {
+                        registrarPushUsuario(parsedUser.codigo);
+                    }
                 }
             } catch (error) {
                 console.error("Error loading user from AsyncStorage:", error);
@@ -66,6 +71,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     // Cerrar sesión
     const logout = async () => {
         try {
+            // Desactivar el push mientras aún conocemos el usuario y la URL del ambiente
+            await desregistrarPushUsuario(user?.codigo);
             await AsyncStorage.removeItem('user');
             await AsyncStorage.removeItem(SESSION_BASE_URL_KEY);
             setUser(null);

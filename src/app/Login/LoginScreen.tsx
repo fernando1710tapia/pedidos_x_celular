@@ -13,6 +13,7 @@ import { loginServices, searchUserInAllEnvironments, searchDistributorEnvironmen
 import { loginStyles } from '../../styles';
 import { ApiResponse, UserInterface } from '../../types';
 import { RootStackParamList } from '../../types/navigation';
+import { registrarPushUsuario } from '../../services/Push/pushNotificationService';
 
 // AsegÃºrate de tener estos tipos
 
@@ -156,6 +157,11 @@ export default function LoginScreen() {
                         type: 'error'
                     });
                     return;
+                }
+
+                // Registrar token push (solo empresas con habilitarPush). No bloquea el login.
+                if (user) {
+                    registrarPushUsuario(user.codigo);
                 }
 
                 if (encryptedPassword === CryptoJS.SHA256(API_CONFIG.FIRST_ACCES).toString(CryptoJS.enc.Hex)) {
