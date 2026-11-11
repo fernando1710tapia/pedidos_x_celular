@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "182053578496",
+    "project_id": "pedidos-x-celular",
+    "storage_bucket": "pedidos-x-celular.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:182053578496:android:b0b3ad9e21acf3d88775e5",
+        "android_client_info": {
+          "package_name": "com.dsas97.InfinityMobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAA4J4l66ZaDrwWPfRNqfSmnMRM7QHukf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
