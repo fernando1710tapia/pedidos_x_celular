@@ -1,7 +1,7 @@
 import * as eva from '@eva-design/eva';
 import { ApplicationProvider, IconRegistry } from '@ui-kitten/components';
 import { EvaIconsPack } from '@ui-kitten/eva-icons';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import React from 'react';
@@ -25,11 +25,20 @@ import MenuOperativoScreen from './src/app/MenuOperativo/MenuOperativoScreen';
 import ValidaSellosScreen from './src/app/validaSellos/ValidaSellosScreen';
 import VolumenTotalScreen from './src/app/VolumenTotal/VolumenTotalScreen';
 import BorrarUsuarioScreen from './src/app/Login/BorrarUsuarioScreen';
+import { usePushListeners } from './src/hooks/usePushListeners';
+
 
 
 
 
 const Stack = createStackNavigator<RootStackParamList>(); // ✅ Tipado del Stack
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
+
+// Componente sin UI: activa los listeners de push dentro de UserProvider
+const PushListeners = () => {
+  usePushListeners(navigationRef);
+  return null;
+};
 
 export default function App() {
   return (
@@ -39,7 +48,8 @@ export default function App() {
         <ApplicationProvider {...eva} theme={eva.light}>
           <UserProvider>
             <ThemeProvider>
-              <NavigationContainer>
+              <NavigationContainer ref={navigationRef}>
+                <PushListeners />
                 <Stack.Navigator
                   initialRouteName="Login"
                   screenOptions={{ headerShown: false }}

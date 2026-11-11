@@ -16,6 +16,7 @@ export interface AppFeatures {
     mostrarOjitoListadoPedidos: boolean;
     mostrarOjitoListadoPrePedidos: boolean;
     validarTerminalCerrada: boolean;
+    habilitarPush: boolean;
 }
 
 // Configuración por defecto para empresas no mapeadas o desconocidas
@@ -23,6 +24,7 @@ const defaultFeatures: AppFeatures = {
     mostrarOjitoListadoPedidos: true,
     mostrarOjitoListadoPrePedidos: true,
     validarTerminalCerrada: true,
+    habilitarPush: false,
 };
 
 // Diccionario de configuración por empresa
@@ -32,11 +34,13 @@ export const FEATURE_FLAGS: Record<Company, AppFeatures> = {
         mostrarOjitoListadoPedidos: false,
         mostrarOjitoListadoPrePedidos: false,
         validarTerminalCerrada: true,
+        habilitarPush: true,
     },
     [Company.PETROLRIOS]: {
         mostrarOjitoListadoPedidos: true,
         mostrarOjitoListadoPrePedidos: true,
         validarTerminalCerrada: false,
+        habilitarPush: false,
     },
     [Company.COMBUSTIBLES]: {
         ...defaultFeatures
@@ -45,7 +49,9 @@ export const FEATURE_FLAGS: Record<Company, AppFeatures> = {
         ...defaultFeatures
     },
     [Company.SUPERTECH]: {
-        ...defaultFeatures
+        ...defaultFeatures,
+        // TEMPORAL: ambiente de pruebas de push. Quitar (false) antes de producción.
+        habilitarPush: true,
     },
     [Company.FENAPET]: {
         ...defaultFeatures

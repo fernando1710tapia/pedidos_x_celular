@@ -30,7 +30,8 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.dsas97.InfinityMobile",
-      "versionCode": 7
+      "versionCode": 7,
+      "googleServicesFile": "./google-services.json"
     },
     "androidStatusBar": {
       "barStyle": "dark-content",
@@ -47,6 +48,12 @@
           "android": {
             "usesCleartextTraffic": true
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#1565C0"
         }
       ]
     ],
