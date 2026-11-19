@@ -11,7 +11,6 @@ export interface ListaNotaPedidoInterace {
     fechaDespacho?: string
     estadoFactura: boolean
     codigoproducto: string
-    codigoComercializadora: string
     nombreproducto: string
     volumenautorizado: string
     medida: string

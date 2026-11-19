@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
     StyleSheet,
     View,
@@ -8,7 +8,6 @@ import {
     TextInput,
     Alert,
     Platform,
-    InteractionManager,
     LogBox,
 } from 'react-native';
 import { Layout, Text, Button, Datepicker, Icon as KittenIcon, NativeDateService } from '@ui-kitten/components';
@@ -362,9 +361,7 @@ export default function ValidaSellosScreen() {
                                         // Usamos T12:00:00 para evitar que la zona horaria reste un día
                                         const newDate = new Date(val + 'T12:00:00');
                                         if (!isNaN(newDate.getTime()) && newDate.getTime() !== date.getTime()) {
-                                            InteractionManager.runAfterInteractions(() => {
-                                                setDate(newDate);
-                                            });
+                                            requestAnimationFrame(() => setDate(newDate));
                                         }
                                     }
                                 }}
@@ -388,9 +385,7 @@ export default function ValidaSellosScreen() {
                                     if (nextDate.getTime() !== date.getTime()) {
                                         // InteractionManager asegura que la actualización ocurra después de
                                         // que las animaciones internas del picker (como cerrarse) hayan terminado.
-                                        InteractionManager.runAfterInteractions(() => {
-                                            setDate(nextDate);
-                                        });
+                                        requestAnimationFrame(() => setDate(nextDate));
                                     }
                                 }}
                                 controlStyle={styles.datepickerControl}
@@ -776,7 +771,7 @@ const styles = StyleSheet.create({
     },
     // Estilos para el Modal de Éxito
     modalOverlay: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: 'rgba(0, 0, 0, 0.6)',
         justifyContent: 'center',
         alignItems: 'center',

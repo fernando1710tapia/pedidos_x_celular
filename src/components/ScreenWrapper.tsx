@@ -15,7 +15,7 @@ const ScreenWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 paddingRight: insets.right,
             }
         ]}>
-            <StatusBar barStyle="dark-content" backgroundColor="white" />
+            <StatusBar barStyle="dark-content" />
             <View style={styles.content}>
                 {children}
             </View>

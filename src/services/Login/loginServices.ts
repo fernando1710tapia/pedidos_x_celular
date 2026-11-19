@@ -85,8 +85,17 @@ const COMERCIALIZADORAS_NAMES: Record<string, string> = {
     'https://infinity.petrolrios.ec:8443/infinityone1/resources': 'Petrolríos',
     'https://infinity.combustibles.com.ec:8443/infinityone1/resources': 'Fenapet / Combustibles',
     'https://infinity.secsacombustibles.ec:8443/infinityone1/resources': 'Secsa',
+    'https://infinity.grupomarzam.com.ec:8443/infinityone1/resources': 'Grupo Marzam',
     'http://www.supertech.ec:8080/infinityone1/resources': 'Supertech (8080)',
     'https://www.supertech.ec:8443/infinityone1/resources': 'Supertech (8443)'
+};
+
+const COMERCIALIZADORAS_NAMES_BY_CODE: Record<string, Record<string, string>> = {
+    'https://infinity.grupomarzam.com.ec:8443/infinityone1/resources': {
+        '0010': 'Ecoilsa',
+        '0029': 'Marzam',
+        '7017': 'Oleum',
+    },
 };
 
 const searchDistributorEnvironments = async (username: string): Promise<Array<{ baseUrl: string; name: string; codigocomercializadora: string; user: UserInterface }>> => {
@@ -109,10 +118,12 @@ const searchDistributorEnvironments = async (username: string): Promise<Array<{ 
             });
             if (response.data && response.data.retorno && response.data.retorno.length > 0) {
                 const user = response.data.retorno[0];
+                const codigocomercializadora = user.codigocomercializadora ? String(user.codigocomercializadora).trim() : '';
+                const nameByCode = COMERCIALIZADORAS_NAMES_BY_CODE[baseUrl]?.[codigocomercializadora];
                 return {
                     baseUrl,
-                    name: COMERCIALIZADORAS_NAMES[baseUrl] || baseUrl,
-                    codigocomercializadora: user.codigocomercializadora ? String(user.codigocomercializadora).trim() : '',
+                    name: nameByCode || COMERCIALIZADORAS_NAMES[baseUrl] || baseUrl,
+                    codigocomercializadora,
                     user
                 };
             }
