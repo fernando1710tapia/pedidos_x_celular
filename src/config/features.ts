@@ -8,6 +8,7 @@ export enum Company {
     SECSA = 'secsa',
     SUPERTECH = 'supertech',
     FENAPET = 'fenapet',
+    GRUPOMARZAM = 'grupomarzam',
     UNKNOWN = 'unknown'
 }
 
@@ -56,6 +57,9 @@ export const FEATURE_FLAGS: Record<Company, AppFeatures> = {
     [Company.FENAPET]: {
         ...defaultFeatures
     },
+    [Company.GRUPOMARZAM]: {
+        ...defaultFeatures
+    },
     [Company.UNKNOWN]: {
         ...defaultFeatures
     }
@@ -72,6 +76,7 @@ export const getCurrentCompany = (baseUrl: string): Company => {
     if (url.includes('combustibles.com.ec')) return Company.COMBUSTIBLES;
     if (url.includes('secsa')) return Company.SECSA;
     if (url.includes('fenapet')) return Company.FENAPET;
+    if (url.includes('grupomarzam')) return Company.GRUPOMARZAM;
     if (url.includes('supertech')) return Company.SUPERTECH;
 
     return Company.UNKNOWN;

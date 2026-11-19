@@ -55,7 +55,9 @@
         {
           "color": "#1565C0"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-status-bar"
     ],
     "extra": {
       "eas": {
