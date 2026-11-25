@@ -1,14 +1,13 @@
-# Ignore Android build artifacts to prevent EBUSY locks during EAS upload
-android/.gradle
-android/build
-android/app/build
-android/captures
-android/gradle/*
-!android/gradle/wrapper
-!android/gradle/wrapper/gradle-wrapper.jar
-!android/gradle/wrapper/gradle-wrapper.properties
-
 node_modules/
 .expo/
 dist/
 web-build/
+.idea/
+.vscode/
+*.log
+local.properties
+.bundle
+
+# Ignorar carpetas nativas para que EAS ejecute prebuild limpio (Managed Workflow)
+android/
+ios/
