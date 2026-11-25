@@ -80,35 +80,55 @@ export const obtenerExpoPushToken = async (): Promise<string | null> => {
  */
 const habilitarPush = async (codigo: string, token: string, activo: boolean): Promise<void> => {
     const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.usuario/habilitarpush`;
-    await axios.put(url, null, {
-        params: {
-            codigo,
-            ppush_token: token,
-            ppush_plataforma: Platform.OS.toUpperCase(),
-            ppush_token_activo: activo,
-            ppush_token_fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss"),
-        },
+    const params = {
+        codigo,
+        ppush_token: token,
+        ppush_plataforma: Platform.OS.toUpperCase(),
+        ppush_token_activo: activo,
+        ppush_token_fecha: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss"),
+    };
+    console.log('FT::push-PUT habilitarpush', url, params);
+    const response = await axios.put(url, null, {
+        params,
         headers: API_CONFIG.HEADERS,
-        timeout: API_CONFIG.TIMEOUT,
+        // Timeout propio: el general (4s) es corto para algunos ambientes
+        timeout: 15000,
     });
+    console.log('FT::push-Respuesta habilitarpush', response.status, response.data);
 };
 
 /**
- * Registra el token del dispositivo para el usuario logueado.
- * Solo aplica si la empresa actual tiene habilitado el push. Nunca lanza excepciones.
+ * Registra el token de ESTE dispositivo para el usuario que acaba de hacer login.
+ * Regla: el último dispositivo que hace login es el que queda registrado
+ * (el back sobrescribe el token del usuario). Nunca lanza excepciones.
  */
 export const registrarPushUsuario = async (codigoUsuario?: string | null): Promise<void> => {
     try {
-        if (!codigoUsuario || !getActiveFeatures().habilitarPush) return;
+        if (!codigoUsuario) {
+            console.log('FT::push-Sin código de usuario, no se registra');
+            return;
+        }
+        if (!getActiveFeatures().habilitarPush) {
+            console.log('FT::push-Push deshabilitado para este ambiente:', API_CONFIG.BASE_URL);
+            return;
+        }
 
         const token = await obtenerExpoPushToken();
-        if (!token) return;
+        if (!token) {
+            console.log('FT::push-No se obtuvo token del dispositivo, no se registra');
+            return;
+        }
+        console.log('FT::push-Token del dispositivo', token);
 
         await habilitarPush(codigoUsuario, token, true);
         await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
         console.log('FT::push-Token registrado para', codigoUsuario);
-    } catch (error) {
-        console.log('FT::push-registrarPushUsuario', error);
+    } catch (error: any) {
+        console.log(
+            'FT::push-registrarPushUsuario ERROR',
+            error?.response?.status,
+            error?.response?.data ?? error?.message ?? error
+        );
     }
 };
 

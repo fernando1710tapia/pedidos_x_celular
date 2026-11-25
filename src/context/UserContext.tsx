@@ -36,10 +36,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
                 if (storedUser) {
                     const parsedUser = JSON.parse(storedUser);
                     setUser(parsedUser);
-                    // El token puede rotar: se vuelve a registrar al abrir la app con sesión guardada
-                    if (parsedUser?.habilitadoapp) {
-                        registrarPushUsuario(parsedUser.codigo);
-                    }
+                    // FT:: NO re-registrar el push al abrir la app: si un dispositivo viejo se abre,
+                    // le quitaría el registro al último dispositivo que hizo login.
+                    // El registro se hace solo en el login (LoginScreen).
+                    // if (parsedUser?.habilitadoapp) {
+                    //     registrarPushUsuario(parsedUser.codigo);
+                    // }
                 }
             } catch (error) {
                 console.error("Error loading user from AsyncStorage:", error);
