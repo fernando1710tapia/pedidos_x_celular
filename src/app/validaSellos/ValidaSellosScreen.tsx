@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
     StyleSheet,
     View,
@@ -19,7 +19,7 @@ import { es } from 'date-fns/locale';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { RootStackParamList } from '../../types/navigation';
 import { useUser } from '../../hooks';
-import { usoSelloService } from '../../services';
+import { usoSelloService, enviarCorreoSellos, EnviarCorreoSellosPayload } from '../../services';
 import { ApiResponse, UsoSelloInterface } from '../../types';
 import BrandLogo from '../../components/BrandLogo';
 import AppHeader from '../../components/AppHeader';
@@ -38,11 +38,11 @@ export default function ValidaSellosScreen() {
 
     // Estados
     const [date, setDate] = React.useState<Date>(new Date());
-    
+
     // Servicio de fecha estable para evitar re-creaciones en cada render
-    const dateService = React.useMemo(() => new NativeDateService('es', { 
-        format: 'DD/MM/YYYY', 
-        startDayOfWeek: 1 
+    const dateService = React.useMemo(() => new NativeDateService('es', {
+        format: 'DD/MM/YYYY',
+        startDayOfWeek: 1
     }), []);
 
     const [selectedProblems, setSelectedProblems] = useState<string[]>([]);
@@ -55,6 +55,7 @@ export default function ValidaSellosScreen() {
     const [selectedUsoSello, setSelectedUsoSello] = useState<UsoSelloInterface | null>(null);
     const [showUsoSelloDropdown, setShowUsoSelloDropdown] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [correoEnviado, setCorreoEnviado] = useState(false);
 
     // Efecto cuando cambia la fecha: buscar nuevos registros
     React.useEffect(() => {
@@ -308,10 +309,63 @@ export default function ValidaSellosScreen() {
                 console.log('Respuesta servidor:', result);
 
                 if (result.statusCode === 200) {
+                    setCorreoEnviado(false);
+
+                    // Solo comercializadora 0002 y solo si se registraron novedades
+                    const codigoComer = String(
+                        selectedUsoSello.usoselloPK?.codigocomercializadora || user?.codigocomercializadora || ''
+                    ).trim();
+
+                    const novedadesCorreo: string[] = [];
+                    if (selectedProblems.includes('rotos')) {
+                        novedadesCorreo.push('rotos');
+                    }
+                    if (selectedProblems.includes('otros')) {
+                        novedadesCorreo.push('otros números');
+                    }
+                    if (selectedProblems.includes('otra') && comment.trim() !== '') {
+                        novedadesCorreo.push(comment.trim());
+                    }
+
+                    if (codigoComer === '0002' && novedadesCorreo.length > 0) {
+                        const codCliente = String(selectedUsoSello.usoselloPK?.codigocliente || '').trim();
+                        const nomCliente = String(selectedUsoSello.nombrecliente || '').trim();
+                        const correoPayload: EnviarCorreoSellosPayload = {
+                            codigocomercializadora: codigoComer,
+                            codigoterminal: String(selectedUsoSello.usoselloPK?.codigoterminal || '').trim(),
+                            codigocliente: nomCliente ? `${codCliente} - ${nomCliente}` : codCliente,
+                            placa: String(selectedUsoSello.usoselloPK?.placa || '').trim(),
+                            sellos: sellosRecibidosNum.map(s => String(s).trim()).join(', '),
+                            novedades: novedadesCorreo.join(', '),
+                            fechahoraregistro: format(new Date(), "yyyy-MM-dd'T'HH:mm:ss.SSSxx"),
+                        };
+
+                        try {
+                            const correoRes = await enviarCorreoSellos(correoPayload);
+                            if (correoRes?.statusCode === 200 || String(correoRes?.statusCode) === '200') {
+                                setCorreoEnviado(true);
+                            } else {
+                                console.error(
+                                    'FT::correoSellos ERROR statusCode:',
+                                    correoRes?.statusCode,
+                                    JSON.stringify(correoRes)
+                                );
+                            }
+                        } catch (correoError: any) {
+                            // No mostrar ningún mensaje de error al usuario; ya queda registrado en el log
+                            console.error(
+                                'FT::correoSellos FALLO ENVIO:',
+                                correoError?.response?.status,
+                                correoError?.response?.data ?? correoError?.message ?? correoError
+                            );
+                        }
+                    }
+
                     setShowSuccessModal(true);
                     // Esperar un momento para que el usuario vea el mensaje y luego regresar
                     setTimeout(() => {
                         setShowSuccessModal(false);
+                        setCorreoEnviado(false);
                         navigation.goBack();
                     }, 2500);
                 }
@@ -332,8 +386,8 @@ export default function ValidaSellosScreen() {
         <ScreenWrapper>
             <Layout style={styles.container}>
                 {/* Header Custom */}
-                <AppHeader 
-                    codigoComercializadora={user?.codigocomercializadora || ''} 
+                <AppHeader
+                    codigoComercializadora={user?.codigocomercializadora || ''}
                     title="VALIDACIÓN DE SELLOS"
                     onBackPress={() => navigation.goBack()}
                 />
@@ -517,7 +571,15 @@ export default function ValidaSellosScreen() {
                                 <Icon name="checkmark" size={40} color="#FFFFFF" />
                             </View>
                             <Text style={styles.modalTitle}>¡Guardado Exitoso!</Text>
-                            <Text style={styles.modalMessage}>La validación de sellos se ha registrado correctamente en el sistema.</Text>
+                            <Text style={[styles.modalMessage, correoEnviado && { marginBottom: 12 }]}>
+                                La validación de sellos se ha registrado correctamente en el sistema.
+                            </Text>
+                            {correoEnviado && (
+                                <View style={styles.correoEnviadoBadge}>
+                                    <Icon name="mail-outline" size={16} color="#065F46" />
+                                    <Text style={styles.correoEnviadoText}>Mensaje enviado</Text>
+                                </View>
+                            )}
                             <View style={styles.loadingBarContainer}>
                                 <View style={styles.loadingBarFill} />
                             </View>
@@ -811,6 +873,23 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 22,
         marginBottom: 25,
+    },
+    correoEnviadoBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: '#ECFDF5',
+        borderWidth: 1,
+        borderColor: '#A7F3D0',
+        borderRadius: 12,
+        paddingVertical: 6,
+        paddingHorizontal: 14,
+        marginBottom: 20,
+    },
+    correoEnviadoText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#065F46',
     },
     loadingBarContainer: {
         width: '100%',

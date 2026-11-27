@@ -1,6 +1,44 @@
 import axios, { AxiosResponse } from "axios";
 import { API_CONFIG } from "../../constants/Config";
-import { GlobalServiceInterface } from "../../types";
+import { ApiResponse, GlobalServiceInterface } from "../../types";
+
+export interface EnviarCorreoSellosPayload {
+    codigocomercializadora: string;
+    codigoterminal: string;
+    codigocliente: string;
+    placa: string;
+    sellos: string;
+    novedades: string;
+    fechahoraregistro: string;
+}
+
+export const enviarCorreoSellos = async (
+    body: EnviarCorreoSellosPayload
+): Promise<ApiResponse<any>> => {
+    const url = `${API_CONFIG.BASE_URL}/ec.com.infinity.modelo.usosello/enviarcorreosellos`;
+    console.log('FT::correoSellos URL:', url);
+    console.log('FT::correoSellos PAYLOAD:', JSON.stringify(body));
+
+    try {
+        const response: AxiosResponse<ApiResponse<any>> = await axios.post(url, body, {
+            // Timeout propio de 15s porque el envío SMTP en backend puede tardar más que los 4s generales
+            timeout: 15000,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        });
+        console.log('FT::correoSellos RESPUESTA:', response.status, JSON.stringify(response.data));
+        return response.data;
+    } catch (error: any) {
+        console.error(
+            'FT::correoSellos ERROR:',
+            error?.response?.status,
+            error?.response?.data ?? error?.message ?? error
+        );
+        throw error;
+    }
+};
 
 export const usoSelloService: GlobalServiceInterface = {
     getResource: async <T>(resource: string, id: string = '', queryParams: Record<string, any> = {}): Promise<T> => {
