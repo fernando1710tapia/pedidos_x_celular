@@ -3,7 +3,7 @@ export * from './Login';
 export * from './NotaPedido';
 export * from './Producto';
 export * from './Terminal';
-export { default as usoSelloService } from './ValidaSellos/validaSellosServices';
+export { default as usoSelloService, enviarCorreoSellos, type EnviarCorreoSellosPayload } from './ValidaSellos/validaSellosServices';
 export * from './VolumenTotal/volumenTotalService';
 export { default as factorCorreccionService } from './FactorCorreccion/factorCorreccionService';
 export * from './PrePedido';
